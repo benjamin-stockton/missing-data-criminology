@@ -1,0 +1,204 @@
+---
+title: 'Small Simulation: Effect of Missing Data'
+author: "Ben Stockton"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, results = 'hold')
+
+library(ggplot2)
+library(cowplot)
+library(latex2exp)
+library(dplyr)
+library(doParallel)
+
+cores <- detectCores()
+cl <- makeCluster(cores[1] - 1)
+registerDoParallel(cl)
+
+source("small_sim_functions.R")
+```
+
+## Simulation Process
+
+Set $\beta = (\beta_0, \beta_X, ...)'$ and `Q` the number of iterations.
+
+For each iteration `q`:
+
+1. Generate a new data set containing $Y$, $X$, and $CTY$. 
+
+    - $CTY$ is a "county" variable with four levels. Level 3 is the reference level.
+    - $X$ is binary determined by a $CTY$. The probability $X$ is 1 depends on $CTY$ with $CTY = 1$ having probability .05 to $CTY = 4$ having probability .65.
+    - $Y$ is randomly drawn from the Bernoulli distribution with probability $$(1 + \exp(-(1, X, CTY) \beta))^{-1}$$
+
+2. Missingness is then generated in $X$ to create "Exaggerated" (EXAG) and "Understated" (UNDR) X effects based on the type of missingness (MAR/MNAR).
+3. Logistic regressions $logit(E(Y)) = (1, X, CTY)\beta$ are fit on the complete simulated data set, the EXAG data set, and the UNDR data set. For each regression, the Odds Ratio and Proportion of Missingness are recorded and used to calculate the Bias $\hat{OR}_{MissType} - \beta_X$ and difference between the missing data set estimate and the complete data set estimate $\hat{OR}_{MissType} - \hat{OR}_{Comp}$.
+4. Repeat for `Q` iterations.
+
+## Test
+
+Testing the simulation helper functions
+```{r}
+set.seed(987)
+M <- 1000
+b <- c(.05, 3, -.2, 0, -.05)
+test.df <- generate_data(b = b, M = M)
+test.df %>% head()
+
+x.miss <- generate_missing_x(test.df, "MAR")
+str(x.miss)
+x.miss[["COMP"]][1:10]
+
+sim_log_reg(test.df, x.miss, "COMP")
+sim_log_reg(test.df, x.miss, "EXAG")
+sim_log_reg(test.df, x.miss, "UNDR")
+
+full_sim(miss_type = "MAR", b = b, Q = 1)
+```
+
+---
+
+## MNAR
+
+Want to get roughly 3-5% missing in X in both cases.
+
+Exaggerate the X effect:
+
+$$p_i = P(X_i ~ Missing | Y_i, X_i) = (1 + \exp(\log(104/4) - 2 \log(5/4) ((1 - X_i) Y_i)))^-1$$
+
+Understate the X effect:
+
+$$p_i = P(X_i ~ Missing | Y_i, X_i) = (1 + \exp(\log(104/4) - 2 \log(5/4) ((1 - X_i) (1 - Y_i))))^-1$$
+
+With these probabilities for each observation, draw from a $Bernoulli(p_i)$ distribution for each observation to determine if $X_i$ is missing.
+
+```{r}
+ptime <- system.time({
+    mnar <- foreach(i = 1:5, .combine = rbind) %dopar% {
+        source("helpers.R")
+        full_sim(miss_type = "MNAR", b = b, Q = 50)
+    }
+})[3]
+ptime
+```
+
+---
+
+## MAR
+
+Want to get roughly 3% missing in X in both cases.
+
+Exaggerate the X effect:
+
+Create $Z_{i1} = (X_i == 0 ~\& ~Y_i == 1)$ and calculate the logistic regression of $Z_1$ on $CTY$. Use the predicted probabilities $\mathbf{p} = (p_1,..,p_N)'$ to sample from a $Bernoulli(p_i)$ distribution for each observation to determine if $X_i$ is missing.
+
+Understate the X effect:
+
+Similarly, create $Z_{i2} = (X_i == 1 ~\& ~Y_i == 1)$ and repeat the process to determine if $X_i$ is missing.
+
+```{r}
+stime <- system.time({
+    mar <- foreach(i = 1:5, .combine = rbind) %dopar% {
+        source("helpers.R")
+        full_sim(miss_type = "MAR", b = b, Q = 50)
+    }
+})[3]
+stime
+stopCluster(cl)
+```
+
+---
+
+## Results
+
+### Tables
+
+```{r, echo = FALSE}
+sim.res <- rbind(mnar, mar)
+
+mean_OR <- sim.res %>% group_by(MISS_TYPE, DIRECTION) %>%
+    summarize(or_mean = round(mean(ODDS_RATIO), 3),
+              quant_025 = quantile(ODDS_RATIO, probs = .025),
+              quant_975 = quantile(ODDS_RATIO, probs = .975))
+mean_OR
+
+mean_PM <- sim.res %>% group_by(MISS_TYPE, DIRECTION) %>%
+    summarize(pm_mean = round(mean(PROP_MISS), 3),
+              quant_025 = quantile(PROP_MISS, probs = .025),
+              quant_975 = quantile(PROP_MISS, probs = .975))
+mean_PM
+
+mean_DIFF <- sim.res %>% group_by(MISS_TYPE, DIRECTION) %>%
+    summarize(diff_mean = round(mean(OR_DIFF), 3),
+              quant_025 = quantile(OR_DIFF, probs = .025),
+              quant_975 = quantile(OR_DIFF, probs = .975))
+mean_DIFF
+
+mean_BIAS <- sim.res %>% group_by(MISS_TYPE, DIRECTION) %>%
+    summarize(bias_mean = round(mean(OR_BIAS), 3),
+              quant_025 = quantile(OR_BIAS, probs = .025),
+              quant_975 = quantile(OR_BIAS, probs = .975))
+mean_BIAS
+```
+
+
+### Plots
+
+```{r echo = FALSE}
+or_plt <- ggplot(sim.res, aes(x = ODDS_RATIO, color = DIRECTION)) +
+    geom_density() +
+    geom_vline(data = mean_OR, aes(xintercept = or_mean, color = DIRECTION)) +
+    geom_text(data = mean_OR, 
+              aes(x = or_mean, y = 5, label = or_mean, color = DIRECTION),
+              nudge_x = .1, angle = 30) +
+    labs(title = "Densities of Odds Ratios of the Race Effect", 
+         x = "Odds Ratio") +
+    facet_grid(MISS_TYPE ~ ., scales = "free_y")
+
+pm_plt <- ggplot(sim.res, aes(x = PROP_MISS, color = DIRECTION)) +
+    geom_density() +
+    geom_vline(data = mean_PM, aes(xintercept = pm_mean, color = DIRECTION)) +
+    geom_text(data = mean_PM, 
+              aes(x = pm_mean, y = 45, label = pm_mean, color = DIRECTION),
+              nudge_x = .01, angle = 30) +
+    labs(title = "Densities of Prop. of Miss. in Race", 
+         x = "Missing Proportion") +
+    facet_grid(MISS_TYPE ~ ., scales = "free_y")
+
+cowplot::plot_grid(or_plt, pm_plt, nrow = 2)
+```
+
+```{r echo = FALSE}
+diff_plt <- ggplot(sim.res, aes(x = OR_DIFF, color = DIRECTION)) +
+    geom_density() +
+    geom_vline(data = mean_DIFF, aes(xintercept = diff_mean, color = DIRECTION)) +
+    geom_text(data = mean_DIFF, 
+              aes(x = diff_mean, y = 2, label = diff_mean, color = DIRECTION),
+              nudge_x = .05, angle = 30) +
+    labs(title = "Densities of Diff in Est. OR of the Race Effect", 
+         x = TeX("$OR_{miss} - OR_{comp}$")) +
+    facet_grid(MISS_TYPE ~ ., scales = "free_y")
+
+bias_plt <- ggplot(sim.res, aes(x = OR_BIAS, color = DIRECTION)) +
+    geom_density() +
+    geom_vline(data = mean_BIAS, aes(xintercept = bias_mean, color = DIRECTION)) +
+    geom_text(data = mean_BIAS, 
+              aes(x = bias_mean, y = 1, label = bias_mean, color = DIRECTION),
+              nudge_x = .05, angle = 30) +
+    labs(title = "Densities of Bias in Est. OR of the Race Effect", 
+         x = TeX("$OR_{miss} - e^\\beta$")) +
+    facet_grid(MISS_TYPE ~ ., scales = "free_y")
+
+cowplot::plot_grid(diff_plt, bias_plt, nrow = 2)
+```
+
+```{r echo = FALSE}
+# or_bias_diff <- ggplot(sim.res, aes(x = OR_BIAS, y = OR_DIFF, color = DIRECTION)) +
+#     geom_point() +
+#     facet_grid(MISS_TYPE ~ DIRECTION)
+# 
+# cowplot::plot_grid(bias_plt, or_bias_diff, nrow = 2)
+```
+

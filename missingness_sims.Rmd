@@ -1,0 +1,207 @@
+---
+title: "Criminology Missingness Simulations"
+author: "Ben Stockton"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, results = 'hold')
+library(dplyr, warn.conflicts = FALSE)
+
+# Suppress summarise info
+options(dplyr.summarise.inform = FALSE)
+library(magrittr)
+library(ggplot2)
+library(RColorBrewer)
+library(mice)
+library(lattice)
+library(VIM)
+library(haven)
+library(readr)
+library(cowplot)
+library(doParallel)
+
+cores <- detectCores()
+cl <- makeCluster(cores[1] - 1)
+registerDoParallel(cl)
+```
+
+```{r}
+dat <- read_csv("Data/simulated_data.csv", col_types = "dfdffffffdfdd")
+```
+
+Running similar simulations but now with the simulated criminology data set, so I'm not creating a new data set with each iteration to save time for now. The regression is now on all twelve predictors instead of just X and CTY. If a defendant doesn't meet the qualifications for missingness, we assume they are completely observed. Probability of missingness is set to get roughly 3-5% of defendants missing Race observations in the sample.
+
+## MNAR
+
+Want to get roughly 3% missing in OFF_RACER in both cases.
+
+Overstate the Race effect: Missingness in Race is conditional on Race being non-White & not being incarcerated.
+$$P(\mathrm{RACE ~is ~Miss} ~|~ \mathrm{RACE ~is~not~WHITE}, ~\mathrm{INCAR} = 0) = .25$$
+
+Understate the Race effect: Missingness in Race is conditional on Race being non-White & being incarcerated.
+$$P(\mathrm{OFF\_RACER ~is ~Miss} ~|~ \mathrm{OFF\_RACER ~is~not~WHITE}, ~\mathrm{INCAR} = 1) = .3$$
+
+
+```{r}
+ptime <- system.time({
+    mnar <- foreach(i = 1:5, .combine = rbind) %dopar% {
+    source("helpers.R")
+    sim_log_reg_w_miss(data = dat, 
+                           prop_miss1 = .25, prop_miss2 = .3,
+                           miss_type = "MNAR", Q = 20)
+    }
+})[3]
+ptime
+```
+
+```{r}
+dat.norace <- dat %>% select(INCAR, COUNTY, YEAR, RECMIN, TRIAL, PRS,
+                             OGS, OGSQ, DOSAGE, DOSAGEQ, CRIMETYPE, MALE)
+dat.norace$RACE_WHITE <- ifelse(dat$OFF_RACER == "WHITE", 1, 0)
+table(dat.norace$RACE_WHITE)
+
+race_fit <- glm(RACE_WHITE ~ INCAR + COUNTY + YEAR + RECMIN + TRIAL + PRS +
+                    OGS + OGSQ + DOSAGE + DOSAGEQ + CRIMETYPE + MALE,
+                data = dat.norace, family = binomial(link = "logit"))
+summary(race_fit)
+```
+
+
+## MAR
+
+Want to get roughly 3% missing in OFF_RACER in both cases.
+
+```{r}
+race_by_county <- dat %>% group_by(COUNTY) %>%
+    summarise(prop_white = mean(OFF_RACER == "WHITE", na.rm = T),
+              prop_black = mean(OFF_RACER == "BLACK", na.rm = T),
+              prop_latino = mean(OFF_RACER == "LATINO", na.rm = T),
+              prop_other = mean(OFF_RACER == "OTHER", na.rm = T)) %>%
+    as.data.frame()
+
+cty_set_1 <- race_by_county %>% filter(prop_white < .55) %>%
+    arrange(desc(prop_black)) %>% select(COUNTY)
+cty_set_2 <- race_by_county %>% filter(prop_white > .75) %>%
+    arrange(desc(prop_white)) %>% select(COUNTY)
+cty_set_1 <- cty_set_1[,1]
+cty_set_2 <- cty_set_2[,1]
+
+mean(dat$COUNTY %in% cty_set_1)
+mean(dat$COUNTY %in% cty_set_2)
+dat %>% filter(COUNTY %in% cty_set_1) %>% summarize(prop_incar = mean(INCAR == 1))
+dat %>% filter(COUNTY %in% cty_set_2) %>% summarize(prop_incar = mean(INCAR == 1))
+dat %>% filter(COUNTY %in% cty_set_2) %>% summarize(prop_black = mean(OFF_RACER == "BLACK"))
+```
+
+Overstate the Race effect: Missingness in Race conditional on being in a county with  <50% White defendants & not being incarcerated OR being in county with >90% White defendants & being incarcerated.
+$$P[\mathrm{RACE ~is ~Miss} ~|~ (\mathrm{County ~is~<50\% ~ WHITE}, ~\mathrm{INCAR} = 0) \cup (\mathrm{County ~is~>90\% ~ WHITE}, ~\mathrm{INCAR} = 1)] = .2$$
+
+Understate the Race effect: Missingness in Race is conditional on being in a county with <50% White defendants & being incarcerated OR being in a county with >90% White defendants & not being incarcerated.
+
+$$P[\mathrm{RACE ~is ~Miss} ~|~ (\mathrm{County ~is~<50\% ~ WHITE}, ~\mathrm{INCAR} = 1) \cup (\mathrm{County ~is~>90\% ~ WHITE}, ~\mathrm{INCAR} = 0)] = .2$$
+```{r}
+ptime <- system.time({
+    mar <- foreach(i = 1:5, .combine = rbind) %dopar% {
+    source("helpers.R")
+    sim_log_reg_w_miss(data = dat, 
+                           prop_miss1 = .9, prop_miss2 = .9,
+                           miss_type = "MAR", Q = 20)
+    }
+})[3]
+ptime
+stopCluster(cl)
+```
+
+## Results
+
+### Tables
+
+```{r echo = FALSE}
+sim.res <- rbind(mnar, mar)
+
+mean_OR <- sim.res %>% group_by(MISS_TYPE, DIRECTION) %>%
+    summarize(or_mean = round(mean(ODDS_RATIO), 3),
+              quant_025 = quantile(ODDS_RATIO, probs = .025),
+              quant_975 = quantile(ODDS_RATIO, probs = .975))
+mean_OR
+
+mean_PM <- sim.res %>% group_by(MISS_TYPE, DIRECTION) %>%
+    summarize(pm_mean = round(mean(PROP_MISS), 3),
+              quant_025 = quantile(PROP_MISS, probs = .025),
+              quant_975 = quantile(PROP_MISS, probs = .975))
+mean_PM
+
+mean_DIFF <- sim.res %>% group_by(MISS_TYPE, DIRECTION) %>%
+    summarize(diff_mean = round(mean(OR_DIFF), 3),
+              quant_025 = quantile(OR_DIFF, probs = .025),
+              quant_975 = quantile(OR_DIFF, probs = .975))
+mean_DIFF
+
+mean_BIAS <- sim.res %>% group_by(MISS_TYPE, DIRECTION) %>%
+    summarize(bias_mean = round(mean(OR_BIAS), 3),
+              quant_025 = quantile(OR_BIAS, probs = .025),
+              quant_975 = quantile(OR_BIAS, probs = .975))
+mean_BIAS
+```
+
+### Plots
+
+```{r echo = FALSE}
+or_plt <- ggplot(sim.res, aes(x = ODDS_RATIO, color = DIRECTION)) +
+    geom_density() +
+    geom_vline(data = mean_OR, aes(xintercept = or_mean, color = DIRECTION)) +
+    geom_text(data = mean_OR, 
+              aes(x = or_mean, y = 5, label = or_mean, color = DIRECTION),
+              nudge_x = .1, angle = 30) +
+    labs(title = "Densities of Odds Ratios of the Race Effect", 
+         x = "Odds Ratio") +
+    facet_grid(MISS_TYPE ~ ., scales = "free_y")
+
+pm_plt <- ggplot(sim.res, aes(x = PROP_MISS, color = DIRECTION)) +
+    geom_density() +
+    geom_vline(data = mean_PM, aes(xintercept = pm_mean, color = DIRECTION)) +
+    geom_text(data = mean_PM, 
+              aes(x = pm_mean, y = 45, label = pm_mean, color = DIRECTION),
+              nudge_x = .01, angle = 30) +
+    labs(title = "Densities of Prop. of Miss. in Race", 
+         x = "Missing Proportion") +
+    facet_grid(MISS_TYPE ~ ., scales = "free_y")
+
+cowplot::plot_grid(or_plt, pm_plt, nrow = 2)
+```
+
+```{r echo = FALSE}
+diff_plt <- ggplot(sim.res, aes(x = OR_DIFF, color = DIRECTION)) +
+    geom_density() +
+    geom_vline(data = mean_DIFF, aes(xintercept = diff_mean, color = DIRECTION)) +
+    geom_text(data = mean_DIFF, 
+              aes(x = diff_mean, y = 2, label = diff_mean, color = DIRECTION),
+              nudge_x = .05, angle = 30) +
+    labs(title = "Densities of Diff in Est. OR of the Race Effect", 
+         x = TeX("$OR_{miss} - OR_{comp}$")) +
+    facet_grid(MISS_TYPE ~ ., scales = "free_y")
+
+bias_plt <- ggplot(sim.res, aes(x = OR_BIAS, color = DIRECTION)) +
+    geom_density() +
+    geom_vline(data = mean_BIAS, aes(xintercept = bias_mean, color = DIRECTION)) +
+    geom_text(data = mean_BIAS, 
+              aes(x = bias_mean, y = 1, label = bias_mean, color = DIRECTION),
+              nudge_x = .05, angle = 30) +
+    labs(title = "Densities of Bias in Est. OR of the Race Effect", 
+         x = TeX("$OR_{miss} - e^\\beta$")) +
+    facet_grid(MISS_TYPE ~ ., scales = "free_y")
+
+cowplot::plot_grid(diff_plt, bias_plt, nrow = 2)
+```
+
+```{r echo = FALSE}
+# or_bias_diff <- ggplot(sim.res, aes(x = OR_BIAS, y = OR_DIFF, color = DIRECTION)) +
+#     geom_point() +
+#     facet_grid(MISS_TYPE ~ DIRECTION)
+# 
+# cowplot::plot_grid(bias_plt, or_bias_diff, nrow = 2)
+```
+
+

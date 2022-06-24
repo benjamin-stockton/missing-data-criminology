@@ -6,8 +6,11 @@ output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-library(dplyr)
+knitr::opts_chunk$set(echo = TRUE, results = 'hold', warning = FALSE)
+library(dplyr, warn.conflicts = FALSE)
+
+# Suppress summarise info
+options(dplyr.summarise.inform = FALSE)
 library(magrittr)
 library(ggplot2)
 library(RColorBrewer)
@@ -19,25 +22,31 @@ library(readr)
 library(cowplot)
 ```
 
+
+## Data Prep and Tidying
+
 ```{r}
 dat <- read_dta("Data/Most Serious Sentence (2010-2019, limited).dta")
 colnames(dat)
 ```
 
-```{r}
+```{r, echo = FALSE}
 dat$TRIAL <- factor(dat$TRIAL, labels = c("Yes", "Plea"))
 dat$MALE <- factor(dat$MALE, labels = c("Female", "Male"))
 dat$RECMIN <- factor(dat$RECMIN, labels = c("Yes", "No"))
 ```
 
 
-```{r}
+```{r, echo = FALSE}
 dat[dat$UNKNOWN == 1, "OFF_RACER"] <- NA
 dat$OFF_RACER <- factor(dat$OFF_RACER, labels = c("WHITE", "BLACK", "LATINO", "OTHER"))
 ```
 
+### Overview of the Predictors
 
-```{r}
+Either tables or summaries with histograms of the predictors.
+
+```{r, echo = FALSE, results = 'hide'}
 table(dat$INCAR, useNA = "ifany")
 table(dat$MALE, useNA = "ifany")
 table(dat$BLACK, dat$LATINO, useNA = "ifany")
@@ -51,21 +60,32 @@ table(dat$PRS_45, useNA = "ifany")
 table(dat$PRS_RR, useNA = "ifany")
 ```
 
+Defendant Age at Trial
+
 ```{r}
-hist(dat$DOSAGE)
+hist(dat$DOSAGE, main = "Defendant Age at Trial", xlab = "Age")
 summary(dat$DOSAGE)
 ```
+
+Offense Gravity Score
+
 ```{r}
 table(dat$OGS)
-hist(dat$OGS, breaks = 16)
+hist(dat$OGS, breaks = 16, main = "Offense Gravity Score", xlab = "Score")
 summary(dat$OGS)
 ```
+
+Previous Criminal History
 
 ```{r}
 dat$PRS <- factor(dat$PRS_0 + 2 * dat$PRS_123 + 3 * dat$PRS_45 + 4 * dat$PRS_RR,
                   labels = c("None", "1/2/3", "4/5", "REVOC/RFEL"))
 table(dat$PRS, useNA = "ifany")
 ```
+
+Crime Type
+
+
 
 ```{r}
 dat$CRIMETYPE <- factor(dat$PERSONS + 2 * dat$PROPERTY + 3 * dat$DRUGNEW 
@@ -75,12 +95,18 @@ dat$CRIMETYPE <- factor(dat$PERSONS + 2 * dat$PROPERTY + 3 * dat$DRUGNEW
 table(dat$CRIMETYPE, useNA = "ifany")
 ```
 
+Year
+
+
 ```{r}
 dat$YEAR <- factor(dat$YEAR1 + 2 * dat$YEAR2 + 3 * dat$YEAR3 + 4 * dat$YEAR4 
                    + 5 * dat$YEAR5 + 6 * dat$YEAR6 + 7 * dat$YEAR7 
                    + 8 * dat$YEAR8 + 9 * dat$YEAR9 + 10 * dat$YEAR10 + 2009)
 table(dat$YEAR, useNA = "ifany")
 ```
+
+County
+
 
 ```{r}
 dat$COUNTY <- rep(0, nrow(dat))
@@ -96,32 +122,41 @@ table(dat$COUNTY32, useNA = "ifany")
 dat.sm <- dat %>% select(INCAR, CRIMETYPE, OGS, OGSQ, RECMIN, TRIAL, PRS, 
                          MALE, DOSAGE, DOSAGEQ, OFF_RACER, COUNTY, YEAR)
 
-write_csv(dat.sm, "Data/most_serious_sentence_2010-2019_slim.csv")
+# write_csv(dat.sm, "Data/most_serious_sentence_2010-2019_slim.csv")
 rm(dat)
 
 head(dat.sm)
 ```
 
+## Missing Data Pattern
+
+Checking the missing data pattern.
+
 ```{r, fig.width=8}
-md.pattern(dat.sm, rotate.names = T)
+md.pattern(dat.sm[,c("INCAR", "OFF_RACER", "CRIMETYPE", "TRIAL", "OGS",
+                     "RECMIN", "PRS", "DOSAGE", "MALE", "COUNTY", "YEAR")],
+           rotate.names = T)
 ```
 
 ```{r}
-prop_mis <- (31562-1557) / nrow(dat.sm)
-prop_mis
+prop_mis <- (30005) / nrow(dat.sm)
 ```
 
-```{r}
-# marginplot(dat.sm[,c("RECMIN", "PRS")])
-```
+`r 100 * round(prop_mis, 3)`% of the observations have at least one missing value. All missing values are in PRS, AGE, RECMIN, and RACE.
 
-```{r}
-pbox(dat.sm, pos = 3, main = "Offense Gravity Score by Missingness")
-```
+<!-- ```{r} -->
+<!-- # marginplot(dat.sm[,c("RECMIN", "PRS")]) -->
+<!-- ``` -->
 
-```{r}
-pbox(dat.sm, pos = 9, main = "Offender Age by Missingness")
-```
+<!-- ```{r} -->
+<!-- pbox(dat.sm, pos = 3, main = "Offense Gravity Score by Missingness") -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- pbox(dat.sm, pos = 9, main = "Offender Age by Missingness") -->
+<!-- ``` -->
+
+## Logistic Regression with CCA on the full observed data
 
 ```{r}
 # CCA Logistic Regression INCAR ~ .
@@ -130,8 +165,11 @@ fit <- glm(INCAR ~ ., data = dat.sm,
 # summary(fit)
 coef(fit) %>% round(3)
 beta <- coef(fit)
-# rm(fit)
 ```
+
+The odds ratio of the Race Effect (comparing Black defendants to White defendants) is `r round(exp(beta)["OFF_RACERBLACK"], 3)`. 
+
+## Investigating Race by County
 
 ```{r}
 race_by_county <- dat.sm %>% group_by(COUNTY) %>%
@@ -140,7 +178,7 @@ race_by_county <- dat.sm %>% group_by(COUNTY) %>%
               prop_latino = mean(OFF_RACER == "LATINO", na.rm = T),
               prop_other = mean(OFF_RACER == "OTHER", na.rm = T)) %>% as.data.frame()
 race_by_county %>% arrange(desc(prop_black)) %>% head(10)
-race_by_county %>% arrange(desc(prop_white)) %>% head(30)
+race_by_county %>% arrange(desc(prop_white)) %>% head(10)
 ```
 
 ## Simulating Data 
@@ -155,9 +193,9 @@ dat.sim <- data.frame(INCAR = rep(0, N.sim))
 ```
 
 
-### Simulating Covariates
+### Simulating predictors
 
-```{r}
+```{r, echo = FALSE}
 my_gg_bar <- function(dat, X, ...) {
     p1 <- ggplot(dat, aes_string(x = X), ) +
         geom_bar(aes(y = prop.table(stat(count))), 
@@ -174,7 +212,10 @@ my_gg_bar <- function(dat, X, ...) {
 }
 ```
 
+#### CRIMETYPE
+
 Crimetype (Categorical, 5 levels) - Person, Property, Drug-new, DUI, Other
+
 ```{r}
 pt <- prop.table(table(dat.sm$CRIMETYPE))
 
@@ -185,7 +226,10 @@ p2 <- my_gg_bar(dat.sim, "CRIMETYPE")
 cowplot::plot_grid(p1, p2, nrow = 1)
 ```
 
-Offense Gravity Score OGS (ordinal, 1-14)
+#### OGS
+
+Offense Gravity Score (ordinal, 1-14)
+
 ```{r}
 pt <- prop.table(table(dat.sm$OGS))
 
@@ -199,7 +243,10 @@ cowplot::plot_grid(p1, p2, nrow = 1)
 ```
 
 
-TRIAL (Binary) - Yes = 1 or Plea Negotiation = 0
+#### TRIAL 
+
+Trial (Binary) - Yes = 1 or Plea Negotiation = 0
+
 ```{r}
 pt <- prop.table(table(dat.sm$TRIAL))
 
@@ -210,7 +257,10 @@ p2 <- my_gg_bar(dat.sim, "TRIAL")
 cowplot::plot_grid(p1, p2, nrow = 1)
 ```
 
-MALE (Binary) - Male = 1, Female = 0
+#### MALE 
+
+Gender (Binary) - Male = 1, Female = 0
+
 ```{r}
 pt <- prop.table(table(dat.sm$MALE))
 
@@ -222,7 +272,9 @@ cowplot::plot_grid(p1, p2, nrow = 1)
 ```
 
 
-COUNTY (Categorical, 67 levels) - Counties in Pennsylvania; should be viewed as a random effect in a properly set up model. Will need to decide if that's the direction I want to go. Keeping things as simple as possible would probably require selecting just a single county for analysis.
+#### COUNTY (Categorical, 67 levels) - Counties in Pennsylvania
+
+This variable should be viewed as a random effect in a properly set up model. Will need to decide if that's the direction I want to go. Keeping things as simple as possible would probably require selecting just a single county for analysis.
 
 ```{r}
 pt <- prop.table(table(dat.sm$COUNTY))
@@ -234,7 +286,9 @@ p2 <- my_gg_bar(dat.sim, "COUNTY")
 cowplot::plot_grid(p1, p2, nrow = 2)
 ```
 
-OFF_RACER (Categorical, 5 levels) - White (ref), Black, Latino, AAPI/Other, Unknown/NA 
+#### OFF_RACER 
+
+Defendent Race (Categorical, 5 levels) - White (ref), Black, Latino, AAPI/Other, Unknown/NA 
 
 ```{r}
 race <- numeric(N.sim)
@@ -246,10 +300,7 @@ for (i in 1:N.sim) {
 }
 race <- factor(race, labels = c("WHITE", "BLACK", "LATINO", "OTHER"))
 dat.sim$OFF_RACER <- race
-```
 
-
-```{r}
 p1 <- my_gg_bar(dat.sm, "OFF_RACER")
 p2 <- my_gg_bar(dat.sim, "OFF_RACER")
 cowplot::plot_grid(p1, p2, nrow = 1)
@@ -263,11 +314,13 @@ race_by_county <- dat.sim %>% group_by(COUNTY) %>%
               prop_latino = mean(OFF_RACER == "LATINO", na.rm = T),
               prop_other = mean(OFF_RACER == "OTHER", na.rm = T)) %>% as.data.frame()
 race_by_county %>% arrange(desc(prop_black)) %>% head(10)
-race_by_county %>% arrange(desc(prop_white)) %>% head(30)
+race_by_county %>% arrange(desc(prop_white)) %>% head(10)
 ```
 
 
-YEAR (Categorical, 10 levels) - Indicators for the year from 2010 to 2019
+#### YEAR (Categorical, 10 levels)
+
+Indicators for the year from 2010 to 2019
 ```{r}
 pt <- prop.table(table(dat.sm$YEAR))
 
@@ -278,7 +331,9 @@ cowplot::plot_grid(p1, p2, nrow = 1)
 ```
 
 
-Previous Criminal History PRS (Categorical, 4 levels) - 0, 1/2/3, 4/5, REVOC/RFEL; REVOC/RFEL is the most serious
+#### Previous Criminal History PRS (Categorical, 4 levels) - 0, 1/2/3, 4/5, REVOC/RFEL
+
+REVOC/RFEL is the most serious
 ```{r}
 pt <- prop.table(table(dat.sm$PRS))
 
@@ -289,6 +344,7 @@ p2 <- my_gg_bar(dat.sim, "PRS")
 cowplot::plot_grid(p1, p2, nrow = 1)
 ```
 
+#### DOSAGE
 
 Defendant's Age at Sentencing DOSAGE (Numeric, from 11.71 to 113.88)
 ```{r}
@@ -304,10 +360,10 @@ p2 <- ggplot(dat.sim, aes(DOSAGE)) +
 cowplot::plot_grid(p1, p2, nrow = 1)
 ```
 
+#### RECMIN
 
-Recommended Minimum Sentence RECMIN (Binary) - Yes = 1, No = 0
+Recommended Minimum Sentence (Binary) - Yes = 1, No = 0
 ```{r}
-
 pt <- prop.table(table(dat.sm$RECMIN))
 
 dat.sim$RECMIN <- factor(sample(0:1, size = N.sim, prob = pt, replace = T), 
@@ -317,13 +373,20 @@ p2 <- my_gg_bar(dat.sim, "RECMIN")
 cowplot::plot_grid(p1, p2, nrow = 1)
 ```
 
+#### Simulating INCAR
+
+Simulating Incarceration decision based on the simulated predictors using the estimated regression coefficients from the CCA logistic regression. Using the regression fit, I assign with a draw from a Bernoulli distribution with the predicted probability for each observation.
+
 ```{r}
+# creating quadratic terms
 dat.sim$OGSQ <- dat.sim$OGS ^ 2
 dat.sim$DOSAGEQ <- dat.sim$DOSAGE ^ 2
+
 # Fitted probabilities + some error ~ normal(0, .25^2)
-INCAR_p <- predict(fit, dat.sim, type = "response") + rnorm(N.sim, mean = 0, sd = .25)
+INCAR_p <- predict(fit, dat.sim, type = "response")
+
 # Outcomes from probs
-dat.sim$INCAR <- ifelse(INCAR_p > .5, 1, 0)
+dat.sim$INCAR <- rbinom(N.sim, 1, INCAR_p)
 
 p1 <- my_gg_bar(dat.sm, "INCAR")
 p2 <- my_gg_bar(dat.sim, "INCAR")
@@ -332,16 +395,34 @@ cowplot::plot_grid(p1, p2, nrow = 1)
 ```
 
 ```{r}
-write_csv(dat.sim, "Data/simulated_data.csv")
+# write_csv(dat.sim, "Data/simulated_data.csv")
 ```
 
-
+A quick logistic regression to see how closely these estimates match what I'm taking to be the true estimates from the CCA regression
 ```{r}
 fit2 <- glm(INCAR ~ ., dat.sim, family = binomial(link = "logit"))
 # summary(fit2)
-coef(fit2) %>% round(3)
+est.beta <- coef(fit2)
+
+print(paste0("Avg. Bias = ", round(mean(est.beta - beta), 4)))
+print(paste0("MSE = ", round(sum((est.beta - beta)^2), 4)))
 ```
 
+```{r fig.width = 8, fig.height = 4}
+coef.names <- names(beta)
+bias.df <- data.frame(Covariate = coef.names, 
+                      Bias = est.beta - beta)
+
+bias.df$Large_Bias <- ifelse(abs(bias.df$Bias) > 1.5, "Large", "Small/Moderate")
+ggplot(bias.df, aes(x = Covariate, y = Bias, color = Large_Bias)) +
+    geom_point() +
+    geom_text(aes(label = ifelse(Large_Bias == "Large", Covariate, "")),
+              nudge_y = 1) +
+    geom_hline(yintercept = c(0, 1.5, -1.5)) +
+    coord_cartesian(xlim = c(-1, 93)) +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+          legend.position = "bottom")
+```
 
 
 
