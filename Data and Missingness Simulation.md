@@ -285,3 +285,11 @@ AIC: 9554.5
 Number of Fisher Scoring iterations: 10
 
 In my small simulation, I set it so that the predicted probabilities for the logistic regression of $(Y == 1 \& X == 1)$ or $(Y == 0 \& X == 1)$ on $CTY$ so that the missingness is a function of $X$ and $Y$. But this doesn't change the results at all even though this is now MNAR. 
+
+### Confounding
+
+I introduced confounding in the model by having
+$$X = \alpha CTY$$
+$$logit(E(Y)) = \beta_1 + \beta_2 X + \beta_3 CTY$$ so that $CTY$ is a cause of both $X$ and $Y$. As in Bartlett et al 2015 (Table 1), this is a case where the missingness is $X$ doesn't change the bias in the estimate of $\beta_2$.
+
+So I need to come up with a different way to induce missingness in $X$.

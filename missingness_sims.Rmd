@@ -13,6 +13,7 @@ library(dplyr, warn.conflicts = FALSE)
 options(dplyr.summarise.inform = FALSE)
 library(magrittr)
 library(ggplot2)
+library(latex2exp)
 library(RColorBrewer)
 library(mice)
 library(lattice)
@@ -44,7 +45,7 @@ Understate the Race effect: Missingness in Race is conditional on Race being non
 $$P(\mathrm{OFF\_RACER ~is ~Miss} ~|~ \mathrm{OFF\_RACER ~is~not~WHITE}, ~\mathrm{INCAR} = 1) = .3$$
 
 
-```{r}
+```{r mnar-sim}
 ptime <- system.time({
     mnar <- foreach(i = 1:5, .combine = rbind) %dopar% {
     source("helpers.R")
@@ -73,7 +74,7 @@ summary(race_fit)
 
 Want to get roughly 3% missing in OFF_RACER in both cases.
 
-```{r}
+```{r race-by-county}
 race_by_county <- dat %>% group_by(COUNTY) %>%
     summarise(prop_white = mean(OFF_RACER == "WHITE", na.rm = T),
               prop_black = mean(OFF_RACER == "BLACK", na.rm = T),
@@ -101,7 +102,7 @@ $$P[\mathrm{RACE ~is ~Miss} ~|~ (\mathrm{County ~is~<50\% ~ WHITE}, ~\mathrm{INC
 Understate the Race effect: Missingness in Race is conditional on being in a county with <50% White defendants & being incarcerated OR being in a county with >90% White defendants & not being incarcerated.
 
 $$P[\mathrm{RACE ~is ~Miss} ~|~ (\mathrm{County ~is~<50\% ~ WHITE}, ~\mathrm{INCAR} = 1) \cup (\mathrm{County ~is~>90\% ~ WHITE}, ~\mathrm{INCAR} = 0)] = .2$$
-```{r}
+```{r mar-sim}
 ptime <- system.time({
     mar <- foreach(i = 1:5, .combine = rbind) %dopar% {
     source("helpers.R")
@@ -118,7 +119,7 @@ stopCluster(cl)
 
 ### Tables
 
-```{r echo = FALSE}
+```{r tables, echo = FALSE}
 sim.res <- rbind(mnar, mar)
 
 mean_OR <- sim.res %>% group_by(MISS_TYPE, DIRECTION) %>%
@@ -148,7 +149,7 @@ mean_BIAS
 
 ### Plots
 
-```{r echo = FALSE}
+```{r plots1, echo = FALSE}
 or_plt <- ggplot(sim.res, aes(x = ODDS_RATIO, color = DIRECTION)) +
     geom_density() +
     geom_vline(data = mean_OR, aes(xintercept = or_mean, color = DIRECTION)) +
@@ -172,7 +173,7 @@ pm_plt <- ggplot(sim.res, aes(x = PROP_MISS, color = DIRECTION)) +
 cowplot::plot_grid(or_plt, pm_plt, nrow = 2)
 ```
 
-```{r echo = FALSE}
+```{r plot2, echo = FALSE}
 diff_plt <- ggplot(sim.res, aes(x = OR_DIFF, color = DIRECTION)) +
     geom_density() +
     geom_vline(data = mean_DIFF, aes(xintercept = diff_mean, color = DIRECTION)) +
@@ -196,7 +197,7 @@ bias_plt <- ggplot(sim.res, aes(x = OR_BIAS, color = DIRECTION)) +
 cowplot::plot_grid(diff_plt, bias_plt, nrow = 2)
 ```
 
-```{r echo = FALSE}
+```{r plots3, echo = FALSE}
 # or_bias_diff <- ggplot(sim.res, aes(x = OR_BIAS, y = OR_DIFF, color = DIRECTION)) +
 #     geom_point() +
 #     facet_grid(MISS_TYPE ~ DIRECTION)
