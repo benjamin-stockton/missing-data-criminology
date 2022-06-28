@@ -20,6 +20,7 @@ library(VIM)
 library(haven)
 library(readr)
 library(cowplot)
+source("helpers.R")
 ```
 
 
@@ -139,6 +140,7 @@ md.pattern(dat.sm[,c("INCAR", "OFF_RACER", "CRIMETYPE", "TRIAL", "OGS",
 ```
 
 ```{r}
+c(834548, 26206, 2078, 34, 1465, 92, 3) / 86442
 prop_mis <- (30005) / nrow(dat.sm)
 ```
 
@@ -165,6 +167,11 @@ fit <- glm(INCAR ~ ., data = dat.sm,
 # summary(fit)
 coef(fit) %>% round(3)
 beta <- coef(fit)
+save(fit, file = "full_data_cca_log_reg.rda")
+```
+
+```{r}
+rm(fit)
 ```
 
 The odds ratio of the Race Effect (comparing Black defendants to White defendants) is `r round(exp(beta)["OFF_RACERBLACK"], 3)`. 
@@ -183,34 +190,17 @@ race_by_county %>% arrange(desc(prop_white)) %>% head(10)
 
 ## Simulating Data 
 
-I'll create a simulated data set of 10,000 observations initially (can always change the size later).
+I'll create a simulated "population" data set of the same size as the original data. For the simulations, I'll draw a small sample from the data.
 
 For each predictor, I'll create a random sample from a distribution corresponding to the data type. So for a binary variable, I'll use $\hat{p}$ as the parameter of a Bernoulli distribution. For categorical and ordinal data, I'll draw randomly from the categories weighted by the observed prevalences. For continuous data I'll draw from a normal or gamma distribution depending on the shape and constraints on the real data. Finally the incarceration response is defined to be exactly $P(Y_i^{sim} = 1 | X^{sim}) = logit^{-1}(X^{sim}\hat{\beta})$.
 
 ```{r}
-N.sim <- 10000
+N.sim <- nrow(dat.sm)
 dat.sim <- data.frame(INCAR = rep(0, N.sim))
 ```
 
 
 ### Simulating predictors
-
-```{r, echo = FALSE}
-my_gg_bar <- function(dat, X, ...) {
-    p1 <- ggplot(dat, aes_string(x = X), ) +
-        geom_bar(aes(y = prop.table(stat(count))), 
-                 stat = "count") + 
-        geom_text(aes(y = prop.table(stat(count)), 
-                      label = scales::percent(prop.table(stat(count)))),
-                  stat = 'count',
-                  position = position_dodge(.9),
-                  vjust = -0.5,
-                  size = 3) +
-        scale_y_continuous(labels = scales::percent) + 
-        labs(y = "Percent")
-    return(p1)
-}
-```
 
 #### CRIMETYPE
 
@@ -290,23 +280,20 @@ cowplot::plot_grid(p1, p2, nrow = 2)
 
 Defendent Race (Categorical, 5 levels) - White (ref), Black, Latino, AAPI/Other, Unknown/NA 
 
-```{r}
-race <- numeric(N.sim)
+Previously had this dependent on County but that created confounding so I removed that condition.
 
-for (i in 1:N.sim) {
-    cty <- dat.sim[i, "COUNTY"]
-    pt <- race_by_county[race_by_county$COUNTY == cty,2:5]
-    race[i] <- sample(1:4, 1, replace = T, prob = pt)
-}
-race <- factor(race, labels = c("WHITE", "BLACK", "LATINO", "OTHER"))
-dat.sim$OFF_RACER <- race
+```{r}
+pt <- prop.table(table(dat.sm$OFF_RACER))
+
+dat.sim$OFF_RACER <- factor(sample(1:4, size = N.sim, prob = pt, replace = T),
+                            labels = c("WHITE", "BLACK", "LATINO", "OTHER"))
 
 p1 <- my_gg_bar(dat.sm, "OFF_RACER")
 p2 <- my_gg_bar(dat.sim, "OFF_RACER")
 cowplot::plot_grid(p1, p2, nrow = 1)
 ```
 
-Check that race is dependent on county in the simulated data.
+Check that race is independent of county in the simulated data.
 ```{r}
 race_by_county <- dat.sim %>% group_by(COUNTY) %>%
     summarise(prop_white = mean(OFF_RACER == "WHITE", na.rm = T),
@@ -383,7 +370,9 @@ dat.sim$OGSQ <- dat.sim$OGS ^ 2
 dat.sim$DOSAGEQ <- dat.sim$DOSAGE ^ 2
 
 # Fitted probabilities + some error ~ normal(0, .25^2)
+load("full_data_cca_log_reg.rda")
 INCAR_p <- predict(fit, dat.sim, type = "response")
+rm(fit)
 
 # Outcomes from probs
 dat.sim$INCAR <- rbinom(N.sim, 1, INCAR_p)
@@ -395,12 +384,13 @@ cowplot::plot_grid(p1, p2, nrow = 1)
 ```
 
 ```{r}
-# write_csv(dat.sim, "Data/simulated_data.csv")
+write_csv(dat.sim, "Data/simulated_data.csv")
 ```
 
 A quick logistic regression to see how closely these estimates match what I'm taking to be the true estimates from the CCA regression
 ```{r}
-fit2 <- glm(INCAR ~ ., dat.sim, family = binomial(link = "logit"))
+s <- sample(1:nrow(dat.sim), 10000, replace = T)
+fit2 <- glm(INCAR ~ ., dat.sim[s, ], family = binomial(link = "logit"))
 # summary(fit2)
 est.beta <- coef(fit2)
 

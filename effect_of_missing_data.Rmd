@@ -2,11 +2,14 @@
 title: 'Small Simulation: Effect of Missing Data'
 author: "Ben Stockton"
 date: "`r Sys.Date()`"
-output: pdf_document
+output: 
+    html_document:
+    number_sections: true 
+    df_print: tibble
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, results = 'hold')
+knitr::opts_chunk$set(echo = TRUE, results = 'hold', cache = TRUE)
 
 library(ggplot2)
 library(cowplot)
@@ -16,7 +19,7 @@ library(doParallel)
 
 cores <- detectCores()
 
-source("small_sim_functions.R")
+source("helpers.R")
 ```
 
 ## Simulation Process
@@ -28,7 +31,7 @@ For each iteration `q`:
 1. Generate a new data set containing $Y$, $X$, and $CTY$. 
 
     - $CTY$ is a "county" variable with four levels. Level 3 is the reference level.
-    - $X$ is binary determined by a $CTY$. The probability $X$ is 1 depends on $CTY$ with $CTY = 1$ having probability .05 to $CTY = 4$ having probability .65.
+    - $X$ is binary variable whose effect is of interest. 
     - $Y$ is randomly drawn from the Bernoulli distribution with probability $$(1 + \exp(-(1, X, CTY) \beta))^{-1}$$
 
 2. Missingness is then generated in $X$ to create "Overstated" (OVER) and "Understated" (UNDR) X effects based on the type of missingness (MAR/MNAR).
@@ -41,47 +44,84 @@ Testing the simulation helper functions. First is the function to generate simul
 ```{r}
 set.seed(987)
 M <- 1000
-beta <- c(.05, 3, -.2, 0, -.05)
+beta <- c("Intercept" = .05, 
+          "X" = 0.25, 
+          "C1" = -.2, 
+          "C2" = 0,
+          "C4" = .5)
+
 test.df <- generate_data(beta = beta, M = M)
 test.df %>% head()
 ```
 
+```{r}
+test.df %>% dummify_data_matrix(.)
+```
+
+
 Then generation of missingness in $X$:
 
 ```{r}
-x.miss <- generate_missing_x(test.df, "MAR")
+miss_pars <- matrix(data = NA, ncol = 2, nrow = 7)
+colnames(miss_pars) <- c("OVER", "UNDR")
+miss_pars[,"OVER"] <- c(-6, 2, 0, 0, 0, 2, 0)
+miss_pars[,"UNDR"] <- c(-6, 2, 0, 0, 0, 2, 0)
+
+x.miss <- generate_missing_x(test.df, "MAR", miss_pars = miss_pars)
 str(x.miss)
-x.miss[["COMP"]][1:10]
+x.miss[["UNDR"]][1:10]
 ```
+
+```{r}
+logits <- -2 * 1:4
+(1 + exp(-logits))^-1
+table(test.df$X, test.df$Y)
+```
+
 
 Testing each logistic regression which returns the $(OddsRatio, PropMiss)'$:
 ```{r}
-sim_log_reg(test.df, x.miss, "COMP")
-sim_log_reg(test.df, x.miss, "OVER")
-sim_log_reg(test.df, x.miss, "UNDR")
+sim_log_reg(test.df, x.miss, "COMP", sim_size = "small")
+sim_log_reg(test.df, x.miss, "OVER", sim_size = "small")
+sim_log_reg(test.df, x.miss, "UNDR", sim_size = "small")
 ```
 
 Testing the full simulation:
 
 ```{r}
-a <- -6; b <- 4
-(1 + exp(-(a + b * (1))))^-1
-(1 + exp(-(a + b * (0))))^-1
-```
+source("helpers.R")
+miss_pars_mnar <- matrix(data = NA, ncol = 2, nrow = 7)
+colnames(miss_pars_mnar) <- c("OVER", "UNDR")
+miss_pars_mnar[,"OVER"] <- c(-6, -2, 0, 0, 0, 2, 0)
+miss_pars_mnar[,"UNDR"] <- c(-6, 2, 0, 0, 0, 2, 0)
 
-```{r}
-source("small_sim_functions.R")
-full_sim(miss_type = "MNAR", beta = beta, Q = 1, a = a, b = b)
-full_sim(miss_type = "MAR", beta = beta, Q = 1, a = a, b = b)
+miss_pars_mar <- matrix(data = NA, ncol = 2, nrow = 7)
+colnames(miss_pars_mar) <- c("OVER", "UNDR")
+miss_pars_mar[,"OVER"] <- c(-6, 4, 0, 0, 0, 0, 0)
+miss_pars_mar[,"UNDR"] <- c(-6, -4, 0, 0, 0, 0, 0)
+
+full_sim(miss_type = "MNAR", beta = beta, Q = 1, miss_pars = miss_pars_mnar)
+full_sim(miss_type = "MAR", beta = beta, Q = 1, miss_pars = miss_pars_mar)
 ```
 
 ---
 
-```{r}
+## Simulation Settings
+
+```{r setting-sim-params}
+source("helpers.R")
 M <- 1000
-beta <- c(.05, .227, -.2, 0, -.05)
+Q <- 25
+beta <- c("Intercept" = .05, 
+          "X" = 0.25, 
+          "C1" = -.2, 
+          "C2" = 0,
+          "C4" = .5)
 ```
 
+- Sample size $M = $ `r M`
+- $beta = $ `r beta`
+- $(a, b, c) = $ `r miss_pars`
 
 ## MNAR
 
@@ -101,13 +141,19 @@ For example, setting $a = -4.25$ and $b = 2$, we get $P(X_i ~ Missing | Y_i, X_i
 
 With these probabilities for each observation, draw from a $Bernoulli(p_i)$ distribution for each observation to determine if $X_i$ is missing.
 
-```{r}
+```{r mnar-sim}
+miss_pars_mnar <- matrix(data = NA, ncol = 2, nrow = 7)
+colnames(miss_pars_mnar) <- c("OVER", "UNDR")
+miss_pars_mnar[,"OVER"] <- c(-4.5, -3, 0, 0, 0, 3, 0)
+miss_pars_mnar[,"UNDR"] <- c(-8, 3, 0, 0, 0, 3, 0)
+
 cl <- makeCluster(cores[1] - 1)
 registerDoParallel(cl)
 ptime <- system.time({
     mnar <- foreach(i = 1:6, .combine = rbind) %dopar% {
         source("helpers.R")
-        full_sim(miss_type = "MNAR", beta = beta, Q = 50, a = a, b = b)
+        full_sim(miss_type = "MNAR", beta = beta,
+                 Q = Q, miss_pars = miss_pars_mnar)
     }
 })[3]
 ptime
@@ -122,19 +168,29 @@ Want to get roughly 3% missing in X in both cases.
 
 Overstate the X effect:
 
-Create $Z_{i1} = (X_i == 0 ~\& ~Y_i == 1)$ and calculate the logistic regression of $Z_1$ on $CTY$. Use the predicted probabilities $\mathbf{p} = (p_1,..,p_N)'$ to sample from a $Bernoulli(p_i)$ distribution for each observation to determine if $X_i$ is missing.
+Let $Z_{i1} = ((1-C2_i)(1 - Y_i)) + (C1_i Y_i)$
+
+$$p_{i1} = P(X_i ~ Missing | Y_i, X_i) = [1 + \exp(-(a + b Z_{i1}))]^{-1}$$
 
 Understate the X effect:
 
-Similarly, create $Z_{i2} = (X_i == 1 ~\& ~Y_i == 1)$ and repeat the process to determine if $X_i$ is missing.
+Let $Z_{i2} = ((1-C1_i)(1 - Y_i)) + (C4_i Y_i)$
 
-```{r}
+$$p_{i2} = P(X_i ~ Missing | Y_i, X_i) = [1 + \exp(-(a + b Z_{i2}))]^{-1}$$
+
+```{r mar-sim}
+miss_pars_mar <- matrix(data = NA, ncol = 2, nrow = 7)
+colnames(miss_pars_mar) <- c("OVER", "UNDR")
+miss_pars_mar[,"OVER"] <- c(-3.5, -4, 2, .75, -1, 0, 0)
+miss_pars_mar[,"UNDR"] <- c(-3.75, 2, -.5, -.75, .5, 0, 0)
+
 cl <- makeCluster(cores[1] - 1)
 registerDoParallel(cl)
 stime <- system.time({
     mar <- foreach(i = 1:6, .combine = rbind) %dopar% {
         source("helpers.R")
-        full_sim(miss_type = "MAR", beta = beta, Q = 50, a = a, b = b)
+        full_sim(miss_type = "MAR", beta = beta,
+                 Q = Q, miss_pars = miss_pars_mar)
     }
 })[3]
 stime
@@ -150,29 +206,11 @@ stopCluster(cl)
 ```{r, echo = FALSE}
 sim.res <- rbind(mnar, mar)
 
-mean_OR <- sim.res %>% group_by(MISS_TYPE, DIRECTION) %>%
-    summarize(odds_ratio_mean = round(mean(ODDS_RATIO), 3),
-              quant_025 = quantile(ODDS_RATIO, probs = .025),
-              quant_975 = quantile(ODDS_RATIO, probs = .975))
-mean_OR
-
-mean_PM <- sim.res %>% group_by(MISS_TYPE, DIRECTION) %>%
-    summarize(prop_miss_mean = round(mean(PROP_MISS), 3),
-              quant_025 = quantile(PROP_MISS, probs = .025),
-              quant_975 = quantile(PROP_MISS, probs = .975))
-mean_PM
-
-mean_DIFF <- sim.res %>% group_by(MISS_TYPE, DIRECTION) %>%
-    summarize(odds_ratio_diff_mean = round(mean(OR_DIFF), 3),
-              quant_025 = quantile(OR_DIFF, probs = .025),
-              quant_975 = quantile(OR_DIFF, probs = .975))
-mean_DIFF
-
-mean_BIAS <- sim.res %>% group_by(MISS_TYPE, DIRECTION) %>%
-    summarize(bias_mean = round(mean(OR_BIAS), 3),
-              quant_025 = quantile(OR_BIAS, probs = .025),
-              quant_975 = quantile(OR_BIAS, probs = .975))
-mean_BIAS
+tbs <- result_tables(sim.res)
+tbs$ODDS_RATIO
+tbs$PROP_MISS
+tbs$DIFF
+tbs$BIAS
 ```
 
 

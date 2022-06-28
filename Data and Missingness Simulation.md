@@ -293,3 +293,40 @@ $$X = \alpha CTY$$
 $$logit(E(Y)) = \beta_1 + \beta_2 X + \beta_3 CTY$$ so that $CTY$ is a cause of both $X$ and $Y$. As in Bartlett et al 2015 (Table 1), this is a case where the missingness is $X$ doesn't change the bias in the estimate of $\beta_2$.
 
 So I need to come up with a different way to induce missingness in $X$.
+
+## Third Pass at Criminology Simulations
+
+In small simulation, this setting gives the desired result in simulations for MAR data ($logit(E(Y_i)) = 0.05 + 0.225 X_i - 0.20 C1_i + 0 C2_i + 0.5 C4_i$, so CTY1 is associated with Y = 0 and CTY4 is associated with Y = 1):
+Overstate the X effect:
+
+Let $Z_{i1} = ((1-C2_i)(1 - Y_i)) + (C1_i Y_i)$
+
+$$p_{i1} = P(X_i ~ Missing | Y_i, X_i) = [1 + \exp(-(a + b Z_{i1}))]^{-1}$$
+
+Understate the X effect:
+
+Let $Z_{i2} = ((1-C1_i)(1 - Y_i)) + (C4_i Y_i)$
+
+$$p_{i2} = P(X_i ~ Missing | Y_i, X_i) = [1 + \exp(-(a + b Z_{i2}))]^{-1}$$
+
+Translating to the Criminology data set, we have Counites 2, 4, 22, 62 are associated most strongly with non-incarceration and Counties 17, 64, 52, 57, and 15 are associated most strongly with incarceration. 
+
+Define the county set variables to be 
+$$C1_i = I(County~in~ (2, 4, 22, 62))$$ 
+and 
+$$C2_i = I(County ~ in ~ (17, 64, 52, 57, 15))$$
+Then we define 
+$$Z_{i1} = (1 - C1_i - C2_i)(1 - INCAR_i) + C1_i INCAR_i$$
+and
+$$Z_{i2} = (1 - C1_i)(1 - INCAR_i) + C2_i INCAR_i$$
+
+## Fourth Pass at Criminology Simulations
+
+Need to use a model where I switch between the missingness settings by only changing parameters similar to the model from [[perkinsPrincipledApproachesMissing2018]].
+
+Let $V$ be the set of variables that are completely observed in every missing data pattern. Let $L_r$ be the the set of variables completely observed in pattern $r$ but only partially observed in other patterns and be $W_r$ be the set of variables partially observed in pattern $r$. In my simulation, the missing data patterns are $R = 1$ $(INCAR, RECMIN,..., RACE, COUNTY, YEAR) = (obs, obs, ..., obs, obs, obs)$ or $R = 2$ $(INCAR, RECMIN,..., RACE, COUNTY, YEAR) = (obs, obs, ..., partial, obs, obs)$ so that $V = (INCAR, RECMIN,..., COUNTY, YEAR)$, $L_1 = RACE$, $W_1 = \emptyset$ for pattern $R = 1$ and $L_2 = \emptyset$, $W_2 = RACE$ for pattern $R = 2$. Since RACE is the only variable that may be partially observed, only one of $L_r$ or $W_r$ is in the model at a time.
+
+I then have the model 
+$$logit(P(R = r | V, L_r, W_r)) = \alpha + \beta_r V + \gamma_r L_r + \eta_r W_r$$
+where the parameters are set to create MAR, MNAR missingness and to induce over-or under-estimation of the Race effect odds ratio.
+

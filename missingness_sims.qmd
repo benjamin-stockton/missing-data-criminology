@@ -1,0 +1,223 @@
+---
+title: "Criminology Missingness Simulations"
+author: "Ben Stockton"
+number-sections: true 
+format: html
+editor: visual
+execute: 
+  cache: true
+bibliography: Literature/Criminology.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, results = 'hold')
+library(dplyr, warn.conflicts = FALSE)
+
+# Suppress summarise info
+options(dplyr.summarise.inform = FALSE)
+library(magrittr)
+library(ggplot2)
+library(latex2exp)
+library(RColorBrewer)
+library(readr)
+library(cowplot)
+library(doParallel)
+library(forcats)
+
+cores <- detectCores()
+source("helpers.R")
+```
+
+```{r load-data}
+#| results: "hide"
+dat <- read_csv("Data/simulated_data.csv", col_types = "dfdffffffdfdd")
+dat$OFF_RACER %<>% fct_relevel(c("WHITE", "BLACK", "LATINO", "OTHER"))
+levels(dat$OFF_RACER)
+```
+
+Running similar simulations but now with the simulated criminology data set, so I'm not creating a new data set with each iteration to save time for now. The regression is now on all twelve predictors instead of just X and CTY. If a defendant doesn't meet the qualifications for missingness, we assume they are completely observed. Probability of missingness is set to get roughly 3-5% of defendants missing Race observations in the sample.
+
+```{r load-cca-params}
+#| cache: true
+load("full_data_cca_log_reg.rda")
+beta <- coef(fit)
+rm(fit)
+
+beta["OFF_RACERBLACK"]
+```
+
+```{r}
+sort(beta, decreasing = T)[1:5]
+sort(beta)[1:10]
+```
+
+```{r sim-params}
+M <- 500
+miss_pars <- matrix(c(-6, -7,
+                       4, 5,
+                       0, 0), nrow = 3, byrow = T)
+Q <- 15 # Q * 9
+replace <- FALSE
+
+incar_by_county <- dat %>% group_by(COUNTY) %>%
+        summarise(prop_incar = mean(INCAR == 1, na.rm = T)) %>%
+        as.data.frame()
+    
+cty_set_1 <- incar_by_county %>% filter(prop_incar < .4) %>%
+    arrange(prop_incar) %>% select(COUNTY)
+cty_set_2 <- incar_by_county %>% filter(prop_incar > .5) %>%
+    arrange(desc(prop_incar)) %>% select(COUNTY)
+cty_set_1[,1]
+cty_set_2[,1]
+```
+
+```{r}
+beta[paste0("COUNTY", cty_set_1[,1])] %>% mean(., na.rm = T)
+beta[paste0("COUNTY", cty_set_2[,1])] %>% mean(., na.rm = T)
+```
+
+```{r}
+test.df <- dat[1:100, ]
+
+test.df %>%
+  mutate(as.data.frame(model.matrix(~ 0 + OFF_RACER + PRS + CRIMETYPE + YEAR + COUNTY, data = cur_data()))) %>%
+  select(-c(COUNTY, OFF_RACER, PRS, YEAR, CRIMETYPE)) 
+test.df$TRIAL <- ifelse(test.df$TRIAL == "Yes", 1, 0)
+test.df$MALE <- ifelse(test.df$MALE == "Male", 1, 0)
+test.df$RECMIN <- ifelse(test.df$RECMIN == "Yes", 1, 0)
+test.df %>% str()
+```
+
+```{r}
+source("helpers.R")
+
+miss_pars_mnar <- matrix(data = NA, ncol = 2, nrow = 97)
+colnames(miss_pars_mnar) <- c("OVER", "UNDR")
+miss_pars_mnar[,"OVER"] <- c(-4.5, -3, rep(0, 89), 3, .25, 0, 0, 0, 0)
+miss_pars_mnar[,"UNDR"] <- c(-8, 3, rep(0, 89), 3, .25, 0, 0, 0, 0)
+
+prob_miss <- missingness_model(test.df, miss_pars = miss_pars_mnar[,"OVER"], sim_size = "full")
+summary(prob_miss)
+plot(density(prob_miss))
+```
+
+## MNAR
+
+Want to get roughly 3% missing in OFF_RACER in both cases.
+
+Overstate the Race effect: Missingness in Race is conditional on Race being non-White & not being incarcerated. $$P(\mathrm{RACE ~is ~Miss} ~|~ \mathrm{RACE ~is~not~WHITE}, ~\mathrm{INCAR} = 0) = .25$$
+
+Understate the Race effect: Missingness in Race is conditional on Race being non-White & being incarcerated. $$P(\mathrm{RACE ~is ~Miss} ~|~ \mathrm{RACE ~is~not~WHITE}, ~\mathrm{INCAR} = 1) = .3$$
+
+```{r test-full-sim-iter1}
+source("helpers.R")
+miss_pars <- matrix(data = NA, ncol = 2, nrow = 97)
+colnames(miss_pars) <- c("OVER", "UNDR")
+miss_pars[,"OVER"] <- c(-1, -6, rep(0, 95))
+miss_pars[,"UNDR"] <- c(-7, 6, rep(0, 95))
+
+full_sim(miss_type = "MAR", sim_size = "full", pop_data = dat,
+         beta = beta, miss_pars = miss_pars,
+         Q = 1, replace = replace)
+```
+
+```{r mnar-sim}
+#| cache: true
+
+miss_pars_mnar <- matrix(data = NA, ncol = 2, nrow = 97)
+colnames(miss_pars_mnar) <- c("OVER", "UNDR")
+miss_pars_mnar[,"OVER"] <- c(-5.25, -3, rep(0, 89), 4.5, .25, 0, 0, 0, 0)
+miss_pars_mnar[,"UNDR"] <- c(-10, 4.5, rep(0, 89), 4.5, .25, 0, 0, 0, 0)
+
+cl <- makeCluster(cores[1] - 1)
+registerDoParallel(cl)
+ptime <- system.time({
+    mnar <- foreach(i = 1:9, .combine = rbind) %dopar% {
+    source("helpers.R")
+    full_sim(miss_type = "MNAR", sim_size = "full", pop_data = dat,
+             beta = beta, miss_pars = miss_pars_mnar, 
+             Q = Q, replace = replace)
+    }
+})[3]
+ptime
+stopCluster(cl)
+```
+
+## MAR
+
+Want to get roughly 3% missing in OFF_RACER in both cases.
+
+Previously I had race determined by county, but I've since removed that since confounders result in unbiased estimates [@bartlettAsymptoticallyUnbiasedEstimation2015].
+
+Overstate the Race effect:
+
+Let $Z_{i1} = ((1-C2_i)(1 - INCAR_i)) + (C1_i INCAR_i)$
+
+$$
+p_{i1} = P(RACE_i ~ Missing | INCAR_i, CTY_i) = [1 + \exp(-(a + b Z_{i1}))]^{-1}
+$$
+
+Understate the Race effect:
+
+Let $Z_{i2} = ((1-C1_i)(1 - INCAR_i)) + (C4_i INCAR_i)$
+
+$$
+p_{i2} = P(RACE_i ~ Missing | INCAR_i, CTY_i) = [1 + \exp(-(a + b Z_{i2}))]^{-1}
+$$
+
+```{r mar-sim}
+#| cache: true
+miss_pars_mar <- matrix(data = NA, ncol = 2, nrow = 97)
+colnames(miss_pars_mar) <- c("OVER", "UNDR")
+miss_pars_mar[,"OVER"] <- c(-1, -6, rep(0, 95))
+miss_pars_mar[,"UNDR"] <- c(-7, 6, rep(0, 95))
+
+cl <- makeCluster(cores[1] - 1)
+registerDoParallel(cl)
+ptime <- system.time({
+    mar <- foreach(i = 1:9, .combine = rbind) %dopar% {
+    source("helpers.R")
+    full_sim(miss_type = "MAR", sim_size = "full", pop_data = dat,
+             beta = beta, miss_pars = miss_pars_mar, 
+             Q = Q, replace = replace)
+    }
+})[3]
+ptime
+stopCluster(cl)
+```
+
+------------------------------------------------------------------------
+
+## Results
+
+### Tables
+
+```{r, echo = FALSE}
+sim.res <- rbind(mnar, mar)
+
+tbs <- result_tables(sim.res)
+tbs$ODDS_RATIO
+tbs$PROP_MISS
+tbs$DIFF
+tbs$BIAS
+```
+
+### Plots
+
+```{r echo = FALSE}
+plts <- result_plots(sim.res)
+
+cowplot::plot_grid(plts$OR, plts$PM, nrow = 2)
+
+cowplot::plot_grid(plts$DIFF, plts$BIAS, nrow = 2)
+```
+
+```{r echo = FALSE}
+# or_bias_diff <- ggplot(sim.res, aes(x = OR_BIAS, y = OR_DIFF, color = DIRECTION)) +
+#     geom_point() +
+#     facet_grid(MISS_TYPE ~ DIRECTION)
+# 
+# cowplot::plot_grid(bias_plt, or_bias_diff, nrow = 2)
+```
+
+## References {.unnumbered}
