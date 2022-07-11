@@ -4,8 +4,10 @@ author: "Ben Stockton"
 date: "`r Sys.Date()`"
 output: 
     html_document:
-    number_sections: true 
-    df_print: tibble
+        toc: true
+        toc_depth: 3
+        toc_float: true
+        df_print: paged
 ---
 
 ```{r setup, include=FALSE}
@@ -32,20 +34,52 @@ For each iteration `q`:
 
     - $CTY$ is a "county" variable with four levels. Level 3 is the reference level.
     - $X$ is binary variable whose effect is of interest. 
+    - $Z1$ is a continuous variable with no effect on $Y$.
+    - $Z2$ is a binary variable with a moderate effect on $Y$.
     - $Y$ is randomly drawn from the Bernoulli distribution with probability $$(1 + \exp(-(1, X, CTY) \beta))^{-1}$$
 
-2. Missingness is then generated in $X$ to create "Overstated" (OVER) and "Understated" (UNDR) X effects based on the type of missingness (MAR/MNAR).
-3. Logistic regressions $logit(E(Y)) = (1, X, CTY)\beta$ are fit on the complete simulated data set, the OVER data set, and the UNDR data set. For each regression, the Odds Ratio and Proportion of Missingness are recorded and used to calculate the Bias $\hat{OR}_{MissType} - \beta_X$ and difference between the missing data set estimate and the complete data set estimate $\hat{OR}_{MissType} - \hat{OR}_{Comp}$.
+2. Missingness is then generated according to one of the 6 observed patterns to get "Overstated" (OVER) and "Understated" (UNDR) X effects based on the type of missingness (MAR/MNAR).
+3. Logistic regressions $logit(E(Y)) = (1, X, Z1, Z2, CTY)\beta$ are fit on the complete simulated data set, the OVER data set, and the UNDR data set. For each regression, the Odds Ratio and Proportion of Missingness are recorded and used to calculate the Bias $\hat{OR}_{MissType} - \beta_X$ and difference between the missing data set estimate and the complete data set estimate $\hat{OR}_{MissType} - \hat{OR}_{Comp}$.
 4. Repeat for `Q` iterations.
 
-## Test
+The six observed missingness patterns $R$ are as follows:
 
+| R | Z1 | X | Z2 | Y | C2 | C3 | C4 |
+|:--|:-:|:-:|:-:|---|----|----|----|
+| 1 |   |   |   |   |    |    |    |
+| 2 |   | x |   |   |    |    |    |
+| 3 | x |   |   |   |    |    |    |
+| 4 | x | x |   |   |    |    |    |
+| 5 |   |   | x |   |    |    |    |
+| 6 |   | x | x |   |    |    |    |
+
+We don't observe these patterns in the data:
+
+| R | Z1 | X | Z2 | Y  C2 | C3 | C4 |
+|:--|:-:|:-:|:-:|---|----|----|----|
+| 7 | x |   | x |   |    |    |    |
+| 8 | x | x | x |   |    |    |    |
+
+So the probabilities that any given observation belongs to a particular pattern is given by $p_r$ for $r = 1,...,8$. 
+
+Let $V$ be the set of variables that are completely observed in every missing data pattern. Let $L_r$ be the the set of variables completely observed in pattern $r$ but only partially observed in other patterns and be $W_r$ be the set of variables partially observed in pattern $r$. Then  $V = (C2, C3, C4)$ and for pattern $R = 2$, $L_2 = (Y, Z)$, $W_2 = (X)$,   while for pattern $R = 6$, $L_3 = Y$, $W_2 = (X,Z)$. 
+
+I then have the model 
+$$logit(P(R = r | V, L_r, W_r)) = \alpha_r + \beta_r V + \gamma_r L_r + \eta_r W_r$$
+where the parameters are set to create MAR, MNAR missingness and to induce over-or under-estimation of the Race effect odds ratio. To set the missingness, we sample from the categorical distribution with the above probabilities for $P(R = r | V, L_r, W_r)$ for $r = 1,..., 8$ where the probabilities have been normalized to sum to one. The intercept parameters $\alpha_r$ are determined by back calculating from the observed proportion of each missingness pattern as in Perkins et al 2018.
+
+## Testing {.tabset}
+
+### Data Simulation
 Testing the simulation helper functions. First is the function to generate simulated data:
 ```{r}
 set.seed(987)
 M <- 1000
 beta <- c("Intercept" = .05, 
           "X" = 0.25, 
+          "Z1" = 0,
+          "Z1Q" = -0.01,
+          "Z2" = .9,
           "C1" = -.2, 
           "C2" = 0,
           "C4" = .5)
@@ -55,58 +89,65 @@ test.df %>% head()
 ```
 
 ```{r}
-test.df %>% dummify_data_matrix(.)
+prop.table(table(test.df$X, test.df$CTY), margin = 2)
+ggplot(test.df, aes(X, fill = CTY)) +
+    geom_histogram() +
+    facet_grid(CTY~.)
 ```
 
-
-Then generation of missingness in $X$:
+### Dummify Matrix
+Next to see if the function makes a properly "dummy-fied" data matrix.
 
 ```{r}
-miss_pars <- matrix(data = NA, ncol = 2, nrow = 7)
-colnames(miss_pars) <- c("OVER", "UNDR")
-miss_pars[,"OVER"] <- c(-6, 2, 0, 0, 0, 2, 0)
-miss_pars[,"UNDR"] <- c(-6, 2, 0, 0, 0, 2, 0)
+test.df %>% dummify_data_matrix(.) %>% head()
+```
 
-x.miss <- generate_missing_x(test.df, "MAR", miss_pars = miss_pars)
+### Generate Missingness
+Then generation of missingness in the data:
+
+```{r}
+miss_pars_mnar <- build_miss_par_matrix(beta = c(-3, .5, -.75, -2),
+                                             gamma = c(2, 0, 0, 0),
+                                             miss_type = "MNAR")
+
+x.miss <- generate_missing_x(test.df,
+                             miss_pars_over = miss_pars_mnar,
+                             miss_pars_undr = miss_pars_mnar)
 str(x.miss)
-x.miss[["UNDR"]][1:10]
+x.miss[["UNDR"]] %>% summary()
 ```
 
-```{r}
-logits <- -2 * 1:4
-(1 + exp(-logits))^-1
-table(test.df$X, test.df$Y)
-```
-
-
+### Logistic Regression Wrapper
 Testing each logistic regression which returns the $(OddsRatio, PropMiss)'$:
 ```{r}
-sim_log_reg(test.df, x.miss, "COMP", sim_size = "small")
-sim_log_reg(test.df, x.miss, "OVER", sim_size = "small")
-sim_log_reg(test.df, x.miss, "UNDR", sim_size = "small")
+sim_log_reg(x.miss[["COMP"]], sim_size = "small")
+sim_log_reg(x.miss[["OVER"]], sim_size = "small")
+sim_log_reg(x.miss[["UNDR"]], sim_size = "small")
 ```
 
+### Full Simulation (1 iteration)
 Testing the full simulation:
 
 ```{r}
 source("helpers.R")
-miss_pars_mnar <- matrix(data = NA, ncol = 2, nrow = 7)
-colnames(miss_pars_mnar) <- c("OVER", "UNDR")
-miss_pars_mnar[,"OVER"] <- c(-6, -2, 0, 0, 0, 2, 0)
-miss_pars_mnar[,"UNDR"] <- c(-6, 2, 0, 0, 0, 2, 0)
+# Missingness model parameters for MNAR
+miss_pars_mnar <- build_miss_par_matrix(beta = c(-3, .5, -.75, -2),
+                                             gamma = c(2, 0, 0, 0),
+                                             miss_type = "MNAR")
+print(miss_pars_mnar)
+# Missingness model parameters for MAR
+miss_pars_mar <- build_miss_par_matrix(beta = c(-3, .5, -.75, -2),
+                                             gamma = c(2, 1, 1, -1),
+                                             miss_type = "MAR")
+print(miss_pars_mar)
 
-miss_pars_mar <- matrix(data = NA, ncol = 2, nrow = 7)
-colnames(miss_pars_mar) <- c("OVER", "UNDR")
-miss_pars_mar[,"OVER"] <- c(-6, 4, 0, 0, 0, 0, 0)
-miss_pars_mar[,"UNDR"] <- c(-6, -4, 0, 0, 0, 0, 0)
-
-full_sim(miss_type = "MNAR", beta = beta, Q = 1, miss_pars = miss_pars_mnar)
-full_sim(miss_type = "MAR", beta = beta, Q = 1, miss_pars = miss_pars_mar)
+full_sim(miss_type = "MNAR", beta = beta, Q = 1, miss_pars_over = miss_pars_mnar, miss_pars_undr = miss_pars_mnar)
+full_sim(miss_type = "MAR", beta = beta, Q = 1, miss_pars_over = miss_pars_mar, miss_pars_undr = miss_pars_mar)
 ```
 
 ---
 
-## Simulation Settings
+## Simulation Settings {.tabset}
 
 ```{r setting-sim-params}
 source("helpers.R")
@@ -114,83 +155,84 @@ M <- 1000
 Q <- 25
 beta <- c("Intercept" = .05, 
           "X" = 0.25, 
+          "Z1" = 0,
+          "Z1Q" = -.01,
+          "Z2" = .9,
           "C1" = -.2, 
           "C2" = 0,
           "C4" = .5)
 ```
 
-- Sample size $M = $ `r M`
-- $beta = $ `r beta`
-- $(a, b, c) = $ `r miss_pars`
-
-## MNAR
+### MNAR
 
 Want to get roughly 3-5% missing in X in both cases.
 
 Overstate the X effect:
 
-$$p_i = P(X_i ~ Missing | Y_i, X_i) = [1 + \exp(-(a + b (1 - X_i) Y_i))]^{-1}$$
 
 Understate the X effect:
 
-$$p_i = P(X_i ~ Missing | Y_i, X_i) = [1 + \exp(-(a+b (1 - X_i) (1 - Y_i)))]^{-1}$$
 
-For both cases we set `a` to `r a` and `b` to `r b` to get between 3-5% missingness in $X$. 
+```{r mnar-params}
+# Missingness model parameters for MNAR - OVER
+miss_pars_mnar_over <- build_miss_par_matrix(beta = c(-3, 0,0,0),
+                                             gamma = c(2, 0, 0, 0),
+                                             miss_type = "MNAR")
 
-For example, setting $a = -4.25$ and $b = 2$, we get $P(X_i ~ Missing | Y_i, X_i) = 0.095$ and $P(X_i ~ Missing | Y_i, X_i) = 0.014$ resulting in roughly 3-5% missing in $X$.
-
-With these probabilities for each observation, draw from a $Bernoulli(p_i)$ distribution for each observation to determine if $X_i$ is missing.
+# Missingness model parameters for MNAR - UNDR
+miss_pars_mnar_undr <- build_miss_par_matrix(beta = c(2, 0,0,0),
+                                             gamma = c(2, 0, 0, 0),
+                                             miss_type = "MNAR")
+```
 
 ```{r mnar-sim}
-miss_pars_mnar <- matrix(data = NA, ncol = 2, nrow = 7)
-colnames(miss_pars_mnar) <- c("OVER", "UNDR")
-miss_pars_mnar[,"OVER"] <- c(-4.5, -3, 0, 0, 0, 3, 0)
-miss_pars_mnar[,"UNDR"] <- c(-8, 3, 0, 0, 0, 3, 0)
-
 cl <- makeCluster(cores[1] - 1)
 registerDoParallel(cl)
 ptime <- system.time({
     mnar <- foreach(i = 1:6, .combine = rbind) %dopar% {
         source("helpers.R")
-        full_sim(miss_type = "MNAR", beta = beta,
-                 Q = Q, miss_pars = miss_pars_mnar)
+        full_sim(miss_type = "MNAR", beta = beta, Q = Q, M = M,
+                 miss_pars_over = miss_pars_mnar_over,
+                 miss_pars_undr = miss_pars_mnar_undr)
     }
 })[3]
 ptime
 stopCluster(cl)
 ```
 
----
-
-## MAR
+### MAR
 
 Want to get roughly 3% missing in X in both cases.
 
 Overstate the X effect:
 
-Let $Z_{i1} = ((1-C2_i)(1 - Y_i)) + (C1_i Y_i)$
 
-$$p_{i1} = P(X_i ~ Missing | Y_i, X_i) = [1 + \exp(-(a + b Z_{i1}))]^{-1}$$
 
 Understate the X effect:
 
-Let $Z_{i2} = ((1-C1_i)(1 - Y_i)) + (C4_i Y_i)$
 
-$$p_{i2} = P(X_i ~ Missing | Y_i, X_i) = [1 + \exp(-(a + b Z_{i2}))]^{-1}$$
+
+```{r mar-params}
+# Missingness model parameters for MAR - OVER
+miss_pars_mar_over <- build_miss_par_matrix(beta = c(-2, 0,0,0),
+                                             gamma = c(2, 0, 0, 0),
+                                             miss_type = "MAR")
+
+# Missingness model parameters for MAR - UNDR
+miss_pars_mar_undr <- build_miss_par_matrix(beta = c(2, 0,0,0),
+                                             gamma = c(2, 0, 0, 0),
+                                             miss_type = "MAR")
+```
 
 ```{r mar-sim}
-miss_pars_mar <- matrix(data = NA, ncol = 2, nrow = 7)
-colnames(miss_pars_mar) <- c("OVER", "UNDR")
-miss_pars_mar[,"OVER"] <- c(-3.5, -4, 2, .75, -1, 0, 0)
-miss_pars_mar[,"UNDR"] <- c(-3.75, 2, -.5, -.75, .5, 0, 0)
-
 cl <- makeCluster(cores[1] - 1)
 registerDoParallel(cl)
 stime <- system.time({
     mar <- foreach(i = 1:6, .combine = rbind) %dopar% {
         source("helpers.R")
-        full_sim(miss_type = "MAR", beta = beta,
-                 Q = Q, miss_pars = miss_pars_mar)
+        full_sim(miss_type = "MAR", beta = beta, Q = Q, M = M,
+                 miss_pars_over = miss_pars_mar_over, 
+                 miss_pars_undr = miss_pars_mar_undr)
     }
 })[3]
 stime
@@ -199,7 +241,7 @@ stopCluster(cl)
 
 ---
 
-## Results
+## Results {.tabset}
 
 ### Tables
 
@@ -225,12 +267,4 @@ cowplot::plot_grid(plts$DIFF, plts$BIAS, nrow = 2)
 ```
 
 
-
-```{r echo = FALSE}
-# or_bias_diff <- ggplot(sim.res, aes(x = OR_BIAS, y = OR_DIFF, color = DIRECTION)) +
-#     geom_point() +
-#     facet_grid(MISS_TYPE ~ DIRECTION)
-# 
-# cowplot::plot_grid(bias_plt, or_bias_diff, nrow = 2)
-```
 

@@ -2,7 +2,15 @@
 title: "Criminology Missingness Simulations"
 author: "Ben Stockton"
 number-sections: true 
-format: html
+df-print: paged
+toc: true
+format: 
+  html: 
+    code-fold: true
+  pdf:
+    geometry: 
+      - top=30mm
+      - left=30mm
 editor: visual
 execute: 
   cache: true
@@ -35,9 +43,42 @@ dat$OFF_RACER %<>% fct_relevel(c("WHITE", "BLACK", "LATINO", "OTHER"))
 levels(dat$OFF_RACER)
 ```
 
-Running similar simulations but now with the simulated criminology data set, so I'm not creating a new data set with each iteration to save time for now. The regression is now on all twelve predictors instead of just X and CTY. If a defendant doesn't meet the qualifications for missingness, we assume they are completely observed. Probability of missingness is set to get roughly 3-5% of defendants missing Race observations in the sample.
+Running similar simulations but now with the simulated criminology data set, so I'm not creating a new data set with each iteration to save time for now. The regression is now on all twelve predictors instead of just X, Z1, Z2, and CTY. Missingness is assigned based on a multinomial logit model to one of eight patterns (potential for missing values in Race, Age, and whether the Minimum Sentence was Recommended). Probability of missingness is set to get roughly 3-5% of defendants missing Race observations in the sample.
+
+I'm going to create a missingness model based on the one from [@perkins2018]. Let $V$ be the set of variables that are completely observed in every missing data pattern. Let $L_r$ be the the set of variables completely observed in pattern $r$ but only partially observed in other patterns and be $W_r$ be the set of variables partially observed in pattern $r$.
+
+The six observed missingness patterns $R$ are as follows:
+
+| R   | INCAR | OGS | ... | RECMIN | AGE | RACE |
+|-----|-------|-----|-----|--------|-----|------|
+| 1   |       |     |     |        |     |      |
+| 2   |       |     |     |        |     | x    |
+| 3   |       |     |     |        | x   |      |
+| 4   |       |     |     |        | x   | x    |
+| 5   |       |     |     | x      |     |      |
+| 6   |       |     |     | x      |     | x    |
+
+: Observed patterns of missingness in the PA data.
+
+| R   | INCAR | OGS | ... | RECMIN | AGE | RACE |
+|-----|-------|-----|-----|--------|-----|------|
+| 7   |       |     |     | x      | x   |      |
+| 8   |       |     |     | x      | x   | x    |
+
+: Unobserved patterns of missingness in the PA data.
+
+So the probabilities that any given observation belongs to a particular pattern is given by $p_r$ for $r = 1,…,8$.
+
+I then have the model
+
+$$
+logit(P(R = r | V, L_r, W_r)) = \alpha_r + \beta_r V + \gamma_r L_r + \eta_r W_r
+$$
+
+where the parameters are set to create MAR, MNAR missingness and to induce over-or under-estimation of the Race effect odds ratio. To set the missingness, we sample from the categorical distribution with the above probabilities for $P(R = r | V, L_r, W_r)$ for $r = 1,…, 8$ where the probabilities have been normalized to sum to one. The intercept parameters $\alpha_r$ are determined by back calculating from the observed proportion of each missingness pattern as in [@perkins2018].
 
 ```{r load-cca-params}
+#| echo: false
 #| cache: true
 load("full_data_cca_log_reg.rda")
 beta <- coef(fit)
@@ -47,36 +88,22 @@ beta["OFF_RACERBLACK"]
 ```
 
 ```{r}
+#| include: false
 sort(beta, decreasing = T)[1:5]
 sort(beta)[1:10]
 ```
 
 ```{r sim-params}
-M <- 500
-miss_pars <- matrix(c(-6, -7,
-                       4, 5,
-                       0, 0), nrow = 3, byrow = T)
-Q <- 15 # Q * 9
+# Sample size
+M <- 1000
+# Number of iterations to run in each parallel thread
+Q <- 20 # Q * 9
+# Sample with replacement?
 replace <- FALSE
-
-incar_by_county <- dat %>% group_by(COUNTY) %>%
-        summarise(prop_incar = mean(INCAR == 1, na.rm = T)) %>%
-        as.data.frame()
-    
-cty_set_1 <- incar_by_county %>% filter(prop_incar < .4) %>%
-    arrange(prop_incar) %>% select(COUNTY)
-cty_set_2 <- incar_by_county %>% filter(prop_incar > .5) %>%
-    arrange(desc(prop_incar)) %>% select(COUNTY)
-cty_set_1[,1]
-cty_set_2[,1]
 ```
 
 ```{r}
-beta[paste0("COUNTY", cty_set_1[,1])] %>% mean(., na.rm = T)
-beta[paste0("COUNTY", cty_set_2[,1])] %>% mean(., na.rm = T)
-```
-
-```{r}
+#| include: false
 test.df <- dat[1:100, ]
 
 test.df %>%
@@ -89,97 +116,162 @@ test.df %>% str()
 ```
 
 ```{r}
+#| include: false
 source("helpers.R")
+miss_pars_mnar <- build_miss_par_matrix(
+    beta = c(-5, rep(0, 87)),
+    gamma = c(4, .5, .01, rep(0, 3), 10, 0),
+    miss_type = "MNAR", sim_size = "full")
+test.mat <- dummify_data_matrix(test.df, sim_size = "full")
+V <- test.mat %>% select(-c(OFF_RACERBLACK, 
+                        OFF_RACERLATINO, 
+                        OFF_RACEROTHER, 
+                        DOSAGE, DOSAGEQ,
+                        RECMIN)) %>% as.matrix()
 
-miss_pars_mnar <- matrix(data = NA, ncol = 2, nrow = 97)
-colnames(miss_pars_mnar) <- c("OVER", "UNDR")
-miss_pars_mnar[,"OVER"] <- c(-4.5, -3, rep(0, 89), 3, .25, 0, 0, 0, 0)
-miss_pars_mnar[,"UNDR"] <- c(-8, 3, rep(0, 89), 3, .25, 0, 0, 0, 0)
+L <- test.mat %>% select(c(INCAR, OFF_RACERBLACK, 
+                               OFF_RACERLATINO, 
+                               OFF_RACEROTHER, 
+                               DOSAGE, DOSAGEQ,
+                               RECMIN)) %>% 
+            mutate(Z1 = ifelse(OFF_RACERBLACK + OFF_RACERLATINO + OFF_RACEROTHER == 0, 1, 0) * ifelse(INCAR == 0, 1, 0),
+                   Z2 = ifelse(OFF_RACERBLACK + OFF_RACERLATINO + OFF_RACEROTHER == 0, 1, 0) * ifelse(INCAR == 1, 1, 0)) %>% select(-INCAR) %>% as.matrix()
 
-prob_miss <- missingness_model(test.df, miss_pars = miss_pars_mnar[,"OVER"], sim_size = "full")
-summary(prob_miss)
-plot(density(prob_miss))
+print(colnames(L))
+EV <- apply(V, 2, mean); EL <- apply(L, 2, mean)
+
+nbeta <- ncol(V); ngamma <- ncol(L)
+    
+alpha <- miss_pars_mnar[,1]
+b <- miss_pars_mnar[,2:(nbeta+1)]
+g <- miss_pars_mnar[,(nbeta+2):(nbeta+ngamma+1)]
+
+EV <- apply(V, 2, mean); EL <- apply(L, 2, mean)
+prob.mat <- calc_pattern_probs(V, L, b, g, EV, EL)
+
+apply(prob.mat, 1, sum)
+apply(prob.mat, 2, mean)
+
+# sapply(prob.mat[,1], function(p) {return(ifelse(p > 0, p, 0))})
 ```
 
-## MNAR
+```{r}
+#| include: false
+source("helpers.R")
 
-Want to get roughly 3% missing in OFF_RACER in both cases.
+miss_pars_mnar <- build_miss_par_matrix(
+    beta = log(c(.001, rep(1, 87))),
+    gamma = log(c(15, rep(1, 5), 15, 1)),
+    miss_type = "MNAR", sim_size = "full")
+print(miss_pars_mnar[,c(1:5, 90:97)])
 
-Overstate the Race effect: Missingness in Race is conditional on Race being non-White & not being incarcerated. $$P(\mathrm{RACE ~is ~Miss} ~|~ \mathrm{RACE ~is~not~WHITE}, ~\mathrm{INCAR} = 0) = .25$$
+miss_patt <- missingness_model(test.df, 
+                               miss_pars = miss_pars_mnar,
+                               sim_size = "full")
+prop.table(table(miss_patt))
+barplot(table(miss_patt))
+```
 
-Understate the Race effect: Missingness in Race is conditional on Race being non-White & being incarcerated. $$P(\mathrm{RACE ~is ~Miss} ~|~ \mathrm{RACE ~is~not~WHITE}, ~\mathrm{INCAR} = 1) = .3$$
+```{r}
+#| include: false
+test.df.mis <- assign_missing(test.df, miss_pattern = miss_patt, sim_size = "full")
+test.df.mis %>% apply(., 2, function(c) {return(mean(is.na(c)))})
+test.df.mis %<>% filter(complete.cases(.))
+prop.table(table(test.df$INCAR, test.df$OFF_RACER), margin = 2)
+prop.table(table(test.df.mis$INCAR, test.df.mis$OFF_RACER), margin = 2)
+```
+
+## Simulations {.tabset}
+
+### Test Simulation
 
 ```{r test-full-sim-iter1}
 source("helpers.R")
-miss_pars <- matrix(data = NA, ncol = 2, nrow = 97)
-colnames(miss_pars) <- c("OVER", "UNDR")
-miss_pars[,"OVER"] <- c(-1, -6, rep(0, 95))
-miss_pars[,"UNDR"] <- c(-7, 6, rep(0, 95))
+# Missingness model parameters for MNAR - OVER
+miss_pars_over <- build_miss_par_matrix(
+    beta = log(c(1, rep(1, 87))),
+    gamma = log(c(1, rep(1, 5), 25, 1)),
+    miss_type = "MNAR", sim_size = "full")
+print(miss_pars_over[, c(1:4, 90:97)])
 
-full_sim(miss_type = "MAR", sim_size = "full", pop_data = dat,
-         beta = beta, miss_pars = miss_pars,
-         Q = 1, replace = replace)
+# Missingness model parameters for MNAR - UNDR
+miss_pars_undr <- build_miss_par_matrix(
+    beta = log(c(1, runif(87))),
+    gamma = log(c(1, rep(1, 5), 1, 25)),
+    miss_type = "MNAR", sim_size = "full")
+
+fs <- full_sim(miss_type = "MNAR", sim_size = "full", pop_data = dat,
+         beta = beta, M = M, miss_pars_over = miss_pars_over, 
+         miss_pars_undr = miss_pars_undr, Q = 1, replace = replace)
+fs
 ```
+
+### MNAR
+
+Want to get roughly 3% missing in OFF_RACER in both cases.
+
+Overstate the Race effect: Missingness in Race is conditional on Race being non-White & not being incarcerated so we set the parameters of the model to be $\exp(\beta) = (10, 1,... ,1)' \in \mathbb{R}^{88}$ and $\exp(\gamma) = (0.1, 1,1,1,1,1, 0.001, 100)' \in \mathbb{R}^8$. The first element in $\beta$ emphasizes missingness based on incarceration. The first element in $\gamma$ de-emphasizes missingness based on race while the seventh element greatly de-emphasizes missingness for defendants who aren't incarcerated and are Black and the eighth greatly emphasizes missingness for individuals who are incarcerated and are Black.
+
+Understate the Race effect: Missingness in Race is conditional on Race being Black & being incarcerated, so we set the parameters of the model to be $\exp(\beta) = (5, 1,... ,1)' \in \mathbb{R}^{88}$ and $\exp(\gamma) = (5, 1,1,1,1,1, 10, 1)' \in \mathbb{R}^8$. The first element in $\beta$ emphasizes missingness based on incarceration. The first element in $\gamma$ emphasizes missingness based on race while the seventh element greatly emphasizes missingness for defendants who aren't incarcerated and are Black.
+
+All parameters set to 1 are irrelevant to the missingness model since the log of 1 is 0.
 
 ```{r mnar-sim}
 #| cache: true
 
-miss_pars_mnar <- matrix(data = NA, ncol = 2, nrow = 97)
-colnames(miss_pars_mnar) <- c("OVER", "UNDR")
-miss_pars_mnar[,"OVER"] <- c(-5.25, -3, rep(0, 89), 4.5, .25, 0, 0, 0, 0)
-miss_pars_mnar[,"UNDR"] <- c(-10, 4.5, rep(0, 89), 4.5, .25, 0, 0, 0, 0)
+# Missingness model parameters for MNAR - OVER
+miss_pars_mnar_over <- build_miss_par_matrix(
+    beta = log(c(10, rep(1, 87))),
+    gamma = log(c(.1, rep(1, 5), .001, 100)),
+    miss_type = "MNAR", sim_size = "full")
+
+# Missingness model parameters for MNAR - UNDR
+miss_pars_mnar_undr <- build_miss_par_matrix(
+    beta = log(c(5, rep(1, 87))),
+    gamma = log(c(5, rep(1, 5), 10, 1)),
+    miss_type = "MNAR", sim_size = "full")
 
 cl <- makeCluster(cores[1] - 1)
 registerDoParallel(cl)
 ptime <- system.time({
-    mnar <- foreach(i = 1:9, .combine = rbind) %dopar% {
+    mnar <- foreach(i = 1:6, .combine = rbind) %dopar% {
     source("helpers.R")
     full_sim(miss_type = "MNAR", sim_size = "full", pop_data = dat,
-             beta = beta, miss_pars = miss_pars_mnar, 
-             Q = Q, replace = replace)
+         beta = beta, M = M, miss_pars_over = miss_pars_mnar_over, 
+         miss_pars_undr = miss_pars_mnar_undr, Q = Q, replace = replace)
     }
 })[3]
 ptime
 stopCluster(cl)
 ```
 
-## MAR
+### MAR
 
-Want to get roughly 3% missing in OFF_RACER in both cases.
-
-Previously I had race determined by county, but I've since removed that since confounders result in unbiased estimates [@bartlettAsymptoticallyUnbiasedEstimation2015].
-
-Overstate the Race effect:
-
-Let $Z_{i1} = ((1-C2_i)(1 - INCAR_i)) + (C1_i INCAR_i)$
-
-$$
-p_{i1} = P(RACE_i ~ Missing | INCAR_i, CTY_i) = [1 + \exp(-(a + b Z_{i1}))]^{-1}
-$$
-
-Understate the Race effect:
-
-Let $Z_{i2} = ((1-C1_i)(1 - INCAR_i)) + (C4_i INCAR_i)$
-
-$$
-p_{i2} = P(RACE_i ~ Missing | INCAR_i, CTY_i) = [1 + \exp(-(a + b Z_{i2}))]^{-1}
-$$
+I use essentially the same parameter settings for the MAR simulations as I do for the MNAR. To get an overstated race effect estimate, I de-emphasize missingness based on the interaction term between Race and Non-Incarceration and emphasize the interaction term between Race and Incarceration. To understate the estimate, I do the opposite. The main difference is that missingness based on Race is only for patterns 1,3,5, and 7 which are no missing variables, missing in Age, missing in RecMin., and missing in both Age and RecMin.. This maintains the MAR assumption since the missingness isn't contingent on the level of Race for the patterns where Race may be missing. However, since we are performing the analyses with Complete Case Analysis, we are still systematically excluding data from our analysis in such a way that will dramatically bias the results.
 
 ```{r mar-sim}
 #| cache: true
-miss_pars_mar <- matrix(data = NA, ncol = 2, nrow = 97)
-colnames(miss_pars_mar) <- c("OVER", "UNDR")
-miss_pars_mar[,"OVER"] <- c(-1, -6, rep(0, 95))
-miss_pars_mar[,"UNDR"] <- c(-7, 6, rep(0, 95))
+
+# Missingness model parameters for MAR - OVER
+miss_pars_mar_over <- build_miss_par_matrix(
+    beta = log(c(10, rep(1, 87))),
+    gamma = log(c(.1, rep(1, 5), .00001, 1)),
+    miss_type = "MAR", sim_size = "full")
+
+# Missingness model parameters for MAR - UNDR
+miss_pars_mar_undr <- build_miss_par_matrix(
+    beta = log(c(1, rep(1, 87))),
+    gamma = log(c(1, rep(1, 5), 30, .1)),
+    miss_type = "MAR", sim_size = "full")
 
 cl <- makeCluster(cores[1] - 1)
 registerDoParallel(cl)
 ptime <- system.time({
-    mar <- foreach(i = 1:9, .combine = rbind) %dopar% {
+    mar <- foreach(i = 1:6, .combine = rbind) %dopar% {
     source("helpers.R")
     full_sim(miss_type = "MAR", sim_size = "full", pop_data = dat,
-             beta = beta, miss_pars = miss_pars_mar, 
-             Q = Q, replace = replace)
+         beta = beta, M = M, miss_pars_over = miss_pars_mar_over, 
+         miss_pars_undr = miss_pars_mar_undr, Q = Q, replace = replace)
     }
 })[3]
 ptime
@@ -188,11 +280,13 @@ stopCluster(cl)
 
 ------------------------------------------------------------------------
 
-## Results
+## Results {.tabset}
 
 ### Tables
 
-```{r, echo = FALSE}
+```{r}
+#| label: "Results Tables"
+#| echo: false
 sim.res <- rbind(mnar, mar)
 
 tbs <- result_tables(sim.res)
@@ -204,20 +298,14 @@ tbs$BIAS
 
 ### Plots
 
-```{r echo = FALSE}
+```{r}
+#| label: "Results Plots"
+#| echo: false
 plts <- result_plots(sim.res)
 
 cowplot::plot_grid(plts$OR, plts$PM, nrow = 2)
 
 cowplot::plot_grid(plts$DIFF, plts$BIAS, nrow = 2)
-```
-
-```{r echo = FALSE}
-# or_bias_diff <- ggplot(sim.res, aes(x = OR_BIAS, y = OR_DIFF, color = DIRECTION)) +
-#     geom_point() +
-#     facet_grid(MISS_TYPE ~ DIRECTION)
-# 
-# cowplot::plot_grid(bias_plt, or_bias_diff, nrow = 2)
 ```
 
 ## References {.unnumbered}

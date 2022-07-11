@@ -322,11 +322,17 @@ $$Z_{i2} = (1 - C1_i)(1 - INCAR_i) + C2_i INCAR_i$$
 
 ## Fourth Pass at Criminology Simulations
 
-Need to use a model where I switch between the missingness settings by only changing parameters similar to the model from [[perkinsPrincipledApproachesMissing2018]].
+Need to use a model where I switch between the missingness settings by only changing parameters similar to the multinomial-like model from [[perkinsPrincipledApproachesMissing2018]].
 
 Let $V$ be the set of variables that are completely observed in every missing data pattern. Let $L_r$ be the the set of variables completely observed in pattern $r$ but only partially observed in other patterns and be $W_r$ be the set of variables partially observed in pattern $r$. In my simulation, the missing data patterns are $R = 1$ $(INCAR, RECMIN,..., RACE, COUNTY, YEAR) = (obs, obs, ..., obs, obs, obs)$ or $R = 2$ $(INCAR, RECMIN,..., RACE, COUNTY, YEAR) = (obs, obs, ..., partial, obs, obs)$ so that $V = (INCAR, RECMIN,..., COUNTY, YEAR)$, $L_1 = RACE$, $W_1 = \emptyset$ for pattern $R = 1$ and $L_2 = \emptyset$, $W_2 = RACE$ for pattern $R = 2$. Since RACE is the only variable that may be partially observed, only one of $L_r$ or $W_r$ is in the model at a time.
 
 I then have the model 
 $$logit(P(R = r | V, L_r, W_r)) = \alpha + \beta_r V + \gamma_r L_r + \eta_r W_r$$
 where the parameters are set to create MAR, MNAR missingness and to induce over-or under-estimation of the Race effect odds ratio.
+
+Finally got the desired effect under MAR by including more missingness patterns (those observed in the data).
+
+![[Pasted image 20220628124058.png]]|Small Simulation Results |
+
+I had to add in $Z_1 = I(RACE = BLACK)(1 - INCAR)$ and $Z_2 = I(RACE = BLACK)INCAR$ to get the biased results, but I finally have my simulation for CCA.
 
