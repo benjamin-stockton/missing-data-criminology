@@ -125,6 +125,14 @@ sim_log_reg(x.miss[["OVER"]], sim_size = "small")
 sim_log_reg(x.miss[["UNDR"]], sim_size = "small")
 ```
 
+Testing the MI procedure.
+```{r}
+source("helpers.R")
+mi_log_reg(x.miss[["OVER"]], sim_size = "small", m = 5)
+mi_log_reg(x.miss[["UNDR"]], sim_size = "small", m = 5)
+```
+
+
 ### Full Simulation (1 iteration)
 Testing the full simulation:
 
@@ -249,6 +257,7 @@ stopCluster(cl)
 sim.res <- rbind(mnar, mar)
 
 tbs <- result_tables(sim.res)
+tbs <- present_tables(tbs)
 tbs$ODDS_RATIO
 tbs$PROP_MISS
 tbs$DIFF

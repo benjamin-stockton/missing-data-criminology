@@ -1,6 +1,7 @@
 # helpers.R
 
 library(dplyr)
+library(mice)
 
 sample_from_pop <- function(pop_dat, M = 1000, replace = FALSE) {
     s <- sample(1:nrow(pop_dat), size = M, replace = replace)
@@ -169,7 +170,7 @@ missingness_model <- function(data, miss_pars, sim_size = "small") {
                               function(r) {
                                   return(sample(1:8, 1, prob = prob.mat[r,]))
                               })
-    print(prop.table(table(assigned_pattern)))
+    # print(prop.table(table(assigned_pattern)))
     return(assigned_pattern)
 }
 
@@ -234,22 +235,50 @@ sim_log_reg <- function(data, sim_size = "small") {
         OR <- exp(coef(fit))["X"]
     }
     else if (sim_size == "full") {
-        print(prop.table(table(df$INCAR, df$OFF_RACER), margin = 2))
+        # print(prop.table(table(df$INCAR, df$OFF_RACER), margin = 2))
         fit <- glm(INCAR ~ ., data = df, family = binomial(link = "logit"))
         OR <- exp(coef(fit))["OFF_RACERBLACK"]
     }
     return(c("OR" = OR, "Prop_Miss" = p_miss))
 }
 
+mi_log_reg <- function(data, sim_size = "small", m = 3) {
+    # Create the multpily imputed data sets
+    imp <- mice(data, m = m)
+    # Stack the data sets together
+    # imp_tot <- complete(imp, "long", inc = TRUE)
+    # Run the analyses
+    if (sim_size == "small") {
+        fitm <- with(imp, glm(Y ~ X + Z1 + Z1Q + Z2 + CTY, family = binomial(link = "logit")))
+        pool_fit <- pool(fitm)
+        x_index <- which(pool_fit$pooled[,1] == "X")
+        OR <- exp(pool_fit$pooled[x_index, "estimate"])
+    }
+    else if (sim_size == "full") {
+        fitm <- with(imp, glm(INCAR ~ CRIMETYPE + OGS + OGSQ + RECMIN + TRIAL + PRS + 
+                              MALE + DOSAGE + DOSAGEQ + OFF_RACER + COUNTY + YEAR, family = binomial(link = "logit")))
+        pool_fit <- pool(fitm)
+        race_index <- which(pool_fit$pooled[,1] == "OFF_RACERBLACK")
+        OR <- exp(pool_fit$pooled[race_index, "estimate"])
+    }
+    return(OR)
+}
+
 full_sim <- function(beta, miss_pars_over, miss_pars_undr, miss_type = "MAR", 
                      sim_size = "small", pop_data = NULL,
-                     Q = 1, replace = FALSE, M = 100) {
+                     Q = 1, replace = FALSE, M = 100, m = 3) {
     res <- matrix(data = numeric(Q * 12), nrow = Q, ncol = 12)
     levs <- c("COMP", "OVER", "UNDR")
     colnames(res) <- c(paste0("OR_", levs),
                        paste0("PM_", levs), 
                        paste0("OR_diff_", levs),
                        paste0("OR_bias_", levs))
+    mi_res <- matrix(data = numeric(Q * 8), nrow = Q, ncol = 8)
+    levs2 <- c("OVER", "UNDR")
+    colnames(mi_res) <- c(paste0("OR_", levs2),
+                          paste0("PM_", levs2),
+                       paste0("OR_diff_", levs2),
+                       paste0("OR_bias_", levs2))
     
     for (q in 1:Q) {
         if (q %% 50 == 0)
@@ -283,8 +312,15 @@ full_sim <- function(beta, miss_pars_over, miss_pars_undr, miss_type = "MAR",
         for (l in levs) {
             lr_res <- sim_log_reg(dat.list[[l]], sim_size = sim_size)
             res[q, c(paste0("OR_", l), paste0("PM_", l))] <- lr_res
-            res[q, c(paste0("OR_diff_", l))] <- res[q, paste0("OR_", l)] - res[q, "OR_COMP"]
-            res[q, c(paste0("OR_bias_", l))] <- res[q, paste0("OR_", l)] - exp(beta.int)
+            res[q, paste0("OR_diff_", l)] <- res[q, paste0("OR_", l)] - res[q, "OR_COMP"]
+            res[q, paste0("OR_bias_", l)] <- res[q, paste0("OR_", l)] - exp(beta.int)
+            if (l != "COMP") {
+                lr_res <- mi_log_reg(dat.list[[l]], sim_size = sim_size, m = m)
+                mi_res[q, paste0("OR_", l)] <- lr_res
+                mi_res[q, paste0("PM_", l)] <- res[q, paste0("PM_", l)]
+                mi_res[q, paste0("OR_diff_", l)] <- mi_res[q, paste0("OR_", l)] - res[q, "OR_COMP"]
+                mi_res[q, paste0("OR_bias_", l)] <- mi_res[q, paste0("OR_", l)] - exp(beta.int)
+            }
         }
     }
     sim.res <- data.frame("MISS_TYPE" = rep(miss_type, 3 * Q),
@@ -294,37 +330,59 @@ full_sim <- function(beta, miss_pars_over, miss_pars_undr, miss_type = "MAR",
                           "ODDS_RATIO" = c(res[,1], res[,2], res[,3]),
                           "PROP_MISS" = c(res[,4], res[,5], res[,6]),
                           "OR_DIFF" = c(res[,7], res[,8], res[,9]),
-                          "OR_BIAS" = c(res[,10], res[,11], res[,12]))
+                          "OR_BIAS" = c(res[,10], res[,11], res[,12]),
+                          "ANALYSIS" = rep("CCA", 3*Q))
+    mi.res <- data.frame("MISS_TYPE" = rep(miss_type, 2 * Q),
+                         "DIRECTION" = c(rep("OVER", Q),
+                                         rep("UNDR", Q)),
+                         "ODDS_RATIO" = c(mi_res[,1], mi_res[,2]),
+                         "PROP_MISS" = c(mi_res[,3], mi_res[,4]),
+                         "OR_DIFF" = c(mi_res[,5], mi_res[,6]),
+                         "OR_BIAS" = c(mi_res[,7], mi_res[,8]),
+                         "ANALYSIS" = rep("MI", 2*Q))
+    sim.res <- rbind(sim.res, mi.res)
     
     return(sim.res)
 }
 
 result_tables <- function(sim.res) {
-    mean_OR <- sim.res %>% group_by(MISS_TYPE, DIRECTION) %>%
+    mean_OR <- sim.res %>% group_by(MISS_TYPE, DIRECTION, ANALYSIS) %>%
         summarize(odds_ratio_mean = round(mean(ODDS_RATIO), 3),
                   quant_025 = quantile(ODDS_RATIO, probs = .025),
                   quant_975 = quantile(ODDS_RATIO, probs = .975),
                   or_y_pos = find_label_y_pos(ODDS_RATIO))
     
-    mean_PM <- sim.res %>% group_by(MISS_TYPE, DIRECTION) %>%
+    mean_PM <- sim.res %>% group_by(MISS_TYPE, DIRECTION, ANALYSIS) %>%
         summarize(prop_miss_mean = round(mean(PROP_MISS), 3),
                   quant_025 = quantile(PROP_MISS, probs = .025),
                   quant_975 = quantile(PROP_MISS, probs = .975),
                   pm_y_pos = find_label_y_pos(PROP_MISS))
     
-    mean_DIFF <- sim.res %>% group_by(MISS_TYPE, DIRECTION) %>%
+    mean_DIFF <- sim.res %>% group_by(MISS_TYPE, DIRECTION, ANALYSIS) %>%
         summarize(odds_ratio_diff_mean = round(mean(OR_DIFF), 3),
                   quant_025 = quantile(OR_DIFF, probs = .025),
                   quant_975 = quantile(OR_DIFF, probs = .975),
                   diff_y_pos = find_label_y_pos(OR_DIFF))
     
-    mean_BIAS <- sim.res %>% group_by(MISS_TYPE, DIRECTION) %>%
+    mean_BIAS <- sim.res %>% group_by(MISS_TYPE, DIRECTION, ANALYSIS) %>%
         summarize(bias_mean = round(mean(OR_BIAS), 3),
                   quant_025 = quantile(OR_BIAS, probs = .025),
                   quant_975 = quantile(OR_BIAS, probs = .975),
                   bias_y_pos = find_label_y_pos(OR_BIAS))
     return(list("ODDS_RATIO" = mean_OR, "PROP_MISS" = mean_PM, 
                 "DIFF" = mean_DIFF, "BIAS" = mean_BIAS))
+}
+
+present_tables <- function(tbls) {
+    cnames <- c("Miss Type", "Direction", "Analysis", "Odds Ratio", "0.025 Quantile", "0.975 Quantile")
+    stat_names <- c("Odds Ratio", "Miss. Prop.", "OR Difference", "Bias")
+    for (i in 1:4) {
+        tmp <- tbls[[i]][,1:6]
+        cnames[4] <- stat_names[i]
+        colnames(tmp) <- cnames
+        tbls[[i]] <- tmp
+    }
+    return(tbls)
 }
 
 find_label_y_pos <- function(X) {
@@ -348,7 +406,7 @@ result_plots <- function(sim.res) {
                   nudge_x = .05, angle = 30) +
         labs(title = "Densities of Odds Ratios of the Race Effect", 
              x = "Odds Ratio") +
-        facet_grid(MISS_TYPE ~ ., scales = "free_y")
+        facet_grid(MISS_TYPE ~ ANALYSIS, scales = "free_y")
     
     pm_plt <- ggplot(sim.res, aes(x = PROP_MISS, color = DIRECTION)) +
         geom_density() +
@@ -359,7 +417,7 @@ result_plots <- function(sim.res) {
                   nudge_x = .005, angle = 30) +
         labs(title = "Densities of Prop. of Miss. in Race", 
              x = "Missing Proportion") +
-        facet_grid(MISS_TYPE ~ ., scales = "free_y")
+        facet_grid(MISS_TYPE ~ ANALYSIS, scales = "free_y")
     
     
     diff_plt <- ggplot(sim.res, aes(x = OR_DIFF, color = DIRECTION)) +
@@ -371,7 +429,7 @@ result_plots <- function(sim.res) {
                   nudge_x = .01, angle = 30) +
         labs(title = "Densities of Diff in Est. OR of the Race Effect", 
              x = TeX("$OR_{miss} - OR_{comp}$")) +
-        facet_grid(MISS_TYPE ~ ., scales = "free_y")
+        facet_grid(MISS_TYPE ~ ANALYSIS, scales = "free_y")
     
     bias_plt <- ggplot(sim.res, aes(x = OR_BIAS, color = DIRECTION)) +
         geom_density() +
@@ -382,7 +440,7 @@ result_plots <- function(sim.res) {
                   nudge_x = .05, angle = 30) +
         labs(title = "Densities of Bias in Est. OR of the Race Effect", 
              x = TeX("$OR_{miss} - e^\\beta$")) +
-        facet_grid(MISS_TYPE ~ ., scales = "free_y")
+        facet_grid(MISS_TYPE ~ ANALYSIS, scales = "free_y")
     
     return(list("OR" = or_plt, "PM" = pm_plt,
                 "DIFF" = diff_plt, "BIAS" = bias_plt))
