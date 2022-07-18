@@ -1,0 +1,196 @@
+---
+title: "Rate of Missing Information"
+author: "Ben Stockton"
+editor: visual
+number-sections: true 
+df-print: paged
+toc: true
+format: 
+  html: 
+    code-fold: false
+  pdf:
+    geometry: 
+      - top=30mm
+      - left=30mm
+    shift-heading-level-by: -1
+execute: 
+  cache: true
+bibliography: Literature/Criminology.bib
+---
+
+```{r}
+#| include: false
+#| label: "Load packages"
+knitr::opts_chunk$set(echo = TRUE, results = 'hold', warning = FALSE)
+library(dplyr, warn.conflicts = FALSE)
+
+# Suppress summarise info
+options(dplyr.summarise.inform = FALSE)
+library(magrittr)
+library(ggplot2)
+library(latex2exp)
+library(RColorBrewer)
+library(readr)
+library(cowplot)
+library(doParallel)
+library(forcats)
+library(mice)
+library(VIM)
+library(lattice)
+
+cores <- detectCores()
+source("helpers.R")
+```
+
+## Background
+
+To figure out the number of imputations to use, Rubin [@rubinMultipleImputationNonresponse1987] suggested using $RelEff = (1 + \frac{\lambda}{m})^{-1}$ with a desired level of relative efficiency where $\lambda$ is the rate of missing information and $m$ is the number of imputations. $m$ and the relative efficiency are known or determined by the analyst, so we only need to estimate the rate of missing information $\lambda$. Harel [@harelInferencesMissingInformation2007] provides a thorough discussion of the procedure for estimating this missingness.
+
+A point estimate of the rate of missing information is given by the ratio of the between variance to the sum of the between and within variances, $\hat{\lambda} = B / (B + \bar{U})$. The 95% confidence interval is given by $\hat{\lambda} \pm 1.96\frac{\hat{\lambda}(1-\hat{\lambda})}{\sqrt{m/2}}$, for $\lambda$ near 0 or 1, use the logit transform to stabilize the variance $\hat{\lambda} \pm logit^{-1}\left(1.96 \sqrt{2/m} + logit(\hat{\lambda})\right)$.
+
+## Procedure
+
+1.  Sample ($n = 1000$) from the population.
+2.  Create missingness (MNAR, MAR)
+3.  Run the MI with $m = 20$ to estimate $\hat{\lambda}$ using the variances of the race effect coefficient.
+4.  Create the confidence interval.
+
+### Sampling Data
+
+```{r}
+#| cache: true
+#| label: "Sample from the population"
+
+dat <- read_csv("Data/simulated_data.csv", col_types = "dfdffffffdfdd")
+dat$OFF_RACER %<>% fct_relevel(c("WHITE", "BLACK", "LATINO", "OTHER"))
+levels(dat$OFF_RACER)
+samp <- sample_from_pop(dat, M = 1000, replace = FALSE)
+```
+
+### Creating Missingness
+
+#### MNAR
+
+```{r}
+#| label: "Create MNAR data"
+#| cache: true
+
+# Missingness model parameters for MNAR - OVER
+miss_pars_mnar_over <- build_miss_par_matrix(
+    beta = log(c(10, rep(1, 87))),
+    gamma = log(c(.1, rep(1, 5), .001, 100)),
+    miss_type = "MNAR", sim_size = "full")
+
+# Missingness model parameters for MNAR - UNDR
+miss_pars_mnar_undr <- build_miss_par_matrix(
+    beta = log(c(5, rep(1, 87))),
+    gamma = log(c(5, rep(1, 5), 10, 1)),
+    miss_type = "MNAR", sim_size = "full")
+
+dat.mnar <- generate_missing_x(samp, sim_size = "full",
+                            miss_pars_over = miss_pars_mnar_over,
+                           miss_pars_undr = miss_pars_mnar_undr)
+```
+
+#### MAR
+
+```{r}
+#| label: "Create MAR data"
+#| cache: true
+
+# Missingness model parameters for MAR - OVER
+miss_pars_mar_over <- build_miss_par_matrix(
+    beta = log(c(10, rep(1, 87))),
+    gamma = log(c(.1, rep(1, 5), .00001, 1)),
+    miss_type = "MAR", sim_size = "full")
+
+# Missingness model parameters for MAR - UNDR
+miss_pars_mar_undr <- build_miss_par_matrix(
+    beta = log(c(1, rep(1, 87))),
+    gamma = log(c(1, rep(1, 5), 30, .1)),
+    miss_type = "MAR", sim_size = "full")
+
+dat.mar <- generate_missing_x(samp, sim_size = "full",
+                            miss_pars_over = miss_pars_mar_over,
+                           miss_pars_undr = miss_pars_mar_undr)
+```
+
+### Multiple Imputation
+
+#### MNAR
+
+```{r}
+#| cache: true
+#| label: "MNAR MICE"
+M <- 80
+md.pattern(dat.mnar$OVER)
+
+imp <- mice(dat.mnar$OVER, m = M, printFlag = F)
+
+fitm <- with(imp, glm(INCAR ~ CRIMETYPE + OGS + OGSQ + RECMIN + TRIAL + PRS + 
+                              MALE + DOSAGE + DOSAGEQ + OFF_RACER + COUNTY + YEAR,
+                      family = binomial(link = "logit")))
+pool_fit <- pool(fitm)
+```
+
+```{r}
+#| label: "MNAR Rate of missing information estimate"
+
+race_index <- which(pool_fit$pooled[,1] == "OFF_RACERBLACK")
+ubar <- pool_fit$pooled[race_index, "ubar"]
+B <- pool_fit$pooled[race_index, "b"]
+
+lambda_hat <- B / (ubar + B)
+lambda_hat
+
+lambda_hat + c(-1, 1) * 1.96 * lambda_hat * (1 - lambda_hat) / sqrt(M/2)
+```
+
+```{r}
+#| label: "MNAR Number of imputations estimate"
+
+(1 + lambda_hat / 3)^-1
+
+reff <- .99
+
+lambda_hat * reff / (1 - reff)
+```
+
+#### MAR
+
+```{r}
+#| cache: true
+#| label: "MAR MICE"
+
+md.pattern(dat.mar$OVER)
+
+imp <- mice(dat.mar$OVER, m = M, printFlag = F)
+
+fitm <- with(imp, glm(INCAR ~ CRIMETYPE + OGS + OGSQ + RECMIN + TRIAL + PRS + 
+                              MALE + DOSAGE + DOSAGEQ + OFF_RACER + COUNTY + YEAR,
+                      family = binomial(link = "logit")))
+pool_fit <- pool(fitm)
+```
+
+```{r}
+#| label: "MAR Rate of missing information estimate"
+
+race_index <- which(pool_fit$pooled[,1] == "OFF_RACERBLACK")
+ubar <- pool_fit$pooled[race_index, "ubar"]
+B <- pool_fit$pooled[race_index, "b"]
+
+lambda_hat <- B / (ubar + B)
+lambda_hat
+
+lambda_hat + c(-1, 1) * 1.96 * lambda_hat * (1 - lambda_hat) / sqrt(M/2)
+```
+
+```{r}
+#| label: "MAR Number of imputations estimate"
+
+(1 + lambda_hat / 3)^-1
+
+reff <- .99
+
+lambda_hat * reff / (1 - reff)
+```
