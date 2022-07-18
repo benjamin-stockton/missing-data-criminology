@@ -398,46 +398,50 @@ result_plots <- function(sim.res) {
     mean_BIAS <- tbls$BIAS
     
     or_plt <- ggplot(sim.res, aes(x = ODDS_RATIO, color = DIRECTION)) +
-        geom_density() +
-        geom_vline(data = mean_OR, aes(xintercept = odds_ratio_mean, color = DIRECTION)) +
-        geom_text(data = mean_OR, 
-                  aes(x = odds_ratio_mean, y = or_y_pos,
-                      label = odds_ratio_mean, color = DIRECTION),
-                  nudge_x = .05, angle = 30) +
+        geom_boxplot() +
+        # geom_density() + 
+        # geom_vline(data = mean_OR, aes(xintercept = odds_ratio_mean, color = DIRECTION)) +
+        # geom_text(data = mean_OR, 
+        #           aes(x = odds_ratio_mean, y = or_y_pos,
+        #               label = odds_ratio_mean, color = DIRECTION),
+        #           nudge_x = .05, angle = 30) +
         labs(title = "Densities of Odds Ratios of the Race Effect", 
              x = "Odds Ratio") +
         facet_grid(MISS_TYPE ~ ANALYSIS, scales = "free_y")
     
     pm_plt <- ggplot(sim.res, aes(x = PROP_MISS, color = DIRECTION)) +
-        geom_density() +
-        geom_vline(data = mean_PM, aes(xintercept = prop_miss_mean, color = DIRECTION)) +
-        geom_text(data = mean_PM, 
-                  aes(x = prop_miss_mean, y = pm_y_pos,
-                      label = prop_miss_mean, color = DIRECTION),
-                  nudge_x = .005, angle = 30) +
+        geom_boxplot() +
+        # geom_density() +
+        # geom_vline(data = mean_PM, aes(xintercept = prop_miss_mean, color = DIRECTION)) +
+        # geom_text(data = mean_PM, 
+        #           aes(x = prop_miss_mean, y = pm_y_pos,
+        #               label = prop_miss_mean, color = DIRECTION),
+        #           nudge_x = .005, angle = 30) +
         labs(title = "Densities of Prop. of Miss. in Race", 
              x = "Missing Proportion") +
         facet_grid(MISS_TYPE ~ ANALYSIS, scales = "free_y")
     
     
     diff_plt <- ggplot(sim.res, aes(x = OR_DIFF, color = DIRECTION)) +
-        geom_density() +
-        geom_vline(data = mean_DIFF, aes(xintercept = odds_ratio_diff_mean, color = DIRECTION)) +
-        geom_text(data = mean_DIFF, 
-                  aes(x = odds_ratio_diff_mean, y = diff_y_pos,
-                      label = odds_ratio_diff_mean, color = DIRECTION),
-                  nudge_x = .01, angle = 30) +
+        geom_boxplot() +
+        # geom_density() +
+        # geom_vline(data = mean_DIFF, aes(xintercept = odds_ratio_diff_mean, color = DIRECTION)) +
+        # geom_text(data = mean_DIFF, 
+        #           aes(x = odds_ratio_diff_mean, y = diff_y_pos,
+        #               label = odds_ratio_diff_mean, color = DIRECTION),
+        #           nudge_x = .01, angle = 30) +
         labs(title = "Densities of Diff in Est. OR of the Race Effect", 
              x = TeX("$OR_{miss} - OR_{comp}$")) +
         facet_grid(MISS_TYPE ~ ANALYSIS, scales = "free_y")
     
     bias_plt <- ggplot(sim.res, aes(x = OR_BIAS, color = DIRECTION)) +
-        geom_density() +
-        geom_vline(data = mean_BIAS, aes(xintercept = bias_mean, color = DIRECTION)) +
-        geom_text(data = mean_BIAS, 
-                  aes(x = bias_mean, y = bias_y_pos,
-                      label = bias_mean, color = DIRECTION),
-                  nudge_x = .05, angle = 30) +
+        geom_boxplot() +
+        # geom_density() +
+        # geom_vline(data = mean_BIAS, aes(xintercept = bias_mean, color = DIRECTION)) +
+        # geom_text(data = mean_BIAS, 
+        #           aes(x = bias_mean, y = bias_y_pos,
+        #               label = bias_mean, color = DIRECTION),
+        #           nudge_x = .05, angle = 30) +
         labs(title = "Densities of Bias in Est. OR of the Race Effect", 
              x = TeX("$OR_{miss} - e^\\beta$")) +
         facet_grid(MISS_TYPE ~ ANALYSIS, scales = "free_y")

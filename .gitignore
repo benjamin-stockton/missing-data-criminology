@@ -9,6 +9,10 @@
 *.log
 nul
 *.csv
+*.docx
+*.xlsx
+*.zip
+*.dta
 \Project_Proposal
 \Data
 *.html

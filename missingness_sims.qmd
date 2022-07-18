@@ -12,6 +12,8 @@ format:
       - top=30mm
       - left=30mm
     shift-heading-level-by: -1
+  docx:
+    shift-heading-level-by: -1
 editor: visual
 execute: 
   cache: true
@@ -110,11 +112,11 @@ For my simulations, I'll use a sample size of $n = 1,000$ which can be adjusted 
 
 ```{r sim-params}
 # Sample size
-M <- 1000
+M <- 500
 # Number of imputations for MI
-m <- 3
+m <- 7
 # Number of iterations to run in each parallel thread
-Q <- 10 # Q * 9
+Q <- 15 # Q * 15
 # Sample with replacement?
 replace <- FALSE
 ```
@@ -258,7 +260,7 @@ miss_pars_mnar_undr <- build_miss_par_matrix(
 cl <- makeCluster(cores[1] - 1)
 registerDoParallel(cl)
 ptime <- system.time({
-    mnar <- foreach(i = 1:6, .combine = rbind) %dopar% {
+    mnar <- foreach(i = 1:15, .combine = rbind) %dopar% {
     source("helpers.R")
     full_sim(miss_type = "MNAR", sim_size = "full", pop_data = dat,
          beta = beta, M = M, m = m, miss_pars_over = miss_pars_mnar_over, 
@@ -291,7 +293,7 @@ miss_pars_mar_undr <- build_miss_par_matrix(
 cl <- makeCluster(cores[1] - 1)
 registerDoParallel(cl)
 ptime <- system.time({
-    mar <- foreach(i = 1:6, .combine = rbind) %dopar% {
+    mar <- foreach(i = 1:15, .combine = rbind) %dopar% {
     source("helpers.R")
     full_sim(miss_type = "MAR", sim_size = "full", pop_data = dat,
          beta = beta, M = M, m = m, miss_pars_over = miss_pars_mar_over, 
