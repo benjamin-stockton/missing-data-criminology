@@ -10,6 +10,9 @@
 nul
 *.csv
 *.docx
+*.js
+*.css
+*.woff
 *.xlsx
 *.zip
 *.dta

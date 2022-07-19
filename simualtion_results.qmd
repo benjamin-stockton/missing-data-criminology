@@ -1,0 +1,121 @@
+---
+title: "Criminology Simulation Results"
+author: "Ben Stockton"
+number-sections: true 
+df-print: paged
+pdf-engine: pdflatex
+toc: true
+format: 
+  html: 
+    code-fold: false
+  pdf:
+    geometry: 
+      - top=30mm
+      - left=30mm
+    shift-heading-level-by: -1
+  docx:
+    shift-heading-level-by: -1
+editor: visual
+execute: 
+  cache: true
+bibliography: Literature/Criminology.bib
+---
+
+```{r}
+#| include: false
+knitr::opts_chunk$set(echo = TRUE, results = 'hold')
+library(dplyr, warn.conflicts = FALSE)
+
+# Suppress summarise info
+options(dplyr.summarise.inform = FALSE)
+library(magrittr)
+library(ggplot2)
+library(latex2exp)
+library(RColorBrewer)
+source("helpers.R")
+```
+
+## Overview
+
+I ran the simulations under a variety of settings, each for 225 iterations.
+
+| Sample Size ($n$) | Number of Imputations ($M$) |
+|-------------------|-----------------------------|
+| 500               | 3                           |
+| 500               | 5                           |
+| 500               | 8                           |
+| 1000              | 3                           |
+| 1000              | 5                           |
+| 1000              | 8                           |
+| 2500              | 3                           |
+| 2500              | 5                           |
+| 2500              | 8                           |
+
+From the estimated rate of missing information, I determined that there should be between five and eight imputations to achieve a relative efficiency of \>0.99. For a relative efficiency of \~0.95, three imputations is sufficient.
+
+In previous simulations with $n = 1000$ and $M = 3$ , I was able to find that on average, depending on my parameter settings for the missingness model, I was able to create data sets that over- and under-estimated the race effect on average for each data set. In other words, for a given data set, if you take a sample from the population with race effect $\gamma = \exp(\beta)$ and estimate the race effect with the complete data to get $\hat{\gamma} = \exp(\hat{\beta})$, then estimates made with complete case analysis after imposing missing values for that same data set will be over or under the complete data estimate $\hat{\gamma}$ on average, depending on what parameters are used in the missingness model.
+
+In this document, I will demonstrate that for appropriate numbers of imputations to achieve 95% relative efficiency, 99% relative efficiency, and 99+% relative efficiency, we see the same behavior in the sampling distributions and medians of the differences $\hat{\gamma}^{miss} - \hat{\gamma}$.
+
+## Results
+
+### n = 500
+
+```{r}
+#| label: "n = 500 Results Tables"
+#| echo: false
+Q <- 225
+M <- c(500, 1000, 2500)
+m <- c(3, 5, 8)
+
+for (i in 1:3) {
+    fname <- paste0("Sim_Results/simulation_results_Q", Q, "_n_", M[1], "_m_", m[i], ".csv")
+    sim.res <- read.csv(fname, header = T)
+
+    tbs <- result_tables(sim.res)
+    tbs <- present_tables(tbs)
+
+    plts <- result_plots(sim.res, Q = 225, M = M[1], m = m[i])
+
+    print(plts$DIFF)
+    # print(tbs$DIFF)
+}
+```
+
+### n = 1000
+
+```{r}
+#| label: "n = 1000 Results Tables"
+#| echo: false
+for (i in 1:3) {
+    fname <- paste0("Sim_Results/simulation_results_Q", Q, "_n_", M[2], "_m_", m[i], ".csv")
+    sim.res <- read.csv(fname, header = T)
+
+    tbs <- result_tables(sim.res)
+    tbs <- present_tables(tbs)
+
+    plts <- result_plots(sim.res, Q = 225, M = M[2], m = m[i])
+
+    print(plts$DIFF)
+    # print(tbs$DIFF)
+}
+```
+
+### n = 2500
+
+```{r}
+#| label: "n = 2500 Results Tables"
+#| echo: false
+for (i in 1:3) {
+    fname <- paste0("Sim_Results/simulation_results_Q", Q, "_n_", M[3], "_m_", m[i], ".csv")
+    sim.res <- read.csv(fname, header = T)
+
+    tbs <- result_tables(sim.res)
+    tbs <- present_tables(tbs)
+
+    plts <- result_plots(sim.res, Q = 225, M = M[3], m = m[i])
+
+    print(plts$DIFF)
+    # print(tbs$DIFF)
+}
+```
