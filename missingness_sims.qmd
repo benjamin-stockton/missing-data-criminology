@@ -34,6 +34,7 @@ library(readr)
 library(cowplot)
 library(doParallel)
 library(forcats)
+library(ggthemes)
 
 cores <- detectCores()
 source("helpers.R")
@@ -114,7 +115,7 @@ For my simulations, I'll use a sample size of $n = 1,000$ which can be adjusted 
 # Sample size
 M <- 500
 # Number of imputations for MI
-m <- 7
+m <- 3
 # Number of iterations to run in each parallel thread
 Q <- 15 # Q * 15
 # Sample with replacement?
@@ -321,13 +322,13 @@ In this first table and figures, we can see that the mean Odds Ratio for the rac
 #| echo: false
 sim.res <- rbind(mnar, mar)
 
-tbs <- result_tables(sim.res)
-tbs <- present_tables(tbs)
+# tbs <- result_tables(sim.res)
+# tbs <- present_tables(tbs)
 
-plts <- result_plots(sim.res)
+plts <- result_plots(sim.res, Q = Q*15, M = M, m = m)
 
 plts$OR
-tbs$ODDS_RATIO
+# tbs$ODDS_RATIO
 ```
 
 In the missingness proportion table and figures, we are most interested in the spreads of the amount of missingness. Under the current simulation settings, in the over direction we tend to have between 7% to 11% of rows with missing observations while in the under direction we have 5% to 9% of rows with missing observations. This is higher than the amounts of missingness observed in the Pennsylvania data, but still a relatively moderate amount of missingness.
@@ -337,10 +338,10 @@ In the missingness proportion table and figures, we are most interested in the s
 #| echo: false
 
 plts$PM
-tbs$PROP_MISS
+# tbs$PROP_MISS
 ```
 
-The differences table and figures summarize $\hat{OR}_{Race}^{Dir} - \hat{OR}_{Race}^{Comp}$ for each iteration by missingness assumption and analysis type. These tables are the most important result for the point-wise estimates. Under MAR, the CCA analyses produce estimates with significant differences from the complete data analysis. The MI analyses are able to recover almost all of the missing data and produce extremely similar results to the complete data analysis.
+SThe differences table and figures summarize $\hat{OR}_{Race}^{Dir} - \hat{OR}_{Race}^{Comp}$ for each iteration by missingness assumption and analysis type. These tables are the most important result for the point-wise estimates. Under MAR, the CCA analyses produce estimates with significant differences from the complete data analysis. The MI analyses are able to recover almost all of the missing data and produce extremely similar results to the complete data analysis.
 
 Under MNAR, CCA still produces estimates that significantly differ from the complete data analysis while MI can only slightly reduce those differences, failing to completely recover the lost information. This is expected as we didn't attempt to model the MNAR missingness mechanism/model in the imputation procedure.
 
@@ -349,7 +350,7 @@ Under MNAR, CCA still produces estimates that significantly differ from the comp
 #| echo: false
 
 plts$DIFF
-tbs$DIFF
+# tbs$DIFF
 ```
 
 Finally, checking the bias table and figures, we can see that under MAR the complete data analyses and MI are unbiased while all other analyses produce biased estimates of the true odds ratio $\exp(\beta_{Race})$.
@@ -359,7 +360,7 @@ Finally, checking the bias table and figures, we can see that under MAR the comp
 #| echo: false
 
 plts$BIAS
-tbs$BIAS
+# tbs$BIAS
 ```
 
 ## References {.unnumbered}

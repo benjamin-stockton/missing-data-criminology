@@ -114,7 +114,7 @@ calc_pattern_probs <- function(V, L, beta, gamma, EV, EL) {
     alpha <- numeric(8)
     prob.mat <- matrix(numeric(8 * nrow(V)), ncol = 8)
     
-    for (i in 2:8) {
+    for (i in 1:8) {
         alpha[i] <- -log(1 / pat.probs[i] - 1) - (EV %*% beta[i,] + EL %*% gamma[i,])[,1]
         lp_i <- alpha[i] + (V %*% beta[i,] + L %*% gamma[i,])[,1]
         p_i <- exp(lp_i)
@@ -351,7 +351,7 @@ full_sim <- function(beta, miss_pars_over, miss_pars_undr, miss_type = "MAR",
 result_tables <- function(sim.res) {
     options(dplyr.summarise.inform = FALSE)
     mean_OR <- sim.res %>% group_by(MISS_TYPE, DIRECTION, ANALYSIS) %>%
-        summarizfe(odds_ratio_mean = round(mean(ODDS_RATIO), 3),
+        summarise(odds_ratio_mean = round(mean(ODDS_RATIO), 3),
                   quant_025 = quantile(ODDS_RATIO, probs = .025),
                   quant_975 = quantile(ODDS_RATIO, probs = .975),
                   or_y_pos = find_label_y_pos(ODDS_RATIO))
@@ -439,8 +439,8 @@ my_gg_bar <- function(dat, X, ...) {
 
 my_gg_box <- function(dat, X, main = "", xlab = "", Q = 225, M = 500, m = 3, ...) {
     p1 <- ggplot(dat, aes_string(x = X)) +
+        geom_vline(xintercept = 0, color = "gray") +
         geom_boxplot(aes(y = ANALYSIS, color = DIRECTION)) +
-        geom_vline(xintercept = 0) +
         labs(title = main,
              subtitle = paste0(Q, " iterations, n = ", M, ", M = ", m),
              x = xlab) +
