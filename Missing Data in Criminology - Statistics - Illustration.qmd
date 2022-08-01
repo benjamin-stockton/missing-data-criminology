@@ -363,4 +363,17 @@ plt2500$IMP8
 
 According to the simulations, the median difference between the complete case estimates and the complete data estimates gets closer to zero as the sample size increases from 500 cases to 2500 cases. The spread of the differences shrinks as well resulting in a sampling distribution that still indicates that there's bias even for large samples. Increasing the number of imputations from three to eight doesn't result in dramatically different results. The increase in relative efficiency is fairly small, going from roughly 95% to 99+% as imputations increase from three to eight, so the impact is negligible.
 
+I also did a simulation with 105 iterations, a sample size of 25,000, and $M = 3$ imputations, since that still gives roughly 95% relative efficiency but reduces the computational cost significantly. From these simulations, we further establish the patterns seen with the smaller sample sizes. There's roughly 5-10% of cases with a missing value. The distribution of the differences is narrower than for the smaller samples and the median differences are still clearly different from zero with a moderately large effect size. As this simulation is 10x larger than the 2500 sample size simulation, we can likely expect these patterns to continue for even larger sample sizes. Large data is therefore not a cure-all for missing data and still must be given special attention.
+
+```{r}
+sim.res <- read.csv("Sim_Results/simulation_results_Q105_n_25000_m_3.csv", header = T)
+
+sim.res <- sim.res[which(sim.res$DIRECTION != "COMP"),]
+plts <- result_plots(sim.res, Q = 225, M = 500, m = 8)
+
+plts$OR
+plts$PM
+plts$DIFF
+```
+
 ## References {.unnumbered}
