@@ -1,11 +1,12 @@
 ---
-title: "Criminology Statistics Write Up - Illustration"
+title: "Missing Data in Criminology Research"
 author: "Ben Stockton"
 
 number-sections: true 
 df-print: paged
 pdf-engine: pdflatex
 toc: true
+tbl-cap-location: bottom
 format: 
   html: 
     code-fold: false
@@ -19,7 +20,9 @@ format:
 editor: visual
 execute: 
   cache: true
+  keep-md: false
 bibliography: Literature/Criminology.bib
+csl: journal-of-quantitative-criminology.csl
 ---
 
 ```{r}
@@ -49,25 +52,25 @@ cores <- detectCores()
 source("helpers.R")
 ```
 
-## Analysis
+// I am assuming that Clare will be writing much of the introduction and background.
 
-Researchers use administrative data to investigate the effects of various factors on incarceration decisions (In/Out). Often administrative data is incomplete or has some unobserved demographic or legal features for some cases or subjects. While the number of incomplete cases is often seemingly small, even a small amount of missing data can have a strong effect on the results of an analysis. The size and way this effect manifests is contingent on the way the incomplete cases are induced or created and the analysis performed. We will demonstrate that under some conditions, we can systematically over- or under-estimate the race effect, even flipping the direction of the effect. For our illustrative simulation, we will be measuring the race effect as the odds ratio of the Black to White defendant's incarceration decision as estimated by logistic regression. Administrative data from 2010-2019 in Pennsylvania's criminal justice system were used as a basis for a simulated population of cases. We will also demonstrate that for some situations analysts can account for the missing values to obtain the desired, unbiased estimates of the race effect using multiple imputation [@rubin1987].
+## INTRODUCTION  {#sec-intro}
 
-### Complete Case Analysis
+## BACKGROUND {#sec-background}
 
-Complete Case Analysis, or CCA, is the default analysis procedure for many different statistical software packages and often one of the few missing data methods taught to/learned by non-statisticians along with mean imputation. This ad hoc method drops all rows from a flat table data set that have a missing value in any variable. For example, if we have a data set containing incarceration decision, age, sex, and previous criminal history for 10,000 defendants and 200 defendants are missing values for previous criminal history, then the complete case analysis would only evaluate the 9,800 cases with complete records, dropping all cases that are missing previous histories.
+### Missing Data in Criminological Research  {#sec-missing-data-crim-research}
 
-This can be deeply problematic when values are missing in a non-uniform way. If female defendants are more likely to be missing age observations, then more female defendant cases will be dropped from the analysis potentially biasing our estimates. This fault of CCA will be exploited in the simulations to produce missing values in such a way as to cause the analysis to create biased estimates to illustrate how flawed analytical methods can result in misleading conclusions.
+// Put here as a placeholder. Researchers often use administrative data to investigate various factors' effects on incarceration decisions. Often administrative data are incomplete with some unobserved demographic or legal features for some cases or subjects. While the number of incomplete cases is often seemingly small, even a small amount of missing data can have an important effect on the results of an analysis. The size and way this effect manifests is contingent on the way the incomplete cases are induced or created and the analysis performed. We will demonstrate that under some conditions, we can systematically over- or under-estimate the race effect, even flipping the direction of the effect when data are incomplete. For our illustrative simulation, we will be measuring the race effect as the odds ratio of the Black to White defendant's incarceration decision as estimated by a logistic regression. Administrative data from the Pennsylvania criminal justice system (2010-2019) were used as a basis for a simulated population of cases. We also demonstrate that analysts can account for the missing values to obtain the desired, unbiased estimates of the race effect using multiple imputation [@rubinMultipleImputationNonresponse1987].
 
-### Multiple Imputation
+### Variations in the "Race/Ethnicity" Effect in Sentencing/Corrections  {#sec-race-effect-sentencing}
 
-Statisticians have developed several methods for more rigorous treatment of incomplete data. Principal among these are data augmentation for Bayesian analysis, EM algorithm for certain problems, and multiple imputation for a broad class of problems including our particular situation [@rubin1987, @dempster1977]. Multiple imputation (MI) uses a model such as a regression to create guesses for the missing values based on the observed data. These guesses aren't the best guesses at the missing value, but instead model the entire distribution of potential values.
+### Current Study  {#sec-current-study}
 
-Donald Rubin developed the multiple imputation procedure in the 1970s and 1980s [@rubin1987]. Further reviews and extensions have been added to the literature since [@schafer1999, @schafer2003, @raghunathan2001, @harel2007]. To multiply impute an incomplete data set, we take the data and split it into observed and missing parts $D = (D_{obs}, D_{miss})$, create $M$ copies of $D_{obs}$, and create $M$ sets of imputed data $D_{imp}^m$ to replace $D_{miss}$ and pair with each copy of $D_{obs}$. Our new collection of completed data sets is $\mathbf{D}^* = \{D_1,…, D_M\}$ where $D_m = (D_{obs}, D_{imp}^m)$. The analysis that would have been run on the data originally had it been completely observed is then run on each of the $M$ data sets to give estimates $Q_m$ and standard errors $U_m$. In our case, $Q_m$ is the odds ratio of the race effect and $U_m$ is its standard error. These values can then be combined to produce point estimates, to perform null hypothesis significance tests, or to create confidence intervals. The point estimate is the mean of the estimates from each completed data set, $\bar{Q} = \frac{1}{M} \sum_{m=1}^M Q_m$, with variance $T = \bar{U} + (1 + \frac{1}{M})B$ which is a combination of the average variance of each completed data estimate $\bar{U} = \frac{1}{M}\sum_{m=1}^M U_m$ and the variance of the estimates between themselves $B = \frac{1}{M-1}\sum_{m=1}^M (Q_m - \bar{Q})^2$. These formulas are known as Rubin's Rules [@schafer1999].
+// Include description of data source - Clare
 
-The multiple imputation procedure is very flexible and allows an analyst to choose many different ways to produce imputations and to model what causes the values to be missing in the first place. One popular implementation is MICE, or Multiple Imputation by Chained Equations [@raghunathan2001, @azur2011] which imputes each variable with missing values in a sequence of regressions or other models that can produce guesses based on the observed data. Our simulations will use MICE to multiply impute the missing values in the simulated data and create our MI estimates for the race effect.
+## METHOD  {#sec-method}
 
-## Simulated Data Set
+### Simulated Data Set  {#sec-sim-data}
 
 ```{r}
 #| label: load-data
@@ -82,16 +85,32 @@ dat <- read_csv("Data/simulated_data.csv", col_types = "dfdffffffdfdd")
 dat$OFF_RACER %<>% fct_relevel(c("WHITE", "BLACK", "LATINO", "OTHER"))
 ```
 
-Using a administrative data from 2010-2019 from the State of Pennsylvania as a guide, we created a simulated data set of the same size ($N = 864,422$) as a hypothetical "population" of records. Rather than sampling from the observed data set, we sample from the simulated population so that the relationships between the independent and control variables are removed and we have a simpler, completely observed data set and no longer need to address confounding variables in the estimation [@bartlettAsymptoticallyUnbiasedEstimation2015]. Summaries of each of the independent and control variables were used to construct the simulated data. For categorical demographic or legal variables, we use the marginal probabilities of belonging to each category to randomly and independently select levels for each hypothetical record. The means and variances of the continuous variables were used to draw from normal or gamma distributions depending on if the variable is strictly positive. Using the observed data, a complete case analysis logistic regression with incarceration as the dependent variable was used to obtain plausible values for each independent and control variables effect, $\beta$. From the regression coefficients, we calculated the fitted probabilities for each case using our simulated data as the independent variables to then draw an incarceration decision for each case by flipping a weighted coin with the probability of incarceration being $p_i$ ($P(Incarcerated = Yes) = p_i$). Appending this new simulated dependent variable to the simulated independent variables, we have our simulated data set.
+Using an administrative data from 2010-2019 from the State of Pennsylvania as a guide, we created a simulated data set of the same size ($N = 864,422$) to act as a hypothetical "population" of records. Rather than sampling from the observed data set, we sampled from the simulated population so that the relationships between the independent and control variables are removed and we have a simpler, completely observed data set and no longer need to address confounding variables in the estimation [@bartlettAsymptoticallyUnbiasedEstimation2015]. Summaries of each of the independent and control variables were used to construct the simulated data. For categorical demographic or legal variables, we use the marginal probabilities of belonging to each category to randomly and independently select levels for each hypothetical record. The means and variances of the continuous variables were used to draw from normal or gamma distributions depending on if the variable is strictly positive. Using the observed data, a complete case analysis logistic regression with incarceration as the dependent variable was used to obtain plausible values for each independent and control variables effect, $\beta$. From the regression coefficients, we calculated the fitted probabilities for each case using our simulated data as the independent variables to then draw an incarceration decision for each case by flipping a weighted coin with the probability of incarceration being $p_i$ ($P(Incarcerated = Yes) = p_i$). Appending this new simulated dependent variable to the simulated independent variables, we have our simulated data set.
 
-For illustrative purposes, we will focus on the race effect between Black and White defendants observed in samples from the simulated population. In the administrative data we estimated this effect to be 25.5%, ie a Black defendant are 1.255 times more likely to be incarcerated than an otherwise identical White defendant. Note, that our simulations use this value as a hypothetical parameter value, but the simulations do not directly address the actual estimation of this effect. In fact, we demonstrate that the complete case analysis used to calculate this estimate is unreliable and as such that estimate is nothing more than a plausible value. In addition, we will not address the causes of missingness or the corresponding assumptions as pertains to the Pennsylvania administrative data.
+For illustrative purposes, we focused on the race effect between Black and White defendants observed in samples from the simulated population. In the administrative data we estimated this effect to be 25.5%, ie a Black defendant are 1.255 times more likely to be incarcerated than an otherwise identical White defendant. Note, that our simulations use this value as a hypothetical parameter value, but the simulations do not directly address the actual estimation of this effect. In fact, we demonstrate that the complete case analysis used to calculate this estimate is unreliable and as such this estimate is nothing more than a plausible value. In addition, we do not address the missingness causes or the corresponding assumptions as pertains to the Pennsylvania administrative data.
 
-From the observed data, we also collect the observed missing data patterns (which combinations of variables have missing values for a given defendant) and the proportions with which each pattern appears. Most defendants had complete records (96.5%), 3% were missing only race, and all other patterns were observed in less than 0.5% of the observations. We will disregard the 3 cases where previous criminal history (PRS) and recommended minimum are missing for simplicity. So the three variables we will induce missing values in for our simulation are recommended minimum, age (and the square of age), and race, with the most common pattern with missing values being race missing on its own.
+From the observed data, we also collect the observed missing data patterns (which combinations of variables have missing values for a given defendant) and the proportions with which each pattern appears. The six observed and two unobserved missingness patterns $R$ in the Pennsylvania administrative data are detailed in @tbl-miss-patt. From @tbl-miss-patt, we can see that most defendants had complete records (96.5%), 3% were missing only race, and all other patterns were observed in less than 0.5% of the observations. In addition to these eight patterns, three cases were also missing previous criminal history (PRS), but we will disregard these three cases for brevity[^1]. So the three variables we will induce missing values in for our simulation are recommended minimum, age (and the square of age), and race, with the most common pattern with missing values being race missing on its own.
+
+[^1]: Each additional variable doubles the number of missing data patterns, so a fourth variable would result in 16 patterns.
+
+| R     | INCAR | OGS | ... | AGE | RECMIN | RACE | Observed in PA Data |  Count |
+|-------|-------|-----|-----|:---:|:------:|:----:|:-------------------:|-------:|
+| r = 1 |       |     |     |     |        |      |          Y          | 834546 |
+| r = 2 |       |     |     |     |        |  ?   |          Y          |  26206 |
+| r = 3 |       |     |     |     |   ?    |      |          Y          |   2076 |
+| r = 4 |       |     |     |     |   ?    |  ?   |          Y          |     34 |
+| r = 5 |       |     |     |  ?  |        |      |          Y          |   1465 |
+| r = 6 |       |     |     |  ?  |        |  ?   |          Y          |     92 |
+| r = 7 |       |     |     |  ?  |   ?    |      |          N          |      0 |
+| r = 8 |       |     |     |  ?  |   ?    |  ?   |          N          |      0 |
+
+: Patterns of missingness in the Pennsylvania data where a blank represents being observed and "?" represents missing values. The first six patterns were observed in the Pennsylvania data while patterns seven and eight were not. {#tbl-miss-patt}
 
 ```{r}
-#| label: miss-dat-patterns
-#| echo: false
+#| label: fig-miss-dat-patterns
+#| include: false
 #| cache: true
+#| evaluate: false
 #| fig-cap: "Missing data patterns observed in the Pennsylvania administrative data."
 #| fig-alt: "An eleven by six grid of blue and pink boxes. Pink boxes indicate missing values. The six patterns observed are 1) no variables missing, 2) Race is missing, 3) Recommended minimum is missing, 4) Race and Recommended minimum are missing, 5) age is missing, 6) age and race are missing, 7) previous criminal record and recommended minimum are missing."
 #| fig-width: 8
@@ -108,24 +127,9 @@ miss.sum$PatternProp <- round(row.mar / nrow(penn.dat), 4)
 # miss.sum
 ```
 
-## Missingness Model
+### Missingness Model  {#sec-miss-model}
 
-We then built a multinomial missingness model based on the one from [@perkinsPrincipledApproachesMissing2018]. Let $V$ be the set of variables that are completely observed in every missing data pattern. Let $W_r$ be the the set of variables that may have missing values in some patterns but not necessarily pattern $r$. Statistically, we have three core assumptions we can make about how missing values are generated. Missing values can be missing completely at random (MCAR), missing at random (MAR), or missing not at random (MNAR). Missing completely at random data imply that the missing values are determined entirely independently of the data and are dispersed uniformly throughout the data. MCAR is a typical (implicit) assumption that many analysts make regarding missing data, even when not appropriate. Missing at random data are missing dependent on the values of the observed data, so sex may be more likely to be missing for older cases for example. Missing not at random data are missing due to the unobserved value of the variable. **Need an example here**
-
-The six observed and two unobserved missingness patterns $R$ in the Pennsylvania administrative data are detailed in Table 1.
-
-| R     | INCAR | OGS | ... | RECMIN | AGE | RACE | Observed in PA Data |
-|-------|-------|-----|-----|--------|-----|------|---------------------|
-| r = 1 |       |     |     |        |     |      | Y                   |
-| r = 2 |       |     |     |        |     | ?    | Y                   |
-| r = 3 |       |     |     |        | ?   |      | Y                   |
-| r = 4 |       |     |     |        | ?   | ?    | Y                   |
-| r = 5 |       |     |     | ?      |     |      | Y                   |
-| r = 6 |       |     |     | ?      |     | ?    | Y                   |
-| r = 7 |       |     |     | ?      | ?   |      | N                   |
-| r = 8 |       |     |     | ?      | ?   | ?    | N                   |
-
-: Patterns of missingness in the Pennsylvania data where a blank represents being observed and "?" represents missing values. The first six patterns were observed in the Pennsylvania data while patterns seven and eight were not.
+We then built a multinomial missingness model based on the one from [@perkinsPrincipledApproachesMissing2018]. Let $V$ be the set of variables that are completely observed in every missing data pattern. Let $W_r$ be the the set of variables that may have missing values in some patterns but not necessarily pattern $r$. Statistically, we have three core assumptions we can make about how missing values are generated. Missing values can be missing completely at random (MCAR), missing at random (MAR), or missing not at random (MNAR). Missing completely at random data imply that the missing values are determined entirely independently of the data and are dispersed randomly throughout the data. MCAR is a typical (implicit) assumption that many analysts make regarding missing data, even when not appropriate. Missing at random data are missing dependent on the values of the observed data, so sex may be more likely to be missing for older cases for example. Missing not at random data are missing due to the unobserved value of the variable, so age may be more likely to be missing for younger defendants.
 
 The probability that any given case belongs to a particular pattern is given by $p_{i,r}$ for $i = 1,…,n$ and $r = 1,…,8$. The probabilities for each missingness pattern in the simulations will roughly mirror the probabilities seen in the administrative data. Exceptions are made for patterns seven and eight to give them 1/864,422 chance of being selected instead of a zero chance.
 
@@ -139,26 +143,42 @@ where the parameters $\gamma_r$ are set to create MAR, MNAR missingness and to i
 
 To achieve the desired effects of the missing data on complete case analyses, we included interactions between non-incarceration and the defendant being Black $Z_1 = I(INCAR = 0)I(RACE = BLACK)$ and the interactions between incarceration and the defendant being Black $Z_{2} = I(INCAR = 1)I(RACE = BLACK)$ which are missing for the same patterns for which race is missing. To get over-estimates, we emphasize $Z_1$ and emphasize $Z_2$. To get under-estimates, we only need to emphasize $Z_1$.
 
-## Simulation Procedure
+### Analysis Methods  {#sec-analysis}
 
-For my simulations, I'll use a sample size of $n = 500, 1000, 2500$ with $Q = 225$ iterations to be create approximations of the sampling distributions under different settings. The sampling is done without replacement.
+#### Complete Case Analysis  {#sec-cca}
+
+Complete Case Analysis (CCA) is the default analysis procedure for many different statistical software packages and mostly used by non-statisticians. This ad hoc method removes all incomplete observations to create a complete rectangular data set with no missing values. For example, if we have a data set containing incarceration decision, age, sex, and previous criminal history for 10,000 defendants and 200 defendants are missing values for previous criminal history, then the complete case analysis would only evaluate the 9,800 cases with complete records, dropping all cases that are missing previous histories.
+
+This can be deeply problematic when values are missing in a non-random way. If female defendants are more likely to be missing age observations, then more female defendant cases will be dropped from the analysis potentially biasing our estimates.
+
+#### Multiple Imputation  {#sec-mi}
+
+There are several methods for more rigorous treatment of incomplete data. Principal among these are data augmentation for Bayesian analysis, EM algorithm for certain problems, and multiple imputation for a broad class of problems including our particular situation [@tannerCalculationPosteriorDistributions1987; @rubinMultipleImputationNonresponse1987; @dempsterMaximumLikelihoodIncomplete1977]. Further reviews and extensions have been added to the literature since [@schaferMultipleImputationPrimer1999; @schaferMultipleImputationMultivariate2003; @raghunathanMultivariateTechniqueMultiply2001; @harelMultipleImputationReview2007].
+
+Multiple imputation (MI) was developed in the 1970s and 1980s \[@rubinMultipleImputationNonresponse1987\] and consists of three stages (i) imputation, (ii) analysis, and (iii) combining. To multiply impute an incomplete data set, we take the data $D$ and split it into observed and missing parts $D = (D_{obs}, D_{miss})$, create $M$ copies of $D_{obs}$, and create $M$ sets of imputed data $D_{imp}^m$ to replace $D_{miss}$ and pair with each copy of $D_{obs}$. Our new collection of completed data sets is $\mathbf{D}^* = \{D_1,…, D_M\}$ where $D_m = (D_{obs}, D_{imp}^m)$. The analysis that would have been run on the data originally had it been completely observed is then run on each of the $M$ data sets to give estimates $Q_m$ and variances $U_m$. In our case, $Q_m$ is the odds ratio of the race effect and $U_m$ is its variance. These values can then be combined to produce point estimates, to perform null hypothesis significance tests, or to create confidence intervals. The point estimate is the mean of the estimates from each completed data set, $\bar{Q} = \frac{1}{M} \sum_{m=1}^M Q_m$, with variance $T = \bar{U} + (1 + \frac{1}{M})B$ which is a combination of the average variance of each completed data estimate $\bar{U} = \frac{1}{M}\sum_{m=1}^M U_m$ and the variance of the estimates between themselves $B = \frac{1}{M-1}\sum_{m=1}^M (Q_m - \bar{Q})^2$. These formulas are known as Rubin's Rules [@schaferMultipleImputationPrimer1999].
+
+The multiple imputation procedure is very flexible and allows an analyst to choose many different ways to produce imputations and to model what causes the values to be missing in the first place. One popular implementation is MICE, or Multiple Imputation by Chained Equations [@raghunathanMultivariateTechniqueMultiply2001; @azurMultipleImputationChained2011] which imputes each variable with missing values in a sequence of regressions or other models that can produce guesses based on the observed data. Our simulations will use MICE to multiply impute the missing values in the simulated data and create our MI estimates for the race effect.
+
+### Simulations  {#sec-simulations}
+
+For the simulations, we used sample sizes of $n = 500, 1000, 2500, 25000$ representing small, medium, large, and very large samples with 225 simulation iterations to be create approximations of the sampling distributions under different settings. The sampling is done without replacement.
 
 For each type of missingness (MAR/MNAR):
 
 1.  Draw a new sample of size $n$ from the population data $D_{POP}$ without replacement. This sampled data set is called complete, $D_{COMP}$. This data set is used for all five analyses in this iteration with missing data patterns imposed for the CCA and MI analyses.
-2.  Missing data patterns are then assigned with the model in section 3. Parameters are set to determine if it is a MAR vs MNAR mechanism and whether the CCA estimates will be over or under estimates. This creates a triplet of data sets, $(D_{COMP}, D_{OVER}, D_{UNDR})$ for each type of missingness. The direction of the effect (over or under) is denoted $Dir$.
-    -   Note that while the missing values are created under MAR or MNAR models, the complete case analysis assumes a MCAR mechanism and the multiple imputation procedure assumes a MAR mechanism.
-3.  Logistic regressions are fit on the complete sampled data set $D_{COMP}$, the over-estimate data set $D_{OVER}$, and the under-estimate data set $D_{UNDR}$ with both Complete Case Analysis (CCA) and with multiple imputation (MI) [@rubin1987] with $M$ imputations. This creates five regressions for each iteration: three CCA analyses with $(D_{COMP}, D_{OVER}, D_{UNDR})$ and two MI analyses $(D_{OVER}, D_{UNDR})$.
-    -   For each regression, the Odds Ratio $OR$ and Proportion of Missingness cases\[\^1\] $p_{miss}$ are recorded and used to calculate the Bias, $b_{OR} = \hat{OR}_{Race}(D_{Dir}) - \exp(\beta_{Race})$, and difference between the missing data set estimate and the complete data set estimate, $d_{Dir}^{Analysis} = \hat{OR}_{Race}^{Analysis}(D_{Dir}) - \hat{OR}_{Race}(D_{Comp})$. The differences $d_{OR}$ will be our primary quantity of interest.
+2.  Missing data patterns are then assigned with the model specified in @sec-miss-model. Parameters are set to determine if it is a MAR vs MNAR mechanism and whether the CCA estimates will be over or under estimates. This creates a triplet of data sets, $(D_{COMP}, D_{OVER}, D_{UNDR})$ for each type of missingness. The direction of the effect (over or under) is denoted $Dir$.
+    -   Note that while the missing values are created under MAR or MNAR models, the complete case analysis is known to be unbiased under a MCAR mechanism and the multiple imputation procedure is known to be unbiased under a MAR mechanism [@harelMultipleImputationReview2007].
+3.  Logistic regressions are fit on the complete sampled data set $D_{COMP}$, the over-estimate data set $D_{OVER}$, and the under-estimate data set $D_{UNDR}$ with both Complete Case Analysis (CCA) and with multiple imputation (MI) [@rubinMultipleImputationNonresponse1987] with $M$ imputations. This creates five regressions for each iteration: three CCA analyses with $(D_{COMP}, D_{OVER}, D_{UNDR})$ and two MI analyses $(D_{OVER}, D_{UNDR})$.
+    -   For each regression, the Odds Ratio $OR$ and Proportion of Missingness cases[^2] $p_{miss}$ are recorded and used to calculate the Bias, $b_{OR} = \hat{OR}_{Race}(D_{Dir}) - \exp(\beta_{Race})$, and difference between the missing data set estimate and the complete data set estimate, $d_{Dir}^{Analysis} = \hat{OR}_{Race}^{Analysis}(D_{Dir}) - \hat{OR}_{Race}(D_{Comp})$. The differences $d_{OR}$ will be our primary quantity of interest.
 
-Repeat for `Q` iterations.
+[^2]: The number of complete cases divided by the total number of cases.
 
-\[\^1\]: The number of complete cases divided by the total number of cases.
+Repeat for 225 iterations.
 
-The simulations were run across nine different settings.
+The simulations were run across ten different settings as shown in @tbl-sim-settings.
 
-| Sample Size ($n$) | Number of Imputations ($M$) |
-|-------------------|-----------------------------|
+| Sample Size ($n$) | No. of Imp. ($M$) |
+|-------------------|:---------------------------:|
 | 500               | 3                           |
 | 500               | 5                           |
 | 500               | 8                           |
@@ -168,95 +188,16 @@ The simulations were run across nine different settings.
 | 2500              | 3                           |
 | 2500              | 5                           |
 | 2500              | 8                           |
+| 25000             | 3                           |
+: The settings for the different simulations. All used 225 iterations, except for the 25,000 case simulation. {#tbl-sim-settings}
 
-From the estimated rate of missing information, I determined that there should be between five and eight imputations to achieve a relative efficiency of \>0.99 using the methods described by [@harelInferencesMissingInformation2007, @rubin1987]. For a relative efficiency of \~0.95, three imputations is sufficient. The primary comparison of interest from the simulations is between missing and complete data estimates using the same sample from the simulated population data, $d_{Dir}^{Analysis}$, where the missing data estimate is made using CCA or MI.
+From the estimated rate of missing information, I determined that there should be between five and eight imputations to achieve a relative efficiency of \>0.99 using the methods described by [@harelInferencesMissingInformation2007; @rubinMultipleImputationNonresponse1987]. For a relative efficiency of \~0.95, three imputations is sufficient. The primary comparison of interest from the simulations is between missing and complete data estimates using the same sample from the simulated population data, $d_{Dir}^{Analysis}$, where the missing data estimate is made using CCA or MI.
 
-### MNAR - Simulation Parameters
+See the Appendix for detailed descriptions of the selected parameters.
 
-The missingness model parameter values are set to create distinct differences and biases in the CCA estimates relative to the complete data estimate at missing data rates near to those seen in the Pennsylvania administrative data. In general, the missingness model assigns slightly more missingness than we saw in the administrative data while still having a relatively low number of incomplete cases.
+## RESULTS  {#sec-results}
 
-```{r}
-#| label: mnar-over
-#| echo: false
-#| tbl-cap: "The log of the parameters for the missingness model for CCA over-estimates with MNAR missing values."
-
-# Missingness model parameters for MNAR - OVER
-miss_pars_mnar_over <- build_miss_par_matrix(
-    beta = log(c(10, rep(1, 87))),
-    gamma = log(c(.1, rep(1, 5), .001, 100)),
-    miss_type = "MNAR", sim_size = "full") %>% exp()
-
-miss.par.names <- c("alpha", "Incar", "OGS", "PRS", rep("...", 85), "Black", "Latino", "Other", "Age", "AgeSq", "RecMin", "Z_1", "Z_2")
-colnames(miss_pars_mnar_over) <- miss.par.names
-row.names(miss_pars_mnar_over) <- paste0("Pattern ", 1:8)
-miss_pars_mnar_over[, c(2:5, 90:97)] %>% as.data.frame()
-```
-
-To over-estimate the race effect, missingness in race is conditional on race being Black and incarceration so we set the parameters of the model to be $\exp(\beta) = (10, 1,... ,1)' \in \mathbb{R}^{88}$ and $\exp(\gamma) = (0.1, 1,1,1,1,1, 0.001, 100)' \in \mathbb{R}^8$. The first element in $\beta$ emphasizes missingness based on incarceration. The first element in $\gamma$ de-emphasizes missingness based on being Black while the seventh element corresponding to $Z_1$ greatly de-emphasizes missingness for defendants who aren't incarcerated and are Black and the eighth corresponding to $Z_2$ greatly emphasizes missingness for individuals who are incarcerated and are Black.
-
-```{r}
-#| label: mnar-under
-#| echo: false
-#| tbl-cap: "The log of the parameters for the missingness model for CCA under-estimates with MNAR missing values."
-
-# Missingness model parameters for MNAR - UNDR
-miss_pars_mnar_undr <- build_miss_par_matrix(
-    beta = log(c(5, rep(1, 87))),
-    gamma = log(c(5, rep(1, 5), 10, 1)),
-    miss_type = "MNAR", sim_size = "full") %>% exp()
-
-colnames(miss_pars_mnar_undr) <- miss.par.names
-row.names(miss_pars_mnar_undr) <- paste0("Pattern ", 1:8)
-miss_pars_mnar_undr[, c(2:5, 90:97)] %>% as.data.frame()
-```
-
-To under-estimate the effect, missingness in race is again conditional on race being Black and incarceration, so we set the parameters of the model to be $\exp(\beta) = (5, 1,... ,1)' \in \mathbb{R}^{88}$ and $\exp(\gamma) = (5, 1,1,1,1,1, 10, 1)' \in \mathbb{R}^8$. The first element in $\beta$ emphasizes missingness based on incarceration. The first element in $\gamma$ emphasizes missingness based on being Black while the seventh element greatly emphasizes missingness for defendants who aren't incarcerated and are Black corresponding to $Z_1$.
-
-All parameters set to 1 are irrelevant to the missingness model since the log of 1 is 0.
-
-### MAR - Simulation Parameters
-
-I use essentially the same parameter settings for the MAR simulations as I do for the MNAR, but nowmissingness based on race is only for patterns 1,3,5, and 7 which are no missing variables, missing in age, missing in recommended minimum, and missing in both age and recommended minimum. This maintains the MAR assumption since the missingness isn't contingent on race for the patterns where race is missing. However, since we are performing the analyses with complete case analysis, we are still systematically excluding data from our analysis in such a way that will dramatically bias the results based on the values of race and incarceration.
-
-```{r}
-#| label: mar-over
-#| echo: false
-#| tbl-cap: "The log of the parameters for the missingness model for CCA over-estimates with MAR missing values."
-
-# Missingness model parameters for MAR - OVER
-miss_pars_mar_over <- build_miss_par_matrix(
-    beta = log(c(10, rep(1, 87))),
-    gamma = log(c(.1, rep(1, 5), .00001, 1)),
-    miss_type = "MAR", sim_size = "full") %>% exp()
-
-miss.par.names <- c("alpha", "Incar", "OGS", "PRS", rep("...", 85), "Black", "Latino", "Other", "Age", "AgeSq", "RecMin", "Z_1", "Z_2")
-colnames(miss_pars_mar_over) <- miss.par.names
-row.names(miss_pars_mar_over) <- paste0("Pattern ", 1:8)
-miss_pars_mar_over[, c(2:5, 90:97)] %>% as.data.frame()
-```
-
-To get an over-estimated race effect estimate with CCA, I de-emphasize missingness based on $Z_1$ for patterns where race is observed.
-
-```{r}
-#| label: mar-under
-#| echo: false
-#| tbl-cap: "The log of the parameters for the missingness model for CCA under-estimates with MAR missing values."
-
-# Missingness model parameters for MAR - UNDR
-miss_pars_mar_undr <- build_miss_par_matrix(
-    beta = log(c(1, rep(1, 87))),
-    gamma = log(c(1, rep(1, 5), 30, .1)),
-    miss_type = "MAR", sim_size = "full") %>% exp()
-
-miss.par.names <- c("alpha", "Incar", "OGS", "PRS", rep("...", 85), "Black", "Latino", "Other", "Age", "AgeSq", "RecMin", "Z_1", "Z_2")
-colnames(miss_pars_mar_undr) <- miss.par.names
-row.names(miss_pars_mar_undr) <- paste0("Pattern ", 1:8)
-miss_pars_mar_undr[, c(2:5, 90:97)] %>% as.data.frame()
-```
-
-To under-estimate the effect with CCA, I emphasize $Z_1$ and de-emphasize $Z_2$ for patterns where race is observed.
-
-## Simulation Results
+The simulation results are displayed in boxplots organized by analysis type, missing data type, and whether the missingness model parameters intend for over- or under-estimates. The black boxplots indicate over-estimates, gold plots indicate under-estimates. The top four plots in each subplot are for the MAR created data sets, while the bottom four are for MNAR data sets. The two analyses are CCA and MI. 
 
 ```{r}
 #| include: false
@@ -284,7 +225,7 @@ present_diff_figs <- function(M = 500, Q = 225) {
 ```
 
 ```{r}
-#| label: prop-miss-fig
+#| label: fig-prop-miss
 #| echo: false
 #| fig-cap: "Proportions of missing cases for different sample sizes and M = 8 imputations."
 #| fig-subcap: 
@@ -313,9 +254,9 @@ result_plots(sim.res, Q = 225, M = 2500, m = 8)$PM
 Depending on the missingness model parameters, between 5-10% of cases are incomplete for each simulated sample. While this is slightly higher than the proportion of incomplete cases in the observed data, it still seems to be a plausible amount of incompleteness. Even this relatively small amount of missingness produces biases in the complete case analysis estimates under both MAR and MNAR missingness mechanisms. We have chosen the parameters for the missingness model to flip the direction of the race effect from the true underlying effect when estimating with CCA. As a result, the estimates made with complete case analysis are unreliable and do not provide suitable estimates of the race effect.
 
 ```{r}
-#| label: 500-sim-plots
+#| label: fig-500-sim
 #| echo: false
-#| fig-cap: "Boxplots of the differences between complete and missing data estimates for n = 500 simulations."
+#| fig-cap: "Boxplots of the differences between complete and incomplete data estimates for n = 500 simulations."
 #| fig-subcap: 
 #|     - "3 Imputations"
 #|     - "5 Imputations"
@@ -330,9 +271,9 @@ plt500$IMP8
 The issue is corrected when we instead use multiple imputation with an appropriate number of imputations. The multiple imputation analysis produces unbiased results that will measure the true race effect on average when the missing data are generated under a MAR mechanism or when we include some model for the missingness mechanism in the imputation model to address the MNAR assumption. In our simulations, we assume that the missing data mechanism is MAR and ignorable, so we omit any modeling of the mechanism in our imputations. The estimates made with MI under the MAR generated data are unbiased and closely resemble the complete data estimates demonstrating that the MI procedure is able to recover most of the information lost under CCA. While not addressing the missingness model is appropriate for the MAR generated data, it fails to address the MNAR generated data resulting in only slightly mitigated biases in the MI estimates with MNAR data and our problematic estimations remain. Unlike CCA, we have tools to address the MNAR assumption by creating models for the missingness in the imputation mechanism. Those tools are beyond the scope of this paper.
 
 ```{r}
-#| label: 1000-sim-plots
+#| label: fig-1000-sim
 #| echo: false
-#| fig-cap: "Boxplots of the differences between complete and missing data estimates for n = 1000 simulations."
+#| fig-cap: "Boxplots of the differences between complete and incomplete data estimates for n = 1000 simulations."
 #| fig-subcap: 
 #|     - "3 Imputations"
 #|     - "5 Imputations"
@@ -347,9 +288,9 @@ plt1000$IMP8
 Statistical bias refers to the expected difference between the estimate and the true population parameter value. In our situation, we want our estimates to be unbiased so that we can accurately guess at the true value of the race effect. So while the CCA estimates are different on average from the complete data estimate, are they biased for the true parameter value as well? The CCA and MI-MNAR estimates are statisically biased with respect to the parameter value. The MI estimates under the MAR generated data are unbiased.
 
 ```{r}
-#| label: 2500-sim-plots
+#| label: fig-2500-sim
 #| echo: false
-#| fig-cap: "Boxplots of the differences between complete and missing data estimates for n = 2500 simulations."
+#| fig-cap: "Boxplots of the differences between complete and incomplete data estimates for n = 2500 simulations."
 #| fig-subcap: 
 #|     - "3 Imputations"
 #|     - "5 Imputations"
@@ -366,14 +307,120 @@ According to the simulations, the median difference between the complete case es
 I also did a simulation with 105 iterations, a sample size of 25,000, and $M = 3$ imputations, since that still gives roughly 95% relative efficiency but reduces the computational cost significantly. From these simulations, we further establish the patterns seen with the smaller sample sizes. There's roughly 5-10% of cases with a missing value. The distribution of the differences is narrower than for the smaller samples and the median differences are still clearly different from zero with a moderately large effect size. As this simulation is 10x larger than the 2500 sample size simulation, we can likely expect these patterns to continue for even larger sample sizes. Large data is therefore not a cure-all for missing data and still must be given special attention.
 
 ```{r}
-sim.res <- read.csv("Sim_Results/simulation_results_Q105_n_25000_m_3.csv", header = T)
+#| label: fig-25000-sim
+#| echo: false
+#| fig-cap: "Boxplots of the odds ratios, proportion of missing cases, and differences between complete and incomplete estimates for n = 25000 simulations."
+#| fig-subcap: 
+#|     - "Odds Ratios"
+#|     - "Proportion of Missing Cases"
+#|     - "Differences between incomplete data estimate and complete data estimate"
+#| layout: [[45,-10, 45], [100]]
+fname <- paste0("Sim_Results/simulation_results_Q", 105, "_n_", 25000, "_m_", 3, ".csv")
+sim.res <- read.csv(fname, header = T)
 
+# tbs <- result_tables(sim.res)
+# tbs <- present_tables(tbs)
 sim.res <- sim.res[which(sim.res$DIRECTION != "COMP"),]
-plts <- result_plots(sim.res, Q = 225, M = 500, m = 8)
+plt.list <- result_plots(sim.res, Q = 105, M = 25000, m = 3)
 
-plts$OR
-plts$PM
-plts$DIFF
+plt.list$OR
+plt.list$PM
+plt.list$DIFF
 ```
 
-## References {.unnumbered}
+
+## DISCUSSION  {#sec-discussion}
+
+## CONCLUSION  {#sec-conclusion}
+
+## REFERENCES  {.unnumbered} 
+
+::: {#refs}
+:::
+
+## APPENDIX  {.appendix}
+
+### MNAR - Simulation Parameters  {#sec-mnar}
+
+The missingness model assigns slightly more missingness than we saw in the administrative data while still having a relatively low number of incomplete cases.
+
+```{r}
+#| label: tbl-mnar-over
+#| echo: false
+#| tbl-cap: "The log of the parameters for the missingness model for CCA over-estimates with MNAR missing values."
+
+# Missingness model parameters for MNAR - OVER
+miss_pars_mnar_over <- build_miss_par_matrix(
+    beta = log(c(10, rep(1, 87))),
+    gamma = log(c(.1, rep(1, 5), .001, 100)),
+    miss_type = "MNAR", sim_size = "full") %>% exp()
+
+miss.par.names <- c("alpha", "Incar", "OGS", "PRS", rep("...", 85), "Black", "Latino", "Other", "Age", "AgeSq", "RecMin", "Z_1", "Z_2")
+colnames(miss_pars_mnar_over) <- miss.par.names
+row.names(miss_pars_mnar_over) <- paste0("Pattern ", 1:8)
+miss_pars_mnar_over[, c(2:5, 90:97)] %>% as.data.frame()
+```
+
+To over-estimate the race effect, missingness in race is conditional on race being Black and incarceration so we set the parameters of the model to be $\exp(\beta) = (10, 1,... ,1)' \in \mathbb{R}^{88}$ and $\exp(\gamma) = (0.1, 1,1,1,1,1, 0.001, 100)' \in \mathbb{R}^8$. The first element in $\beta$ emphasizes missingness based on incarceration. The first element in $\gamma$ de-emphasizes missingness based on being Black while the seventh element corresponding to $Z_1$ greatly de-emphasizes missingness for defendants who aren't incarcerated and are Black and the eighth corresponding to $Z_2$ greatly emphasizes missingness for individuals who are incarcerated and are Black.
+
+```{r}
+#| label: tbl-mnar-under
+#| echo: false
+#| tbl-cap: "The log of the parameters for the missingness model for CCA under-estimates with MNAR missing values."
+
+# Missingness model parameters for MNAR - UNDR
+miss_pars_mnar_undr <- build_miss_par_matrix(
+    beta = log(c(5, rep(1, 87))),
+    gamma = log(c(5, rep(1, 5), 10, 1)),
+    miss_type = "MNAR", sim_size = "full") %>% exp()
+
+colnames(miss_pars_mnar_undr) <- miss.par.names
+row.names(miss_pars_mnar_undr) <- paste0("Pattern ", 1:8)
+miss_pars_mnar_undr[, c(2:5, 90:97)] %>% as.data.frame()
+```
+
+To under-estimate the effect, missingness in race is again conditional on race being Black and incarceration, so we set the parameters of the model to be $\exp(\beta) = (5, 1,... ,1)' \in \mathbb{R}^{88}$ and $\exp(\gamma) = (5, 1,1,1,1,1, 10, 1)' \in \mathbb{R}^8$. The first element in $\beta$ emphasizes missingness based on incarceration. The first element in $\gamma$ emphasizes missingness based on being Black while the seventh element greatly emphasizes missingness for defendants who aren't incarcerated and are Black corresponding to $Z_1$.
+
+All parameters set to 1 are irrelevant to the missingness model since the log of 1 is 0.
+
+### MAR - Simulation Parameters  {#sec-mar}
+
+We used similar parameter settings for the MAR simulations as we did for the MNAR, but now missingness based on race is only for patterns 1,3,5, and 7 which are no missing variables, missing in age, missing in recommended minimum, and missing in both age and recommended minimum. This maintains the MAR assumption since the missingness isn't contingent on race for the patterns where race is missing. However, since we are performing the analyses with complete case analysis, we are still systematically excluding data from our analysis in such a way that will dramatically bias the results based on the values of race and incarceration.
+
+```{r}
+#| label: tbl-mar-over
+#| echo: false
+#| tbl-cap: "The log of the parameters for the missingness model for CCA over-estimates with MAR missing values."
+
+# Missingness model parameters for MAR - OVER
+miss_pars_mar_over <- build_miss_par_matrix(
+    beta = log(c(10, rep(1, 87))),
+    gamma = log(c(.1, rep(1, 5), .00001, 1)),
+    miss_type = "MAR", sim_size = "full") %>% exp()
+
+miss.par.names <- c("alpha", "Incar", "OGS", "PRS", rep("...", 85), "Black", "Latino", "Other", "Age", "AgeSq", "RecMin", "Z_1", "Z_2")
+colnames(miss_pars_mar_over) <- miss.par.names
+row.names(miss_pars_mar_over) <- paste0("Pattern ", 1:8)
+miss_pars_mar_over[, c(2:5, 90:97)] %>% as.data.frame()
+```
+
+To get an over-estimated race effect estimate with CCA, I de-emphasize missingness based on $Z_1$ for patterns where race is observed.
+
+```{r}
+#| label: tbl-mar-under
+#| echo: false
+#| tbl-cap: "The log of the parameters for the missingness model for CCA under-estimates with MAR missing values."
+
+# Missingness model parameters for MAR - UNDR
+miss_pars_mar_undr <- build_miss_par_matrix(
+    beta = log(c(1, rep(1, 87))),
+    gamma = log(c(1, rep(1, 5), 30, .1)),
+    miss_type = "MAR", sim_size = "full") %>% exp()
+
+miss.par.names <- c("alpha", "Incar", "OGS", "PRS", rep("...", 85), "Black", "Latino", "Other", "Age", "AgeSq", "RecMin", "Z_1", "Z_2")
+colnames(miss_pars_mar_undr) <- miss.par.names
+row.names(miss_pars_mar_undr) <- paste0("Pattern ", 1:8)
+miss_pars_mar_undr[, c(2:5, 90:97)] %>% as.data.frame()
+```
+
+To under-estimate the effect with CCA, we emphasize $Z_1$ and de-emphasize $Z_2$ for patterns where race is observed.

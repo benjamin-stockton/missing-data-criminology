@@ -13,6 +13,7 @@ nul
 *.js
 *.css
 *.woff
+*.csl
 *.xlsx
 *.zip
 *.dta
