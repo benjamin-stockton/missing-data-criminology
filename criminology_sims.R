@@ -21,19 +21,20 @@ if (length(args) != 3) {
     stop("Simulation parameters misspecificed. Should be Q, n, m")
 } else if (length(args) == 3) {
     # Number of iterations to run in each parallel thread
-    Q <- as.numeric(args[1]) # Q * 15
+    Q <- as.numeric(args[1]) # Q
     # Sample size
     M <- as.numeric(args[2])
     # Number of imputations for MI
     m <- as.numeric(args[3])
 }
-print(paste0("Running simulations with ", Q*15, " iterations, n = ", M, " sample size, and M = ", m, " imputations"))
+print(paste0("Running simulations with ", Q, " iterations, n = ", M, " sample size, and M = ", m, " imputations"))
 
 # Sample with replacement?
 replace <- FALSE
 
 # set up cores for parallel computation
-cores <- detectCores()
+cores <- detectCores()[1] - 1
+coreQ <- floor(Q / cores)
 
 # Load in the simulated data
 dat <- read_csv("Data/simulated_data.csv", col_types = "dfdffffffdfdd") %>% as.data.frame()
@@ -74,7 +75,7 @@ fs
 
 ##------------------------------------------------------------------------------
 # MNAR simulation
-print(paste0("MNAR Simulation: ", Q * 15, " iterations"))
+print(paste0("MNAR Simulation: ", Q, " iterations"))
 
 # Missingness model parameters for MNAR - OVER
 miss_pars_mnar_over <- build_miss_par_matrix(
@@ -88,14 +89,14 @@ miss_pars_mnar_undr <- build_miss_par_matrix(
     gamma = log(c(5, rep(1, 5), 10, 1)),
     miss_type = "MNAR", sim_size = "full")
 
-cl <- makeCluster(cores[1] - 1)
+cl <- makeCluster(cores)
 registerDoParallel(cl)
 ptime <- system.time({
-    mnar <- foreach(i = 1:15, .combine = rbind) %dopar% {
+    mnar <- foreach(i = 1:cores, .combine = rbind) %dopar% {
         source("helpers.R")
         full_sim(miss_type = "MNAR", sim_size = "full", pop_data = dat,
                  beta = beta, M = M, m = m, miss_pars_over = miss_pars_mnar_over, 
-                 miss_pars_undr = miss_pars_mnar_undr, Q = Q, replace = replace)
+                 miss_pars_undr = miss_pars_mnar_undr, Q = coreQ, replace = replace)
     }
 })[3]
 ptime
@@ -103,7 +104,7 @@ stopCluster(cl)
 
 ##------------------------------------------------------------------------------
 # MAR simulation
-print(paste0("MAR Simulation: ", Q * 15, " iterations"))
+print(paste0("MAR Simulation: ", Q, " iterations"))
 
 # Missingness model parameters for MAR - OVER
 miss_pars_mar_over <- build_miss_par_matrix(
@@ -117,14 +118,14 @@ miss_pars_mar_undr <- build_miss_par_matrix(
     gamma = log(c(1, rep(1, 5), 30, .1)),
     miss_type = "MAR", sim_size = "full")
 
-cl <- makeCluster(cores[1] - 1)
+cl <- makeCluster(cores)
 registerDoParallel(cl)
 ptime <- system.time({
-    mar <- foreach(i = 1:15, .combine = rbind) %dopar% {
+    mar <- foreach(i = 1:cores, .combine = rbind) %dopar% {
         source("helpers.R")
         full_sim(miss_type = "MAR", sim_size = "full", pop_data = dat,
                  beta = beta, M = M, m = m, miss_pars_over = miss_pars_mar_over, 
-                 miss_pars_undr = miss_pars_mar_undr, Q = Q, replace = replace)
+                 miss_pars_undr = miss_pars_mar_undr, Q = coreQ, replace = replace)
     }
 })[3]
 ptime
@@ -132,4 +133,4 @@ stopCluster(cl)
 
 sim.res <- rbind(mnar, mar)
 
-write_csv(sim.res, paste0("Sim_Results/simulation_results_Q", Q*15, "_n_", M, "_m_", m, ".csv"))
+write_csv(sim.res, paste0("Sim_Results/simulation_results_Q", Q, "_n_", M, "_m_", m, ".csv"))
