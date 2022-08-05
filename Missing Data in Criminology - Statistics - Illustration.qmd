@@ -54,23 +54,23 @@ source("helpers.R")
 
 // I am assuming that Clare will be writing much of the introduction and background.
 
-## INTRODUCTION  {#sec-intro}
+## INTRODUCTION {#sec-intro}
 
 ## BACKGROUND {#sec-background}
 
-### Missing Data in Criminological Research  {#sec-missing-data-crim-research}
+### Missing Data in Criminological Research {#sec-missing-data-crim-research}
 
 // Put here as a placeholder. Researchers often use administrative data to investigate various factors' effects on incarceration decisions. Often administrative data are incomplete with some unobserved demographic or legal features for some cases or subjects. While the number of incomplete cases is often seemingly small, even a small amount of missing data can have an important effect on the results of an analysis. The size and way this effect manifests is contingent on the way the incomplete cases are induced or created and the analysis performed. We will demonstrate that under some conditions, we can systematically over- or under-estimate the race effect, even flipping the direction of the effect when data are incomplete. For our illustrative simulation, we will be measuring the race effect as the odds ratio of the Black to White defendant's incarceration decision as estimated by a logistic regression. Administrative data from the Pennsylvania criminal justice system (2010-2019) were used as a basis for a simulated population of cases. We also demonstrate that analysts can account for the missing values to obtain the desired, unbiased estimates of the race effect using multiple imputation [@rubinMultipleImputationNonresponse1987].
 
-### Variations in the "Race/Ethnicity" Effect in Sentencing/Corrections  {#sec-race-effect-sentencing}
+### Variations in the "Race/Ethnicity" Effect in Sentencing/Corrections {#sec-race-effect-sentencing}
 
-### Current Study  {#sec-current-study}
+### Current Study {#sec-current-study}
 
 // Include description of data source - Clare
 
-## METHOD  {#sec-method}
+## METHOD {#sec-method}
 
-### Simulated Data Set  {#sec-sim-data}
+### Simulated Data Set {#sec-sim-data}
 
 Using an administrative data from 2010-2019 from the State of Pennsylvania as a guide, we created a simulated data set of the same size ($N = 864,422$) to act as a hypothetical "population" of records. Rather than sampling from the observed data set, we sampled from the simulated population so that the relationships between the independent and control variables are removed and we have a simpler, completely observed data set and no longer need to address confounding variables in the estimation [@bartlettAsymptoticallyUnbiasedEstimation2015]. Summaries of each of the independent and control variables were used to construct the simulated data. For categorical demographic or legal variables, we use the marginal probabilities of belonging to each category to randomly and independently select levels for each hypothetical record. The means and variances of the continuous variables were used to draw from normal or gamma distributions depending on if the variable is strictly positive. Using the observed data, a complete case analysis logistic regression with incarceration as the dependent variable was used to obtain plausible values for each independent and control variables effect, $\beta$. From the regression coefficients, we calculated the fitted probabilities for each case using our simulated data as the independent variables to then draw an incarceration decision for each case by flipping a weighted coin with the probability of incarceration being $p_i$ ($P(Incarcerated = Yes) = p_i$). Appending this new simulated dependent variable to the simulated independent variables, we have our simulated data set.
 
@@ -93,7 +93,7 @@ From the observed data, we also collect the observed missing data patterns (whic
 
 : Patterns of missingness in the Pennsylvania data where a blank represents being observed and "?" represents missing values. The first six patterns were observed in the Pennsylvania data while patterns seven and eight were not. {#tbl-miss-patt}
 
-### Missingness Model  {#sec-miss-model}
+### Missingness Model {#sec-miss-model}
 
 We then built a multinomial missingness model based on the one from [@perkinsPrincipledApproachesMissing2018]. Let $V$ be the set of variables that are completely observed in every missing data pattern. Let $W_r$ be the the set of variables that may have missing values in some patterns but not necessarily pattern $r$. Statistically, we have three core assumptions we can make about how missing values are generated. Missing values can be missing completely at random (MCAR), missing at random (MAR), or missing not at random (MNAR). Missing completely at random data imply that the missing values are determined entirely independently of the data and are dispersed randomly throughout the data. MCAR is a typical (implicit) assumption that many analysts make regarding missing data, even when not appropriate. Missing at random data are missing dependent on the values of the observed data, so sex may be more likely to be missing for older cases for example. Missing not at random data are missing due to the unobserved value of the variable, so age may be more likely to be missing for younger defendants.
 
@@ -109,23 +109,23 @@ where the parameters $\gamma_r$ are set to create MAR, MNAR missingness and to i
 
 To achieve the desired effects of the missing data on complete case analyses, we included interactions between non-incarceration and the defendant being Black $Z_1 = I(INCAR = 0)I(RACE = BLACK)$ and the interactions between incarceration and the defendant being Black $Z_{2} = I(INCAR = 1)I(RACE = BLACK)$ which are missing for the same patterns for which race is missing. To get over-estimates, we emphasize $Z_1$ and emphasize $Z_2$. To get under-estimates, we only need to emphasize $Z_1$.
 
-### Analysis Methods  {#sec-analysis}
+### Analysis Methods {#sec-analysis}
 
-#### Complete Case Analysis  {#sec-cca}
+#### Complete Case Analysis {#sec-cca}
 
-Complete Case Analysis (CCA) is the default analysis procedure for many different statistical software packages and mostly used by non-statisticians. This ad hoc method removes all incomplete observations to create a complete rectangular data set with no missing values. For example, if we have a data set containing incarceration decision, age, sex, and previous criminal history for 10,000 defendants and 200 defendants are missing values for previous criminal history, then the complete case analysis would only evaluate the 9,800 cases with complete records, dropping all cases that are missing previous histories.
+Complete Case Analysis (CCA) is the default analysis procedure for many different statistical software packages and mostly used by non-statisticians. This ad hoc method removes all incomplete observations to create a complete rectangular data set with no missing values [@whiteBiasEfficiencyMultiple2010]. For example, if we have a data set containing incarceration decision, age, sex, and previous criminal history for 10,000 defendants and 200 defendants are missing values for previous criminal history, then the complete case analysis would only evaluate the 9,800 cases with complete records, dropping all cases that are missing previous histories.
 
-This can be deeply problematic when values are missing in a non-random way. If female defendants are more likely to be missing age observations, then more female defendant cases will be dropped from the analysis potentially biasing our estimates.
+This can be deeply problematic when values are missing completely at random [@vanderheijdenImputationMissingValues2006]. If female defendants are more likely to be missing age observations, then more female defendant cases will be dropped from the analysis potentially biasing our estimates.
 
-#### Multiple Imputation  {#sec-mi}
+#### Multiple Imputation {#sec-mi}
 
-There are several methods for more rigorous treatment of incomplete data. Principal among these are data augmentation for Bayesian analysis, EM algorithm for certain problems, and multiple imputation for a broad class of problems including our particular situation [@tannerCalculationPosteriorDistributions1987; @rubinMultipleImputationNonresponse1987; @dempsterMaximumLikelihoodIncomplete1977]. Further reviews and extensions have been added to the literature since [@schaferMultipleImputationPrimer1999; @schaferMultipleImputationMultivariate2003; @raghunathanMultivariateTechniqueMultiply2001; @harelMultipleImputationReview2007].
+There are several methods for more rigorous treatment of incomplete data. Principal among these are data augmentation for Bayesian analysis, EM algorithm for certain problems, and multiple imputation for a broad class of problems including our particular situation [@tannerCalculationPosteriorDistributions1987; @rubinMultipleImputationNonresponse1987; @dempsterMaximumLikelihoodIncomplete1977; @littlePatternMixtureModelsMultivariate1996]. Further reviews and extensions have been added to the literature since [@schaferMultipleImputationPrimer1999; @schaferMultipleImputationMultivariate2003; @raghunathanMultivariateTechniqueMultiply2001; @harelMultipleImputationReview2007].
 
-Multiple imputation (MI) was developed in the 1970s and 1980s \[@rubinMultipleImputationNonresponse1987\] and consists of three stages (i) imputation, (ii) analysis, and (iii) combining. To multiply impute an incomplete data set, we take the data $D$ and split it into observed and missing parts $D = (D_{obs}, D_{miss})$, create $M$ copies of $D_{obs}$, and create $M$ sets of imputed data $D_{imp}^m$ to replace $D_{miss}$ and pair with each copy of $D_{obs}$. Our new collection of completed data sets is $\mathbf{D}^* = \{D_1,…, D_M\}$ where $D_m = (D_{obs}, D_{imp}^m)$. The analysis that would have been run on the data originally had it been completely observed is then run on each of the $M$ data sets to give estimates $Q_m$ and variances $U_m$. In our case, $Q_m$ is the odds ratio of the race effect and $U_m$ is its variance. These values can then be combined to produce point estimates, to perform null hypothesis significance tests, or to create confidence intervals. The point estimate is the mean of the estimates from each completed data set, $\bar{Q} = \frac{1}{M} \sum_{m=1}^M Q_m$, with variance $T = \bar{U} + (1 + \frac{1}{M})B$ which is a combination of the average variance of each completed data estimate $\bar{U} = \frac{1}{M}\sum_{m=1}^M U_m$ and the variance of the estimates between themselves $B = \frac{1}{M-1}\sum_{m=1}^M (Q_m - \bar{Q})^2$. These formulas are known as Rubin's Rules [@schaferMultipleImputationPrimer1999].
+Multiple imputation (MI) was developed in the 1970s and 1980s [@rubinMultipleImputationNonresponse1987] and consists of three stages (i) imputation, (ii) analysis, and (iii) combining. To multiply impute an incomplete data set, we take the data $D$ and split it into observed and missing parts $D = (D_{obs}, D_{miss})$, create $M$ copies of $D_{obs}$, and create $M$ sets of imputed data $D_{imp}^m$ to replace $D_{miss}$ and pair with each copy of $D_{obs}$. Our new collection of completed data sets is $\mathbf{D}^* = \{D_1,…, D_M\}$ where $D_m = (D_{obs}, D_{imp}^m)$. The analysis that would have been run on the data originally had it been completely observed is then run on each of the $M$ data sets to give estimates $Q_m$ and variances $U_m$. In our case, $Q_m$ is the odds ratio of the race effect and $U_m$ is its variance. These values can then be combined to produce point estimates, to perform null hypothesis significance tests, or to create confidence intervals. The point estimate is the mean of the estimates from each completed data set, $\bar{Q} = \frac{1}{M} \sum_{m=1}^M Q_m$, with variance $T = \bar{U} + (1 + \frac{1}{M})B$ which is a combination of the average variance of each completed data estimate $\bar{U} = \frac{1}{M}\sum_{m=1}^M U_m$ and the variance of the estimates between themselves $B = \frac{1}{M-1}\sum_{m=1}^M (Q_m - \bar{Q})^2$. These formulas are known as Rubin's Rules [@schaferMultipleImputationPrimer1999].
 
 The multiple imputation procedure is very flexible and allows an analyst to choose many different ways to produce imputations and to model what causes the values to be missing in the first place. One popular implementation is MICE, or Multiple Imputation by Chained Equations [@raghunathanMultivariateTechniqueMultiply2001; @azurMultipleImputationChained2011] which imputes each variable with missing values in a sequence of regressions or other models that can produce guesses based on the observed data. Our simulations will use MICE to multiply impute the missing values in the simulated data and create our MI estimates for the race effect.
 
-### Simulations  {#sec-simulations}
+### Simulations {#sec-simulations}
 
 For the simulations, we used sample sizes of $n = 500, 1000, 2500, 25000$ representing small, medium, large, and very large samples with 225 simulation iterations to be create approximations of the sampling distributions under different settings. The sampling is done without replacement.
 
@@ -133,7 +133,7 @@ For each type of missingness (MAR/MNAR):
 
 1.  Draw a new sample of size $n$ from the population data $D_{POP}$ without replacement. This sampled data set is called complete, $D_{COMP}$. This data set is used for all five analyses in this iteration with missing data patterns imposed for the CCA and MI analyses.
 2.  Missing data patterns are then assigned with the model specified in @sec-miss-model. Parameters are set to determine if it is a MAR vs MNAR mechanism and whether the CCA estimates will be over or under estimates. This creates a triplet of data sets, $(D_{COMP}, D_{OVER}, D_{UNDR})$ for each type of missingness. The direction of the effect (over or under) is denoted $Dir$.
-    -   Note that while the missing values are created under MAR or MNAR models, the complete case analysis is known to be unbiased under a MCAR mechanism and the multiple imputation procedure is known to be unbiased under a MAR mechanism [@harelMultipleImputationReview2007].
+    -   Note that while the missing values are created under MAR or MNAR models, the complete case analysis is known to be unbiased under a MCAR mechanism and the multiple imputation procedure is known to be unbiased under a MAR mechanism [@harelMultipleImputationReview2007; @whiteBiasEfficiencyMultiple2010].
 3.  Logistic regressions are fit on the complete sampled data set $D_{COMP}$, the over-estimate data set $D_{OVER}$, and the under-estimate data set $D_{UNDR}$ with both Complete Case Analysis (CCA) and with multiple imputation (MI) [@rubinMultipleImputationNonresponse1987] with $M$ imputations. This creates five regressions for each iteration: three CCA analyses with $(D_{COMP}, D_{OVER}, D_{UNDR})$ and two MI analyses $(D_{OVER}, D_{UNDR})$.
     -   For each regression, the Odds Ratio $OR$ and Proportion of Missingness cases[^2] $p_{miss}$ are recorded and used to calculate the Bias, $b_{OR} = \hat{OR}_{Race}(D_{Dir}) - \exp(\beta_{Race})$, and difference between the missing data set estimate and the complete data set estimate, $d_{Dir}^{Analysis} = \hat{OR}_{Race}^{Analysis}(D_{Dir}) - \hat{OR}_{Race}(D_{Comp})$. The differences $d_{OR}$ will be our primary quantity of interest.
 
@@ -144,29 +144,30 @@ Repeat for 225 iterations.
 The simulations were run across ten different settings as shown in @tbl-sim-settings.
 
 | Sample Size ($n$) | No. of Imp. ($M$) |
-|-------------------|:---------------------------:|
-| 500               | 3                           |
-| 500               | 5                           |
-| 500               | 8                           |
-| 500               | 25                          |
-| 1000              | 3                           |
-| 1000              | 5                           |
-| 1000              | 8                           |
-| 2500              | 3                           |
-| 2500              | 5                           |
-| 2500              | 8                           |
-| 25000             | 3                           |
+|-------------------|:-----------------:|
+| 500               |         3         |
+| 500               |         5         |
+| 500               |         8         |
+| 500               |        25         |
+| 1000              |         3         |
+| 1000              |         5         |
+| 1000              |         8         |
+| 2500              |         3         |
+| 2500              |         5         |
+| 2500              |         8         |
+| 25000             |         3         |
+
 : The settings for the different simulations. All used 225 iterations, except for the 25,000 case simulation. {#tbl-sim-settings}
 
 From the estimated rate of missing information, I determined that there should be between five and eight imputations to achieve a relative efficiency of \>0.99 using the methods described by [@harelInferencesMissingInformation2007; @rubinMultipleImputationNonresponse1987]. For a relative efficiency of \~0.95, three imputations is sufficient. The primary comparison of interest from the simulations is between missing and complete data estimates using the same sample from the simulated population data, $d_{Dir}^{Analysis}$, where the missing data estimate is made using CCA or MI.
 
 See the Appendix for detailed descriptions of the selected parameters.
 
-## RESULTS  {#sec-results}
+## RESULTS {#sec-results}
 
-The simulations demonstrate that regardless of sample size and with less than 10% of cases being incomplete, complete case analysis can still produce biased estimates for the race effect's odds ratio and when MAR conditions are satisfied, the estimates of the odds ratio calculated under multiple imputation are again unbiased.
+The simulations demonstrate that regardless of sample size and with less than 10% of cases being incomplete, complete case analysis can still produce biased estimates for the race effect's odds ratio and when MAR conditions are satisfied, the estimates of the odds ratio calculated under multiple imputation are again unbiased. When the odds ratio is estimated with the complete data, the estimate is made with maximum likelihood as so is asymptotically unbiased.
 
-The simulation results are displayed in [@fig-500-sim; @fig-1000-sim; @fig-2500-sim; @fig-25000-sim]. These figures display the distribution of the race effect odds ratios estimated by both analyses under both missingness mechanisms with various simulation settings such as the sample size and number of imputations. The key comparison in the figures is from the boxplots for MI with MAR and MNAR missingness to the boxplots for the CCA with the same missingness type. Multiple imputation produces estimates with a median  closer to the complete data estimate in every case.
+The simulation results are displayed in [@fig-or-sim; @fig-diff-sim]. These figures display the distribution of the race effect odds ratios estimated by both analyses under both missingness mechanisms with various simulation settings such as the sample size and number of imputations. The key comparison in the figures is from the boxplots for MI with MAR and MNAR missingness to the boxplots for the CCA with the same missingness type. Multiple imputation produces estimates with a median closer to the complete data estimate in every case.
 
 ```{r}
 #| label: tbl-prop-miss
@@ -185,7 +186,7 @@ tbl <- bind_rows(tbl500, tbl1000, tbl2500, tbl25000) %>% select(n, "Miss Type", 
 tbl
 ```
 
-Depending on the missingness model parameters, between 5-10% of cases are incomplete for each simulated sample regardless of sample size as shown in @tbl-prop-miss. While this is slightly higher than the proportion of incomplete cases in the observed data, it still seems to be a plausible amount of incompleteness [@balesRacialEthnicDifferentials2012; @kutateladzeCumulativeDisadvantageExamining2014; @cassidyDoesSentenceType2020] [**more citations**]. Even this relatively small amount of missingness produces biases in the complete case analysis estimates under both MAR and MNAR missingness mechanisms. We have chosen the parameters for the missingness model to flip the direction of the race effect from the true underlying effect when estimating with CCA. As a result, the estimates made with complete case analysis are unreliable and do not provide suitable estimates of the race effect.
+Depending on the missingness model parameters, between 5-10% of cases are incomplete for each simulated sample regardless of sample size as shown in @tbl-prop-miss. While this is slightly higher than the proportion of incomplete cases in the observed data, it still seems to be a plausible amount of incompleteness [@balesRacialEthnicDifferentials2012; @kutateladzeCumulativeDisadvantageExamining2014; @cassidyDoesSentenceType2020] \[**more citations?**\]. Even this relatively small amount of missingness produces biases in the complete case analysis estimates under both MAR and MNAR missingness mechanisms. We have chosen the parameters for the missingness model to flip the direction of the race effect from the true underlying effect when estimating with CCA. As a result, the estimates made with complete case analysis are unreliable and do not provide suitable estimates of the race effect.
 
 ```{r}
 #| label: generate-figs
@@ -233,81 +234,28 @@ plt2500$DIFF
 plt25000$DIFF
 ```
 
-```{r}
-#| label: fig-500-sim
-#| echo: false
-#| fig-cap: "Boxplots of the results for n = 500 simulations."
-#| fig-subcap: 
-#|     - "Boxplots of the differences between the complete data and incomplete data estimates for the odds ratio of the race effect."
-#|     - "Boxplots of the odds ratios for the race effect"
-#| layout-nrow: 2
-
-# plt500$DIFF
-# plt500$OR
-```
-
 Statistical bias refers to the expected difference between the estimate and the true population parameter value. In our situation, we want our estimates to be unbiased so that we can accurately estimate at the true value of the race effect.
 
-The bias is corrected for when we use multiple imputation with an appropriate number of imputations [@grahamHowManyImputations2007; @harelInferencesMissingInformation2007]. The multiple imputation analysis produces unbiased results that will measure the true race effect on average when the missing data are generated under a MAR mechanism or when we include some model for the missingness mechanism in the imputation model to address the MNAR assumption [@bartlettAsymptoticallyUnbiasedEstimation2015] [**more citations**].
+The bias is corrected for when we use multiple imputation with an appropriate number of imputations [@grahamHowManyImputations2007; @harelInferencesMissingInformation2007; @allisonMultipleImputationMissing2000]. The multiple imputation analysis produces unbiased results that will measure the true race effect on average when the missing data are generated under a MAR mechanism or when we include some model for the missingness mechanism in the imputation model to address the MNAR assumption [@bartlettAsymptoticallyUnbiasedEstimation2015]. Alternative tools have been developed to address MNAR or non-ignorable missing data that do not rely on multiple imputation [@ibrahimIncompleteDataGeneralized1990; @vachLogisticRegressionIncompletely1993; @littlePatternMixtureModelsMultivariate1996]. Those tools are beyond the scope of this paper.
 
-In our simulations, we assume that the missing data mechanism is MAR and ignorable, so we omit any modeling of the mechanism in our imputations. The estimates made with MI under the MAR generated data are unbiased and closely resemble the complete data estimates demonstrating that the MI procedure is able to recover most of the information lost under CCA. While not addressing the missingness model is appropriate for the MAR generated data, it fails to overcome the bias induced by the MNAR generated data resulting in only slightly mitigated biases in the MI estimates with MNAR data. Tools have been developed to address the MNAR assumption by creating models for the missingness in the imputation mechanism [**citation**]. Those tools are beyond the scope of this paper.
-
-```{r}
-#| label: fig-1000-sim
-#| echo: false
-#| fig-cap: "Boxplots of the results for n = 1000 simulations."
-#| fig-subcap: 
-#|     - "Boxplots of the differences between the complete data and incomplete data estimates for the odds ratio of the race effect."
-#|     - "Boxplots of the odds ratios for the race effect"
-#| layout-nrow: 2
-
-# plt1000$DIFF
-# plt1000$OR
-```
-
-```{r}
-#| label: fig-2500-sim
-#| echo: false
-#| fig-cap: "Boxplots of the results for n = 2500 simulations."
-#| fig-subcap: 
-#|     - "Boxplots of the differences between the complete data and incomplete data estimates for the odds ratio of the race effect."
-#|     - "Boxplots of the odds ratios for the race effect"
-#| layout-nrow: 2
-
-# plt2500$DIFF
-# plt2500$OR
-```
+In our simulations, we assume that the missing data mechanism is MAR and ignorable, so we omit any modeling of the mechanism in our imputations. The estimates made with MI under the MAR generated data are unbiased and closely resemble the complete data estimates demonstrating that the MI procedure is able to recover most of the information lost under CCA. While not addressing the missingness model is appropriate for the MAR generated data, it fails to overcome the bias induced by the MNAR generated data resulting in only slightly mitigated biases in the MI estimates with MNAR data.
 
 According to the simulations, the median difference between the complete case estimates and the complete data estimates gets slightly closer to zero as the sample size increases from 500 cases to 2500 cases. The spread of the differences shrinks as well resulting in a sampling distribution that still indicates that there's bias even for large samples. Increasing the number of imputations from three to eight doesn't result in dramatically different results. The increase in relative efficiency is fairly small, going from roughly 95% to 99+% as imputations increase from three to eight, so the impact is negligible.
 
-I also did a simulation with 105 iterations, a sample size of 25,000, and $M = 3$ imputations, since that still gives roughly 95% relative efficiency but reduces the computational cost significantly. Results are shown in @fig-25000-sim. From these simulations, we further establish the patterns seen with the smaller sample sizes. Roughly 5-10% of cases are incomplete. The distribution of the differences is narrower than for the smaller samples and the median differences are still clearly different from zero and roughly equivalent to the median differences under the $n = 2,500$ simulations as seen in @fig-2500-sim. As this simulation is 10x larger than the 2500 sample size simulation, we can likely expect these patterns to continue for even larger sample sizes. Large data is therefore not a cure-all for missing data and still must be given special attention.
+I also did a simulation with 105 iterations, a sample size of 25,000, and $M = 3$ imputations, since that still gives roughly 95% relative efficiency but reduces the computational cost significantly. From these simulations, we further establish the patterns seen with the smaller sample sizes. Roughly 5-10% of cases are incomplete. The distribution of the differences is narrower than for the smaller samples and the median differences are still clearly different from zero and roughly equivalent to the median differences under the $n = 2,500$ simulations as seen in [@fig-or-sim; @fig-diff-sim]. As this simulation is 10x larger than the 2500 sample size simulation, we can likely expect these patterns to continue for even larger sample sizes. Large data is therefore not a cure-all for missing data and still must be given special attention.
 
-```{r}
-#| label: fig-25000-sim
-#| echo: false
-#| fig-cap: "Boxplots of the results for n = 25000 simulations."
-#| fig-subcap: 
-#|     - "Boxplots of the differences between the complete data and incomplete data estimates for the odds ratio of the race effect."
-#|     - "Boxplots of the odds ratios for the race effect"
-#| layout-nrow: 2
+## DISCUSSION {#sec-discussion}
 
-# plt25000$OR
-# plt25000$DIFF
-```
+## CONCLUSION {#sec-conclusion}
 
-
-## DISCUSSION  {#sec-discussion}
-
-## CONCLUSION  {#sec-conclusion}
-
-## REFERENCES  {.unnumbered} 
+## REFERENCES {.unnumbered}
 
 ::: {#refs}
 :::
 
-## APPENDIX  {.appendix}
+## APPENDIX {.appendix}
 
-### MNAR - Simulation Parameters  {#sec-mnar}
+### MNAR - Simulation Parameters {#sec-mnar}
 
 The missingness model assigns slightly more missingness than we saw in the administrative data while still having a relatively low number of incomplete cases.
 
@@ -350,7 +298,7 @@ To under-estimate the effect, missingness in race is again conditional on race b
 
 All parameters set to 1 are irrelevant to the missingness model since the log of 1 is 0.
 
-### MAR - Simulation Parameters  {#sec-mar}
+### MAR - Simulation Parameters {#sec-mar}
 
 We used similar parameter settings for the MAR simulations as we did for the MNAR, but now missingness based on race is only for patterns 1,3,5, and 7 which are no missing variables, missing in age, missing in recommended minimum, and missing in both age and recommended minimum. This maintains the MAR assumption since the missingness isn't contingent on race for the patterns where race is missing. However, since we are performing the analyses with complete case analysis, we are still systematically excluding data from our analysis in such a way that will dramatically bias the results based on the values of race and incarceration.
 
