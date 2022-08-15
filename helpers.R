@@ -407,7 +407,7 @@ present_tables <- function(Q = 225, M = 500, m = c(3)) {
     tbls <- result_tables(sim.res)
     
     cnames <- c("Num of Imp", "Miss Type", "Direction", "Analysis", "Odds Ratio", "0.025 Quantile", "0.975 Quantile")
-    stat_names <- c("Odds Ratio", "Miss. Prop.", "OR Difference", "Bias")
+    stat_names <- c("Odds Ratio", "Prop. of Inc. Cases", "OR Difference", "Bias")
     for (i in 1:4) {
         if (i == 2) {
             tmp <- tbls[[i]][,1:5]
