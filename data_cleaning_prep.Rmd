@@ -163,12 +163,24 @@ prop_mis <- (30005) / nrow(dat.sm)
 ```{r}
 # CCA Logistic Regression INCAR ~ .
 fit <- glm(INCAR ~ ., data = dat.sm,
-           family = binomial(link = "logit"))
+           family = binomial(link = "logit"), model = F)
 # summary(fit)
 coef(fit) %>% round(3)
 beta <- coef(fit)
-save(fit, file = "full_data_cca_log_reg.rda")
+
 ```
+
+```{r}
+fit$data <- NULL
+fit$data
+fit$y <- NULL
+```
+```{r}
+
+# save(fit, file = "full_data_cca_log_reg_no_data.rda")
+save(beta, file = "full_data_cca_log_reg_coef.rda")
+```
+
 
 ```{r}
 rm(fit)

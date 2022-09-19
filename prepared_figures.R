@@ -163,4 +163,3 @@ ggplot(sim.res.25000, aes(DIRECTION, OR_BIAS)) +
          x = "Intended Direction of Bias due to Missing Data",
          y = "Statistical Bias")
 
-

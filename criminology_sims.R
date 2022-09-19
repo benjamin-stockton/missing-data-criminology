@@ -42,9 +42,7 @@ dat$OFF_RACER %<>% fct_relevel(c("WHITE", "BLACK", "LATINO", "OTHER"))
 levels(dat$OFF_RACER)
 
 # load in the coefficients from the CCA logistic regression on the full data set
-load("full_data_cca_log_reg.rda")
-beta <- coef(fit)
-rm(fit)
+load("full_data_cca_log_reg_coef.rda")
 
 beta["OFF_RACERBLACK"]
 # sort(beta, decreasing = T)[1:5]
