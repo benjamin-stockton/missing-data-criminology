@@ -34,7 +34,7 @@ replace <- FALSE
 
 # set up cores for parallel computation
 cores <- detectCores()[1] - 1
-coreQ <- floor(Q / cores)
+coreQ <- ceiling(Q / cores)
 
 # Load in the simulated data
 dat <- read_csv("Data/simulated_data.csv", col_types = "dfdffffffdfdd") %>% as.data.frame()

@@ -246,18 +246,28 @@ sim_log_reg <- function(data, sim_size = "small") {
 }
 
 mi_log_reg <- function(data, sim_size = "small", m = 3) {
-    # Create the multpily imputed data sets
-    imp <- mice(data, m = m)
+    # Create the multiply imputed data sets
+        # Have mice passively impute age^2 by squaring the imputed age
     # Stack the data sets together
     # imp_tot <- complete(imp, "long", inc = TRUE)
     # Run the analyses
     if (sim_size == "small") {
+        imp <- mice(data, m = m)
         fitm <- with(imp, glm(Y ~ X + Z1 + Z1Q + Z2 + CTY, family = binomial(link = "logit")))
         pool_fit <- pool(fitm)
         x_index <- which(pool_fit$pooled[,1] == "X")
         OR <- exp(pool_fit$pooled[x_index, "estimate"])
     }
     else if (sim_size == "full") {
+        ini <- mice(data, m = 1, maxit = 0, print = F, method = "pmm")
+        
+        methd <- ini$method
+        methd["DOSAGEQ"] <- "~I(DOSAGE^2)"
+        print(methd)
+        pred_mat <- ini$predictorMatrix
+        pred_mat["DOSAGE", "DOSAGEQ"] <- 0
+        
+        imp <- mice(data, m = m, predictorMatrix = pred_mat, method = methd)
         fitm <- with(imp, glm(INCAR ~ CRIMETYPE + OGS + OGSQ + RECMIN + TRIAL + PRS + 
                               MALE + DOSAGE + DOSAGEQ + OFF_RACER + COUNTY + YEAR, family = binomial(link = "logit")))
         pool_fit <- pool(fitm)
@@ -348,24 +358,26 @@ full_sim <- function(beta, miss_pars_over, miss_pars_undr, miss_type = "MAR",
     return(sim.res)
 }
 
-load_sim_results <- function(Q = 225, M = 500, m = 3) {
-    for (i in 1:length(m)) {
-        fname <- paste0("Sim_Results/simulation_results_Q", Q, "_n_", M, "_m_", m[i], ".csv")
+load_sim_results <- function(Q = 225, N = 500, M = 3) {
+    for (i in 1:length(M)) {
+        fname <- paste0("Sim_Results/simulation_results_Q", Q[i], "_n_", N, "_m_", M[i], ".csv")
+        print(fname)
         if (i == 1) {
             sim.res <- read.csv(fname, header = T)
-            sim.res$IMPUTATION <- rep(paste0(m[i], " imps"), nrow(sim.res))
+            sim.res$IMPUTATION <- rep(paste0(M[i], " imps"), nrow(sim.res))
         }
         else {
             tmp <- read.csv(fname, header = T)
-            tmp$IMPUTATION <- rep(paste0(m[i], " imps"), nrow(tmp))
+            tmp$IMPUTATION <- rep(paste0(M[i], " imps"), nrow(tmp))
             sim.res <- rbind(sim.res, tmp)
         }
     }
+    
     sim.res[which(sim.res$DIRECTION == "COMP"), "ANALYSIS"] <- "COMP"
     sim.res[which(sim.res$DIRECTION == "COMP"), "DIRECTION"] <- "No Missing Data"
     sim.res$DIRECTION %<>% fct_relevel(c("OVER", "UNDR", "No Missing Data"))
     sim.res$ANALYSIS %<>% fct_relevel(c("CCA", "COMP", "MI"))
-    sim.res$IMPUTATION %<>% fct_relevel(paste0(m, " imps"))
+    sim.res$IMPUTATION %<>% fct_relevel(paste0(M, " imps"))
     
     return(sim.res)
 }

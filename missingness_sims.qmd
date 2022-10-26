@@ -227,9 +227,11 @@ miss_pars_undr <- build_miss_par_matrix(
     gamma = log(c(1, rep(1, 5), 25, .1)),
     miss_type = "MNAR", sim_size = "full")
 
+start <- Sys.time()
 fs <- full_sim(miss_type = "MNAR", sim_size = "full", pop_data = dat,
-         beta = beta, M = M, m = m, miss_pars_over = miss_pars_over, 
+         beta = beta, M = 25000, m = m, miss_pars_over = miss_pars_over, 
          miss_pars_undr = miss_pars_undr, Q = 1, replace = replace)
+Sys.time() - start
 fs
 ```
 
