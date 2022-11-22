@@ -90,6 +90,32 @@ sim.res %>% filter(DIRECTION == "Under", ANALYSIS2 == "CCA") %>%
     
 ) %>% select(SampleSize, MISS_TYPE, DIRECTION, ANALYSIS2, 'Avg OR (sd)', '95 CI') %>% write.csv(file = "Sim_Results/summarized_cca_under_results.csv", row.names = F)
 
+sim.res %>% filter(DIRECTION == "Under", ANALYSIS2 == "CCA", MISS_TYPE == "MAR") %>%
+    group_by(SampleSize, MISS_TYPE, DIRECTION, ANALYSIS2) %>% summarize(
+        mean_OR = mean(ODDS_RATIO),
+        sd_OR = sd(ODDS_RATIO),
+        mean_Diff = mean(OR_DIFF),
+        sd_Diff = sd(OR_DIFF),
+        "Avg OR (sd)" = paste0(round(mean_OR, 3), " (", round(sd_OR, 3), ")"),
+        "0.025 Quantile" = round(quantile(ODDS_RATIO, c(0.025)), 3),
+        "0.975 Quantile" = round(quantile(ODDS_RATIO, c(0.975)), 3),
+        "95 CI" = paste0("(", `0.025 Quantile`, ",", `0.975 Quantile`, ")")
+        
+    )
+
+sim.res %>% filter(DIRECTION == "Under", ANALYSIS2 == "CCA") %>%
+    group_by(MISS_TYPE, DIRECTION, ANALYSIS2) %>% summarize(
+        mean_OR = mean(ODDS_RATIO),
+        sd_OR = sd(ODDS_RATIO),
+        mean_Diff = mean(OR_DIFF),
+        sd_Diff = sd(OR_DIFF),
+        "Avg OR (sd)" = paste0(round(mean_OR, 3), " (", round(sd_OR, 3), ")"),
+        "0.025 Quantile" = round(quantile(ODDS_RATIO, c(0.025)), 3),
+        "0.975 Quantile" = round(quantile(ODDS_RATIO, c(0.975)), 3),
+        "95 CI" = paste0("(", `0.025 Quantile`, ",", `0.975 Quantile`, ")")
+        
+    )
+
 #####################################################
 # Plotting Results
 #####################################################
@@ -101,7 +127,7 @@ small_smpl.res <- sim.res %>% filter(ANALYSIS2 %in% c("COMP", "CCA", "MI - 3 imp
 # Odds Ratio
 ggplot(small_smpl.res, aes(DIRECTION, ODDS_RATIO, fill = SampleSize)) +
     geom_hline(yintercept = med_comp, color = "gray") +
-    geom_boxplot(alpha = .75) +
+    geom_boxplot(alpha = .75, outlier.shape = 1, outlier.shape = 1) +
     facet_grid(MISS_TYPE ~ ANALYSIS2, scales = "free_x", space = "free") +
     theme_bw() +
     scale_fill_grey() +
@@ -112,6 +138,7 @@ ggplot(small_smpl.res, aes(DIRECTION, ODDS_RATIO, fill = SampleSize)) +
 ggsave2(paste0(plot_filepath, "odds_ratio.png"), dpi = 600, width = 8, height = 6, units = "in")
 
 smy.res2 <- smy.res %>% filter(ANALYSIS2 %in% c("COMP", "CCA", "MI - 3 imps", "MI - 5 imps", "MI - 8 imps", "MI - 25 imps", "MI - 100 imps") & SampleSize %in% paste0("N = ", c(500, 1000, 2500, 5000)))
+
 ggplot(smy.res2, aes(DIRECTION, mean_OR, fill = SampleSize)) +
     geom_col(position = "dodge", color = "black") +
     geom_hline(yintercept = med_comp, color = "black", size = 1, linetype = "dashed") +
@@ -129,7 +156,7 @@ ggsave2(paste0(plot_filepath, "odds_ratio_column.png"), dpi = 600, width = 8, he
 # Plot bias
 ggplot(small_smpl.res, aes(DIRECTION, OR_BIAS, fill = SampleSize)) +
     geom_hline(yintercept = 0, color = "gray") +
-    geom_boxplot(alpha = .75) +
+    geom_boxplot(alpha = .75, outlier.shape = 1, outlier.shape = 1) +
     facet_grid(MISS_TYPE ~ ANALYSIS2, scales = "free", space = "free") +
     theme_bw() +
     scale_fill_grey() +
@@ -157,7 +184,7 @@ ggsave2(paste0(plot_filepath, "prop_miss.png"), dpi = 600, width = 8, height = 6
 
 ggplot(sim.res.nc, aes(DIRECTION, OR_DIFF, fill = SampleSize)) +
     geom_hline(yintercept = 0, color = "gray") +
-    geom_boxplot(alpha = .75) +
+    geom_boxplot(alpha = .75, outlier.shape = 1, outlier.shape = 1) +
     facet_grid(MISS_TYPE ~ ANALYSIS2, scales = "free_y") +
     theme_bw() +
     scale_fill_grey() +
@@ -175,7 +202,7 @@ large_smpl.res <- sim.res %>% filter(ANALYSIS2 %in% c("COMP", "CCA", "MI - 3 imp
 # Odds Ratio
 ggplot(large_smpl.res, aes(DIRECTION, ODDS_RATIO, fill = SampleSize)) +
     geom_hline(yintercept = med_comp, color = "gray") +
-    geom_boxplot(alpha = .75) +
+    geom_boxplot(alpha = .75, outlier.shape = 1, outlier.shape = 1) +
     facet_grid(MISS_TYPE ~ ANALYSIS2, scales = "free_x", space = "free") +
     theme_bw() +
     scale_fill_grey() +
@@ -186,6 +213,7 @@ ggplot(large_smpl.res, aes(DIRECTION, ODDS_RATIO, fill = SampleSize)) +
 ggsave2(paste0(plot_filepath, "odds_ratio.png"), dpi = 600, width = 8, height = 6, units = "in")
 
 smy.res2 <- smy.res %>% filter(ANALYSIS2 %in% c("COMP", "CCA", "MI - 3 imps", "MI - 5 imps", "MI - 8 imps", "MI - 25 imps", "MI - 100 imps") & SampleSize %in% paste0("N = ", c(10000, 25000, 50000)))
+
 ggplot(smy.res2, aes(DIRECTION, mean_OR, fill = SampleSize)) +
     geom_col(position = "dodge", color = "black") +
     geom_hline(yintercept = med_comp, color = "black", size = 1, linetype = "dashed") +
@@ -203,7 +231,7 @@ ggsave2(paste0(plot_filepath, "odds_ratio_column.png"), dpi = 600, width = 8, he
 # Plot bias
 ggplot(large_smpl.res, aes(DIRECTION, OR_BIAS, fill = SampleSize)) +
     geom_hline(yintercept = 0, color = "gray") +
-    geom_boxplot(alpha = .75) +
+    geom_boxplot(alpha = .75, outlier.shape = 1, outlier.shape = 1) +
     facet_grid(MISS_TYPE ~ ANALYSIS2, scales = "free", space = "free") +
     theme_bw() +
     scale_fill_grey() +
@@ -231,7 +259,7 @@ ggsave2(paste0(plot_filepath, "prop_miss.png"), dpi = 600, width = 8, height = 6
 
 ggplot(sim.res.nc, aes(DIRECTION, OR_DIFF, fill = SampleSize)) +
     geom_hline(yintercept = 0, color = "gray") +
-    geom_boxplot(alpha = .75) +
+    geom_boxplot(alpha = .75, outlier.shape = 1, outlier.shape = 1) +
     facet_grid(MISS_TYPE ~ ANALYSIS2, scales = "free_y") +
     theme_bw() +
     scale_fill_grey() +
@@ -244,19 +272,37 @@ ggsave2(paste0(plot_filepath, "or_diff.png"), dpi = 600, width = 8, height = 6, 
 
 # All Sample Size Plots
 plot_filepath <- "Plots/sim_res_all_sample_sizes_"
-all_smpl.res <- sim.res %>% filter(ANALYSIS2 %in% c("COMP", "CCA", "MI - 3 imps", "MI - 8 imps", "MI - 25 imps", "MI - 100 imps"))
+all_smpl.res <- sim.res %>% filter(ANALYSIS2 %in% c("COMP", "CCA", "MI - 3 imps", "MI - 8 imps", "MI - 25 imps", "MI - 100 imps") & !(SampleSize == "N = 500" | SampleSize == "N = 1000"))
 
 # Odds Ratio
 ggplot(all_smpl.res, aes(DIRECTION, ODDS_RATIO, color = SampleSize)) +
     geom_hline(yintercept = med_comp, color = "gray") +
-    geom_boxplot(alpha = .75) +
-    facet_grid(MISS_TYPE ~ ANALYSIS2, scales = "free_x", space = "free") +
+    geom_boxplot(alpha = .75, outlier.shape = 1, outlier.shape = 1) +
+    facet_grid(MISS_TYPE ~ ANALYSIS2, scales = "free", space = "free") +
     theme_bw() +
+    theme(legend.position = "bottom") +
     # scale_fill_grey() +
     ggthemes::scale_color_colorblind() +
     labs(title = "Dist. of Race Effect Estimates with Complete Data, CCA, and MI", 
          x = "Intended Direction of Bias due to Missing Data",
          y = "Odds Ratio")
+
+all_smpl.res.mar <- sim.res %>% filter(ANALYSIS2 %in% c("COMP", "CCA", "MI - 3 imps", "MI - 8 imps", "MI - 25 imps", "MI - 100 imps") & !(SampleSize == "N = 500" | SampleSize == "N = 1000") & MISS_TYPE == "MAR")
+
+# Odds Ratio
+ggplot(all_smpl.res.mar, aes(DIRECTION, ODDS_RATIO, color = SampleSize)) +
+    geom_hline(yintercept = med_comp, color = "gray") +
+    geom_boxplot(alpha = .75, outlier.shape = 1) +
+    # facet_grid(MISS_TYPE ~ ANALYSIS2, scales = "free", space = "free") +
+    facet_wrap(ANALYSIS2~., scales = "free") +
+    theme_bw() +
+    theme(legend.position = "bottom") +
+    # scale_fill_grey() +
+    ggthemes::scale_color_colorblind() +
+    labs(title = "Dist. of Race Effect Estimates with Complete Data, CCA, and MI", 
+         x = "Intended Direction of Bias due to Missing Data",
+         y = "Odds Ratio")
+
 
 ggsave2(paste0(plot_filepath, "odds_ratio.png"), dpi = 600, width = 8, height = 6, units = "in")
 
@@ -280,7 +326,7 @@ ggsave2(paste0(plot_filepath, "odds_ratio_column.png"), dpi = 600, width = 8, he
 # Plot bias
 ggplot(all_smpl.res, aes(DIRECTION, OR_BIAS, color = SampleSize)) +
     geom_hline(yintercept = 0, color = "gray") +
-    geom_boxplot(alpha = .75) +
+    geom_boxplot(alpha = .75, outlier.shape = 1) +
     facet_grid(MISS_TYPE ~ ANALYSIS2, scales = "free", space = "free") +
     theme_bw() +
     # scale_fill_grey() +
@@ -310,7 +356,7 @@ ggsave2(paste0(plot_filepath, "prop_miss.png"), dpi = 600, width = 8, height = 6
 
 ggplot(sim.res.nc, aes(DIRECTION, OR_DIFF, color = SampleSize)) +
     geom_hline(yintercept = 0, color = "gray") +
-    geom_boxplot(alpha = .75) +
+    geom_boxplot(alpha = .75, outlier.shape = 1) +
     facet_grid(MISS_TYPE ~ ANALYSIS2, scales = "free_y") +
     theme_bw() +
     # scale_fill_grey() +
