@@ -143,7 +143,8 @@ B <- pool_fit$pooled[race_index, "b"]
 lambda_hat <- B / (ubar + B)
 lambda_hat
 
-lambda_hat + c(-1, 1) * 1.96 * lambda_hat * (1 - lambda_hat) / sqrt(M/2)
+lambdaCI <- lambda_hat + c(-1, 1) * 1.96 * lambda_hat * (1 - lambda_hat) / sqrt(M/2)
+lambdaCI
 ```
 
 ```{r}
@@ -154,6 +155,8 @@ lambda_hat + c(-1, 1) * 1.96 * lambda_hat * (1 - lambda_hat) / sqrt(M/2)
 reff <- .99
 
 lambda_hat * reff / (1 - reff)
+
+lambdaCI * reff / (1 - reff)
 ```
 
 #### MAR
@@ -182,7 +185,8 @@ B <- pool_fit$pooled[race_index, "b"]
 lambda_hat <- B / (ubar + B)
 lambda_hat
 
-lambda_hat + c(-1, 1) * 1.96 * lambda_hat * (1 - lambda_hat) / sqrt(M/2)
+lambdaCI <- lambda_hat + c(-1, 1) * 1.96 * lambda_hat * (1 - lambda_hat) / sqrt(M/2)
+lambdaCI
 ```
 
 ```{r}
@@ -193,4 +197,6 @@ lambda_hat + c(-1, 1) * 1.96 * lambda_hat * (1 - lambda_hat) / sqrt(M/2)
 reff <- .99
 
 lambda_hat * reff / (1 - reff)
+
+lambdaCI * reff / (1 - reff)
 ```

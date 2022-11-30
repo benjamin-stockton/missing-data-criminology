@@ -103,267 +103,149 @@ sim.res %>% filter(DIRECTION == "Under", ANALYSIS2 == "CCA", MISS_TYPE == "MAR")
         
     )
 
-sim.res %>% filter(DIRECTION == "Under", ANALYSIS2 == "CCA") %>%
-    group_by(MISS_TYPE, DIRECTION, ANALYSIS2) %>% summarize(
-        mean_OR = mean(ODDS_RATIO),
-        sd_OR = sd(ODDS_RATIO),
-        mean_Diff = mean(OR_DIFF),
-        sd_Diff = sd(OR_DIFF),
-        "Avg OR (sd)" = paste0(round(mean_OR, 3), " (", round(sd_OR, 3), ")"),
-        "0.025 Quantile" = round(quantile(ODDS_RATIO, c(0.025)), 3),
-        "0.975 Quantile" = round(quantile(ODDS_RATIO, c(0.975)), 3),
-        "95 CI" = paste0("(", `0.025 Quantile`, ",", `0.975 Quantile`, ")")
-        
-    )
-
 #####################################################
 # Plotting Results
 #####################################################
 
+prep_figs <- function(data, plot_filepath, fig.width = 8, fig.height = 6) {
+    p1 <- ggplot(data) +
+        # ggh4x::facet_grid2(vars(MISS_TYPE), vars(ANALYSIS2), 
+                           # scales = "free", space = "free", independent = "y") +
+        facet_grid(MISS_TYPE ~ ANALYSIS2, scales = "free", space = "free") +
+        theme_bw() +
+        ggthemes::scale_fill_colorblind() +
+        ggthemes::scale_color_colorblind() +
+        theme(legend.position = "bottom")
+    
+    # Odds Ratio
+    or <- p1 + 
+        geom_hline(yintercept = med_comp, color = "gray") +
+        geom_boxplot(aes(DIRECTION, ODDS_RATIO, color = SampleSize), alpha = .75, outlier.shape = 1) +
+        labs(title = "Dist. of Race Effect Estimates with Complete Data, CCA, and MI", 
+             x = "Intended Direction of Bias due to Missing Data",
+             y = "Odds Ratio")
+    
+    ggsave2(paste0(plot_filepath, "odds_ratio.png"), dpi = 600, width = 8, height = 6, units = "in")
+    
+    # Plot bias
+    bias <- p1 +
+        geom_hline(yintercept = 0, color = "gray") +
+        geom_boxplot(aes(DIRECTION, OR_BIAS, color = SampleSize), alpha = .75, outlier.shape = 1) +
+        labs(title = "Dist. of the Stat. Bias of the Race Effect Estimates with Complete Data, CCA, and MI", 
+             x = "Intended Direction of Bias due to Missing Data",
+             y = "Statistical Bias")
+    
+    ggsave2(paste0(plot_filepath, "or_bias.png"), dpi = 600, width = 8, height = 6, units = "in")
+    
+    # Plot missing cases proportions
+    
+    # Filter out Complete Data Analyses
+    sim.res.nc <- data %>% filter(ANALYSIS != "COMP")
+    p2 <- ggplot(sim.res.nc) +
+        # ggh4x::facet_grid2(vars(MISS_TYPE), vars(ANALYSIS2),
+        # scales = "free", space = "free", independent = "y") +
+        facet_grid(MISS_TYPE ~ ANALYSIS2, scales = "free", space = "free") +
+        theme_bw() +
+        ggthemes::scale_fill_colorblind() +
+        ggthemes::scale_color_colorblind() +
+        theme(legend.position = "bottom")
+    
+    pmiss <- p2 + 
+        geom_boxplot(aes(DIRECTION, PROP_MISS, color = SampleSize), alpha = 0.75) +
+        facet_grid(MISS_TYPE~., scales = "free") +
+        labs(title = "Dist. of the Proportion of Incomplete Cases", 
+             x = "Intended Direction of Bias due to Missing Data",
+             y = "Proportion of Incomplete Cases")
+    
+    ggsave2(paste0(plot_filepath, "prop_miss.png"), dpi = 600, width = 8, height = 6, units = "in")
+    
+    ordiff <- p2 + 
+        geom_hline(yintercept = 0, color = "gray") +
+        geom_boxplot(aes(DIRECTION, OR_DIFF, color = SampleSize), alpha = .75, outlier.shape = 1) +
+        labs(title = "Dist. of the Difference in Race Effect Estimates from CCA/MI to the Complete Data Estimate", 
+             x = "Intended Direction of Bias due to Missing Data",
+             y = "Difference in the OR")
+    
+    # cowplot::plot_grid(or, bias, pmiss, ordiff, nrow = 2)
+    ggsave2(paste0(plot_filepath, "or_diff.png"), dpi = 600, width = 8, height = 6, units = "in")
+}
+
 # Small Sample Size Plots
-plot_filepath <- "Plots/sim_res_small_sample_sizes_"
+ss_fp <- "Plots/sim_res_small_sample_sizes_"
 small_smpl.res <- sim.res %>% filter(ANALYSIS2 %in% c("COMP", "CCA", "MI - 3 imps", "MI - 8 imps", "MI - 25 imps", "MI - 100 imps") & SampleSize %in% paste0("N = ", c(500, 1000, 2500, 5000)))
 
-# Odds Ratio
-ggplot(small_smpl.res, aes(DIRECTION, ODDS_RATIO, fill = SampleSize)) +
-    geom_hline(yintercept = med_comp, color = "gray") +
-    geom_boxplot(alpha = .75, outlier.shape = 1, outlier.shape = 1) +
-    facet_grid(MISS_TYPE ~ ANALYSIS2, scales = "free_x", space = "free") +
-    theme_bw() +
-    scale_fill_grey() +
-    labs(title = "Dist. of Race Effect Estimates with Complete Data, CCA, and MI", 
-         x = "Intended Direction of Bias due to Missing Data",
-         y = "Odds Ratio")
+prep_figs(data = small_smpl.res, plot_filepath = ss_fp)
 
-ggsave2(paste0(plot_filepath, "odds_ratio.png"), dpi = 600, width = 8, height = 6, units = "in")
 
-smy.res2 <- smy.res %>% filter(ANALYSIS2 %in% c("COMP", "CCA", "MI - 3 imps", "MI - 5 imps", "MI - 8 imps", "MI - 25 imps", "MI - 100 imps") & SampleSize %in% paste0("N = ", c(500, 1000, 2500, 5000)))
+# Large Sample Size Plots
 
-ggplot(smy.res2, aes(DIRECTION, mean_OR, fill = SampleSize)) +
-    geom_col(position = "dodge", color = "black") +
-    geom_hline(yintercept = med_comp, color = "black", size = 1, linetype = "dashed") +
-    geom_errorbar(aes(ymin = -2 * sd_OR + mean_OR, ymax = 2 * sd_OR + mean_OR), position = position_dodge2(width = .5, padding = 0.5)) +
-    facet_grid(MISS_TYPE ~ ANALYSIS2, scales = "free", space = "free") +
-    theme_bw() +
-    scale_fill_grey() +
-    scale_color_grey() +
-    labs(title = "Dist. of Race Effect Estimates with Complete Data, CCA, and MI",
-         x = "Intended Direction of Bias due to Missing Data",
-         y = "Odds Ratio")
+ls_fp <- "Plots/sim_res_large_sample_sizes_"
+large_smpl.res <- sim.res %>% filter(SampleSize %in% paste0("N = ", c(10000, 25000, 50000)))
 
-ggsave2(paste0(plot_filepath, "odds_ratio_column.png"), dpi = 600, width = 8, height = 6, units = "in")
-
-# Plot bias
-ggplot(small_smpl.res, aes(DIRECTION, OR_BIAS, fill = SampleSize)) +
-    geom_hline(yintercept = 0, color = "gray") +
-    geom_boxplot(alpha = .75, outlier.shape = 1, outlier.shape = 1) +
-    facet_grid(MISS_TYPE ~ ANALYSIS2, scales = "free", space = "free") +
-    theme_bw() +
-    scale_fill_grey() +
-    labs(title = "Dist. of the Stat. Bias of the Race Effect Estimates with Complete Data, CCA, and MI", 
-         x = "Intended Direction of Bias due to Missing Data",
-         y = "Statistical Bias")
-
-ggsave2(paste0(plot_filepath, "or_bias.png"), dpi = 600, width = 8, height = 6, units = "in")
-
-# Plot missing cases proportions
-
-# Filter out Complete Data Analyses
-sim.res.nc <- small_smpl.res %>% filter(ANALYSIS != "COMP")
-
-ggplot(sim.res.nc, aes(DIRECTION, PROP_MISS, fill = SampleSize)) +
-    geom_boxplot(alpha = 0.75) +
-    facet_wrap(MISS_TYPE~.) +
-    theme_bw() +
-    scale_fill_grey() +
-    labs(title = "Dist. of the Proportion of Incomplete Cases", 
-         x = "Intended Direction of Bias due to Missing Data",
-         y = "Proportion of Incomplete Cases")
-
-ggsave2(paste0(plot_filepath, "prop_miss.png"), dpi = 600, width = 8, height = 6, units = "in")
-
-ggplot(sim.res.nc, aes(DIRECTION, OR_DIFF, fill = SampleSize)) +
-    geom_hline(yintercept = 0, color = "gray") +
-    geom_boxplot(alpha = .75, outlier.shape = 1, outlier.shape = 1) +
-    facet_grid(MISS_TYPE ~ ANALYSIS2, scales = "free_y") +
-    theme_bw() +
-    scale_fill_grey() +
-    labs(title = "Dist. of the Difference in Race Effect Estimates from CCA/MI to the Complete Data Estimate", 
-         x = "Intended Direction of Bias due to Missing Data",
-         y = "Difference in the OR")
-
-ggsave2(paste0(plot_filepath, "or_diff.png"), dpi = 600, width = 8, height = 6, units = "in")
-
-# # Large Sample Size Plots
-
-plot_filepath <- "Plots/sim_res_large_sample_sizes_"
-large_smpl.res <- sim.res %>% filter(ANALYSIS2 %in% c("COMP", "CCA", "MI - 3 imps", "MI - 5 imps", "MI - 8 imps") & SampleSize %in% paste0("N = ", c(10000, 25000, 50000)))
-
-# Odds Ratio
-ggplot(large_smpl.res, aes(DIRECTION, ODDS_RATIO, fill = SampleSize)) +
-    geom_hline(yintercept = med_comp, color = "gray") +
-    geom_boxplot(alpha = .75, outlier.shape = 1, outlier.shape = 1) +
-    facet_grid(MISS_TYPE ~ ANALYSIS2, scales = "free_x", space = "free") +
-    theme_bw() +
-    scale_fill_grey() +
-    labs(title = "Dist. of Race Effect Estimates with Complete Data, CCA, and MI", 
-         x = "Intended Direction of Bias due to Missing Data",
-         y = "Odds Ratio")
-
-ggsave2(paste0(plot_filepath, "odds_ratio.png"), dpi = 600, width = 8, height = 6, units = "in")
-
-smy.res2 <- smy.res %>% filter(ANALYSIS2 %in% c("COMP", "CCA", "MI - 3 imps", "MI - 5 imps", "MI - 8 imps", "MI - 25 imps", "MI - 100 imps") & SampleSize %in% paste0("N = ", c(10000, 25000, 50000)))
-
-ggplot(smy.res2, aes(DIRECTION, mean_OR, fill = SampleSize)) +
-    geom_col(position = "dodge", color = "black") +
-    geom_hline(yintercept = med_comp, color = "black", size = 1, linetype = "dashed") +
-    geom_errorbar(aes(ymin = -2 * sd_OR + mean_OR, ymax = 2 * sd_OR + mean_OR), position = position_dodge2(width = .5, padding = 0.5)) +
-    facet_grid(MISS_TYPE ~ ANALYSIS2, scales = "free", space = "free") +
-    theme_bw() +
-    scale_fill_grey() +
-    scale_color_grey() +
-    labs(title = "Dist. of Race Effect Estimates with Complete Data, CCA, and MI",
-     x = "Intended Direction of Bias due to Missing Data",
-     y = "Odds Ratio")
-
-ggsave2(paste0(plot_filepath, "odds_ratio_column.png"), dpi = 600, width = 8, height = 6, units = "in")
-
-# Plot bias
-ggplot(large_smpl.res, aes(DIRECTION, OR_BIAS, fill = SampleSize)) +
-    geom_hline(yintercept = 0, color = "gray") +
-    geom_boxplot(alpha = .75, outlier.shape = 1, outlier.shape = 1) +
-    facet_grid(MISS_TYPE ~ ANALYSIS2, scales = "free", space = "free") +
-    theme_bw() +
-    scale_fill_grey() +
-    labs(title = "Dist. of the Stat. Bias of the Race Effect Estimates with Complete Data, CCA, and MI", 
-         x = "Intended Direction of Bias due to Missing Data",
-         y = "Statistical Bias")
-
-ggsave2(paste0(plot_filepath, "or_bias.png"), dpi = 600, width = 8, height = 6, units = "in")
-
-# Plot missing cases proportions
-
-# Filter out Complete Data Analyses
-sim.res.nc <- large_smpl.res %>% filter(ANALYSIS != "COMP")
-
-ggplot(sim.res.nc, aes(DIRECTION, PROP_MISS, fill = SampleSize)) +
-    geom_boxplot(alpha = 0.75) +
-    facet_wrap(MISS_TYPE~.) +
-    theme_bw() +
-    scale_fill_grey() +
-    labs(title = "Dist. of the Proportion of Incomplete Cases", 
-         x = "Intended Direction of Bias due to Missing Data",
-         y = "Proportion of Incomplete Cases")
-
-ggsave2(paste0(plot_filepath, "prop_miss.png"), dpi = 600, width = 8, height = 6, units = "in")
-
-ggplot(sim.res.nc, aes(DIRECTION, OR_DIFF, fill = SampleSize)) +
-    geom_hline(yintercept = 0, color = "gray") +
-    geom_boxplot(alpha = .75, outlier.shape = 1, outlier.shape = 1) +
-    facet_grid(MISS_TYPE ~ ANALYSIS2, scales = "free_y") +
-    theme_bw() +
-    scale_fill_grey() +
-    labs(title = "Dist. of the Difference in Race Effect Estimates from CCA/MI to the Complete Data Estimate", 
-         x = "Intended Direction of Bias due to Missing Data",
-         y = "Difference in the OR")
-
-ggsave2(paste0(plot_filepath, "or_diff.png"), dpi = 600, width = 8, height = 6, units = "in")
+prep_figs(data = large_smpl.res, plot_filepath = ls_fp)
 
 
 # All Sample Size Plots
-plot_filepath <- "Plots/sim_res_all_sample_sizes_"
-all_smpl.res <- sim.res %>% filter(ANALYSIS2 %in% c("COMP", "CCA", "MI - 3 imps", "MI - 8 imps", "MI - 25 imps", "MI - 100 imps") & !(SampleSize == "N = 500" | SampleSize == "N = 1000"))
+all_fp <- "Plots/sim_res_all_sample_sizes_"
+all_smpl.res <- sim.res %>% filter(ANALYSIS2 %in% c("COMP", "CCA", "MI - 3 imps", "MI - 8 imps", "MI - 25 imps", "MI - 100 imps"))
 
-# Odds Ratio
-ggplot(all_smpl.res, aes(DIRECTION, ODDS_RATIO, color = SampleSize)) +
-    geom_hline(yintercept = med_comp, color = "gray") +
-    geom_boxplot(alpha = .75, outlier.shape = 1, outlier.shape = 1) +
-    facet_grid(MISS_TYPE ~ ANALYSIS2, scales = "free", space = "free") +
+prep_figs(data = all_smpl.res, plot_filepath = all_fp)
+
+all_fp_mar <- "Plots/sim_res_all_sample_sizes_MAR_"
+all_smpl.res.mar <- sim.res %>% filter(ANALYSIS2 %in% c("COMP", "CCA", "MI - 3 imps", "MI - 5 imps", "MI - 8 imps", "MI - 25 imps", "MI - 100 imps") & MISS_TYPE == "MAR")
+
+prep_figs(data = all_smpl.res.mar, plot_filepath = all_fp_mar)
+
+
+all_fp_mnar <- "Plots/sim_res_all_sample_sizes_MNAR_"
+all_smpl.res.mnar <- sim.res %>% filter(ANALYSIS2 %in% c("COMP", "CCA", "MI - 3 imps", "MI - 5 imps", "MI - 8 imps", "MI - 25 imps", "MI - 100 imps") & MISS_TYPE == "MNAR")
+
+prep_figs(data = all_smpl.res.mnar, plot_filepath = all_fp_mnar)
+
+mar.nc <- all_smpl.res.mar %>% filter(ANALYSIS2 != "COMP")
+ggplot(mar.nc) +
+    # ggh4x::facet_grid2(vars(MISS_TYPE), vars(ANALYSIS2),
+    # scales = "free", space = "free", independent = "y") +
+    # facet_grid(. ~ ANALYSIS2, scales = "free", space = "free") +
+    ggh4x::facet_wrap2(vars(ANALYSIS2), nrow = 2, trim_blank = T, axes = "all", scales = "free") +
     theme_bw() +
-    theme(legend.position = "bottom") +
-    # scale_fill_grey() +
-    ggthemes::scale_color_colorblind() +
-    labs(title = "Dist. of Race Effect Estimates with Complete Data, CCA, and MI", 
-         x = "Intended Direction of Bias due to Missing Data",
-         y = "Odds Ratio")
-
-all_smpl.res.mar <- sim.res %>% filter(ANALYSIS2 %in% c("COMP", "CCA", "MI - 3 imps", "MI - 8 imps", "MI - 25 imps", "MI - 100 imps") & !(SampleSize == "N = 500" | SampleSize == "N = 1000") & MISS_TYPE == "MAR")
-
-# Odds Ratio
-ggplot(all_smpl.res.mar, aes(DIRECTION, ODDS_RATIO, color = SampleSize)) +
-    geom_hline(yintercept = med_comp, color = "gray") +
-    geom_boxplot(alpha = .75, outlier.shape = 1) +
-    # facet_grid(MISS_TYPE ~ ANALYSIS2, scales = "free", space = "free") +
-    facet_wrap(ANALYSIS2~., scales = "free") +
-    theme_bw() +
-    theme(legend.position = "bottom") +
-    # scale_fill_grey() +
-    ggthemes::scale_color_colorblind() +
-    labs(title = "Dist. of Race Effect Estimates with Complete Data, CCA, and MI", 
-         x = "Intended Direction of Bias due to Missing Data",
-         y = "Odds Ratio")
-
-
-ggsave2(paste0(plot_filepath, "odds_ratio.png"), dpi = 600, width = 8, height = 6, units = "in")
-
-smy.res2 <- smy.res %>% filter(ANALYSIS2 %in% c("COMP", "CCA", "MI - 3 imps", "MI - 5 imps", "MI - 8 imps", "MI - 25 imps", "MI - 100 imps"))
-ggplot(smy.res2, aes(DIRECTION, mean_OR, fill = SampleSize)) +
-    geom_col(position = "dodge", color = "black") +
-    geom_hline(yintercept = med_comp, color = "black", size = 1, linetype = "dashed") +
-    geom_errorbar(aes(ymin = -2 * sd_OR + mean_OR, ymax = 2 * sd_OR + mean_OR), position = position_dodge2(width = .5, padding = 0.5)) +
-    facet_grid(MISS_TYPE ~ ANALYSIS2, scales = "free", space = "free") +
-    theme_bw() +
-    # scale_fill_grey() +
     ggthemes::scale_fill_colorblind() +
-    # scale_color_grey() +
     ggthemes::scale_color_colorblind() +
-    labs(title = "Dist. of Race Effect Estimates with Complete Data, CCA, and MI",
-         x = "Intended Direction of Bias due to Missing Data",
-         y = "Odds Ratio")
-
-ggsave2(paste0(plot_filepath, "odds_ratio_column.png"), dpi = 600, width = 8, height = 6, units = "in")
-
-# Plot bias
-ggplot(all_smpl.res, aes(DIRECTION, OR_BIAS, color = SampleSize)) +
+    theme(legend.position = "bottom") + 
     geom_hline(yintercept = 0, color = "gray") +
-    geom_boxplot(alpha = .75, outlier.shape = 1) +
-    facet_grid(MISS_TYPE ~ ANALYSIS2, scales = "free", space = "free") +
-    theme_bw() +
-    # scale_fill_grey() +
-    ggthemes::scale_color_colorblind() +
-    labs(title = "Dist. of the Stat. Bias of the Race Effect Estimates with Complete Data, CCA, and MI", 
-         x = "Intended Direction of Bias due to Missing Data",
-         y = "Statistical Bias")
-
-ggsave2(paste0(plot_filepath, "or_bias.png"), dpi = 600, width = 8, height = 6, units = "in")
-
-# Plot missing cases proportions
-
-# Filter out Complete Data Analyses
-sim.res.nc <- all_smpl.res %>% filter(ANALYSIS != "COMP")
-
-ggplot(sim.res.nc, aes(DIRECTION, PROP_MISS, color = SampleSize)) +
-    geom_boxplot(alpha = 0.75) +
-    facet_wrap(MISS_TYPE~.) +
-    theme_bw() +
-    # scale_fill_grey() +
-    ggthemes::scale_color_colorblind() +
-    labs(title = "Dist. of the Proportion of Incomplete Cases", 
-         x = "Intended Direction of Bias due to Missing Data",
-         y = "Proportion of Incomplete Cases")
-
-ggsave2(paste0(plot_filepath, "prop_miss.png"), dpi = 600, width = 8, height = 6, units = "in")
-
-ggplot(sim.res.nc, aes(DIRECTION, OR_DIFF, color = SampleSize)) +
-    geom_hline(yintercept = 0, color = "gray") +
-    geom_boxplot(alpha = .75, outlier.shape = 1) +
-    facet_grid(MISS_TYPE ~ ANALYSIS2, scales = "free_y") +
-    theme_bw() +
-    # scale_fill_grey() +
-    ggthemes::scale_color_colorblind() +
-    labs(title = "Dist. of the Difference in Race Effect Estimates from CCA/MI to the Complete Data Estimate", 
+    geom_boxplot(aes(DIRECTION, OR_DIFF, color = SampleSize), alpha = .75, outlier.shape = 1) +
+    labs(title = latex2exp::TeX("Dist. of $d_{Dir}^{Analysis} = \\hat{OR}^{Analysis}_{Race}(D_{Dir}) - \\hat{OR}_{Race}(D_{Comp})$ under MAR simulations"), 
          x = "Intended Direction of Bias due to Missing Data",
          y = "Difference in the OR")
 
-ggsave2(paste0(plot_filepath, "or_diff.png"), dpi = 600, width = 8, height = 6, units = "in")
+mnar.nc <- all_smpl.res.mnar %>% filter(ANALYSIS2 != "COMP")
+ggplot(mnar.nc) +
+    # ggh4x::facet_grid2(vars(MISS_TYPE), vars(ANALYSIS2),
+    # scales = "free", space = "free", independent = "y") +
+    # facet_grid(. ~ ANALYSIS2, scales = "free", space = "free") +
+    ggh4x::facet_wrap2(vars(ANALYSIS2), nrow = 2, trim_blank = T, axes = "all", scales = "free") +
+    theme_bw() +
+    ggthemes::scale_fill_colorblind() +
+    ggthemes::scale_color_colorblind() +
+    theme(legend.position = "bottom") + 
+    geom_hline(yintercept = 0, color = "gray") +
+    geom_boxplot(aes(DIRECTION, OR_DIFF, color = SampleSize), alpha = .75, outlier.shape = 1) +
+    labs(title = latex2exp::TeX("Dist. of $d_{Dir}^{Analysis} = \\hat{OR}^{Analysis}_{Race}(D_{Dir}) - \\hat{OR}_{Race}(D_{Comp})$ under MNAR simulations"), 
+         x = "Intended Direction of Bias due to Missing Data",
+         y = "Difference in the OR")
+
+# se.beta <- all_smpl.res %>%
+#     mutate(
+#         rmi = case_when(MISS_TYPE == "MNAR" ~ 0.097,
+#                         MISS_TYPE == "MAR" ~ 0.05)) %>%
+#     group_by(MISS_TYPE, SampleSize, ANALYSIS2) %>%
+#     summarize(
+#         mean_rmi = mean(rmi),
+#         se_beta = sd(log(ODDS_RATIO)),
+#         cv_beta = 0.01 / se_beta,
+#         M = 1 + 0.5 * (mean_rmi / cv_beta)^2
+#     )
+# se.beta %>% print(n = 78)
+
+
 
