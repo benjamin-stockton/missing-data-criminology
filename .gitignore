@@ -25,6 +25,9 @@ nul
 *.png
 *.eps
 *.jpg
+*.jpeg
+*.tiff
+
 # History files
 .Rhistory
 .Rapp.history

@@ -1,10 +1,12 @@
 ---
 title: "Missing Data in Criminology Research"
 author: "Ben Stockton"
-
+abstract: "Objectives: Evaluate the impact of incomplete data (i.e., data with missing observations) on observed racial disparities in the likelihood of an incarceration sentence. \\Methods: Using a simulation study with data based on cases sentenced in the Court of Common Pleas in Pennsylvania between 2010 and 2019, we assess the differences in the likelihood of incarceration between similarly situated White and Black defendants based on varying sample sizes and patterns of data missingness. \\Results: Complete case analysis (CCA) of incomplete data (i.e., the modal analytic approach in criminological research) can fail to provide unbiased estimates of the race effect, even with less than 10\% of cases missing. Multiple imputation provides an alternative, valid methodology for the unbiased estimation of race effects (and other factors) when data are missing at random (MAR). These results largely hold across sample sizes and number of imputations. \\Conclusions: The existence and magnitude of race effects on the likelihood of an incarceration sentence can vary greatly based on the degree and treatment of missing data. Limitations include that missing data mechanisms cannot be truly known outside of a data simulation. Future research should prioritize the identification, treatment, and reporting of missing data prior to isolating race effects, in line with calls from the field for more open science practices."
 number-sections: true 
 df-print: paged
 pdf-engine: pdflatex
+keep-tex: true
+keep-md: true
 toc: true
 tbl-cap-location: bottom
 format: 
@@ -21,6 +23,7 @@ editor: visual
 execute: 
   cache: false
   keep-md: false
+  keep-tex: true
 bibliography: Literature/Criminology.bib
 csl: journal-of-quantitative-criminology.csl
 ---
@@ -52,27 +55,55 @@ cores <- detectCores()
 source("helpers.R")
 ```
 
-// I am assuming that Clare will be writing much of the introduction and background.
+
 
 ## INTRODUCTION {#sec-intro}
 
+"Race effects," or the empirical contributions of one’s racial identity to a given outcome, have long been a subject of interest in criminological research (Green, 1961;1964; Johnson, 1957; Steffensmeier, Ulmer, \& Kramer, 1998, Light 2022; Mitchell et al., 2022). While the general consensus is that the direct influence of race has declined (see King \& Light, 2019; Light, 2022; Mitchell et al., 2022), still decades of research across global contexts reveals significant race effects with regard to arrest (Hepburn, 1978; Owusu-Bempah \& Luscombe, 2021; Stevens \& Morash, 2015), court and sentencing (Steffensmeier et al., 1998; Wooldredge et al., 2015), correctional (Mears et al., 2021; Snowball \& Weatherburn, 2007), and community supervision and rehabilitation outcomes (Skeem \& Lowenkamp, 2016; Steinmetz \& Henderson, 2016).
+
+Race effects typically vary within and between studies, however, fueling debates among scholars about the sources of this variation (Albonetti, 1991; Franklin, 2018; Mitchell, 2005; Pratt, 1999; Spohn, 2000; 2015). Much research has explored how the race effect changes depending on organizational, community, and temporal contexts (Gaston, 2019; Johnson \& Lee, 2013; Feldmeyer et al., 2015; Light, 2022), as well as individuals’ "constellations" of characteristics (i.e., race in conjunction with ethnicity, age, gender, employment or immigration status, crime type, or criminal history, for example) (Franklin \& Henry, 2020; Jordan \& McNeal, 2016; Spohn \& Holleran, 2000; Steffensmeier et al., 1998). These explorations highlight the complicated task of isolating race effects and determining their theoretical drivers.
+
+We offer an additional potential explanation for variations in race effects in criminology: the treatment of incomplete data. Few studies consider how methodological decisions about missing data impact the race effect. To fill this gap, we employ a data simulation to illustrate whether different types of missingness assumptions can significantly alter the existence and magnitude of observed race effects on an outcome of interest. This exploration has important implications at a time when issues of racial justice and criminal legal reform are ubiquitous in the public discourse, and racial impact statements regularly accompany policy proposals\footnote{See https://www.sentencingproject.org/publications/racial-impact-statements/}.  More than ever, it is important to consider how the treatment of missing data impacts observed race effects in criminological research.
+
 ## BACKGROUND {#sec-background}
 
-### Missing Data in Criminological Research {#sec-missing-data-crim-research}
+### The "Race Effect" in Courts and Sentencing
 
-// Put here as a placeholder. Researchers often use administrative data to investigate various factors' effects on incarceration decisions. Often administrative data are incomplete with some unobserved demographic or legal features for some cases or subjects. While the number of incomplete cases is often seemingly small, even a small amount of missing data can have an important effect on the results of an analysis. The size and way this effect manifests is contingent on the way the incomplete cases are induced or created and the analysis performed. We will demonstrate that under some conditions, we can systematically over- or under-estimate the race effect, even flipping the direction of the effect when data are incomplete. For our illustrative simulation, we will be measuring the race effect as the odds ratio of the Black to White defendant's incarceration decision as estimated by a logistic regression. Administrative data from the Pennsylvania criminal justice system (2010-2019) were used as a basis for a simulated population of cases. We also demonstrate that analysts can account for the missing values to obtain the desired, unbiased estimates of the race effect using multiple imputation [@rubinMultipleImputationNonresponse1987].
+Race effects have been measured across many criminological contexts; however, courts provide one clear and well-researched example for the sake of illustration. Scholars have found that Black defendants tend to suffer harsher outcomes than their White counterparts at each stage of the court process, even after controlling for legal factors like criminal history, current offense type and severity, and policies relating to sentencing guidelines and mandatory minimums. Black defendants are often charged with more crimes or with crimes that carry more severe punishment implications (Rehavi \& Starr, 2014; Wu, 2016), held more often in pretrial detention (Martinez et al., 2020; Wooldredge, 2012), and receive higher bail amounts (Schlesinger, 2008) and more disadvantageous plea bargains (Kutateladze et al., 2016; Metcalfe \& Chiricos, 2018).
 
-### Variations in the "Race/Ethnicity" Effect in Sentencing/Corrections {#sec-race-effect-sentencing}
+Race effects may be small or statistically non-significant at any one decision-point but tend to accumulate and produce larger disparities later in the legal process (Hickert et al., 2022; Martinez et al., 2020; Wooldredge et al., 2015). This "cumulative disadvantage" (see Kurlychek \& Johnson [2019] for a detailed review) is most readily observed at sentencing, the final step in the legal process prior to the imposition of punishment. Compounded by earlier decision-points, Black defendants most consistently receive the harshest sanctions over any other racial group (Mitchell, 2005; Omori \& Johnson, 2019; Ridgeway et al., 2020; Spohn, 2000). For example, a Black defendant is typically more likely than their White counterpart to receive an incarceration sentence (i.e., jail or prison) instead of a community-based sentence (e.g., probation), even in situations where a community sentence is justifiable. 
 
-### Current Study {#sec-current-study}
+While race effects are often present in sentencing research, their magnitudes vary. In their seminal study on race, age, gender, and punishment in Pennsylvania, Steffensmeier et al. (1998) found Black defendants were ten percent more likely than their White counterparts to be incarcerated. Conversely, Ridgeway and colleagues (2020) found that Black defendants in New York were only slightly more likely than White defendants to receive a prison sentence (a three-percentage point difference). Omori and Petersen (2019) found larger and more varied effects when studying felony cases in Miami-Dade County. They assessed a five to six percentage point difference in the likelihood of a prison sentence, and a four to ten percentage point difference in the likelihood of a jail sentence when comparing White, Non-Latinos to Black Latinos and Black, non-Latinos. At the Federal level, Doerner and Demuth (2010) found the difference in the odds of incarceration between Black and White defendants was too small to reach statistical significance (Black OR = 1.060). In a systematic assessment of the body of sentencing research, Baumer (2013) emphasized his (and other sentencing scholars’) perceptions that this variation in race effects may stem from both theoretical and methodological sources.
 
-// Include description of data source - Clare
+### Explaining Differences in the "Race Effect" in Courts and Sentencing
+
+The potential theoretical explanations for differing race effects in sentencing research are many. While not the focus of our study, scholars have attributed race effects to court actor discretion in individual cases (Albonetti, 1991, Bushway \& Piehl, 2001; Steffensmeier et al., 1998; Ulmer, Light, Kramer, \& Eisenstein, 2011), the differential impacts of sentencing policy across racial groups (Baumer, 2013; Pratt, 1998), and the sociopolitical contexts of courts (Blumer, 1958; Feldmeyer et al., 2015; Hester \& Sevigny, 2016; Ulmer \& Johnson, 2004), for example. Scholars continue to evaluate these as the theoretical drivers of sentencing disparities between legally similar defendants of different races.
+
+Relevant to the current study, scholars have also highlighted potential methodological explanations for differences in race effects across studies. There is no shortage of methodological critiques of research on race and sentencing (see, e.g., Baumer, 2013; Bushway et al., 2007; Lynch, 2019; MacDonald \& Donnelly, 2019; Mitchell, 2005; Spohn, 2015; Ulmer, 2012), and this literature has encouraged a more rigorous line of study. Several methodological concerns are common across these critiques, including measurement decisions, sample selection bias, and choice of modeling strategies.
+
+Measurement decisions, like the inclusion of (and degree of specificity in) legally relevant variables, are considered one avenue through which race effects may vary (Baumer, 2013; Mitchell, 2005). Mitchell (2005) found that "less precise measures of criminal history and offense seriousness produced larger estimates of unwarranted racial disparity" in sentencing (p. 457). Mitchell went on to qualify, though, that "even after taking into account precision of measurement and presence of key variables, the race effect persists; however, the average estimate of racial disadvantage drops considerably" (p. 462).
+
+Another avenue for disparate race effects in sentencing is sample selection bias. In this context, bias stems from the fact that only those who are sentenced to incarceration can be included in studies of sentence length disparities. This concern dates to the 1970s and has traditionally been addressed through a two-step estimator first developed by Heckman (1976). More recently, Bushway and colleagues (2007) found that, though bias was lesser for race estimates relative to other factors like gender and ethnicity, sample selection bias (even when employing the "Heckman correction") remains a concern in race and sentencing research that is specific to sentence length. Baumer (2013) reiterated that true race effects will remain evasive so long as sample selection bias remains unaddressed in studies of sentence length disparities.
+
+MacDonald and Donnelly (2019) more recently highlighted that choice of modeling strategy may help explain any differences in race effects. Their study comparing regression, propensity score, and entropy weighting methods showed that the former two underestimated racial disparities in sentencing and that the latter (entropy weighting) was a more rigorous approach that "may lead to alternative conclusions about the size and presence of racial disparities in sentencing" (p.656). 
+
+While these methodological concerns remain legitimate potential sources of the variation in measured race effects, a discussion of incomplete data and their potential impacts is notably absent in the sentencing literature and in criminological research more broadly. We argue the treatment of incomplete data could be a key methodological consideration that impacts the existence and magnitude of race effects. 
+
+### Incomplete Data Treatment in Research on Race and Courts/Sentencing
+
+Incomplete data are often ignored or mishandled in research on race and courts/sentencing. When incomplete data are acknowledged--a relatively rare occurrence--scholars tend to remove the affected observations from the sample and perform complete case analysis, treating the missingness mechanism as non-problematic without first evaluating this assumption. Such a strategy is common, even in research published within the top criminological outlets (see Bales \& Piquero, 2012; Cassidy \& Rydberg, 2019; Kutateladze et al., 2014; Light, 2022; Zane et al., 2022). What is perhaps more common (and more insidious) are studies that fail to acknowledge incomplete data altogether. Such studies comprise the majority of published sentencing research.
+
+Scholars will often suggest that the amount of missing data is not problematic to the degree that it would substantively change the results. Methodological experts in the field have suggested that missing data are probably "not a major problem in studies where the proportion of cases with missing data are small" (Brame \& Paternoster, 2003, p.74). They have argued, "In such situations, the departures from complete case analysis assumptions would often have to be quite large for them to have a meaningful impact on one’s results'' (p.74). Our study asserts otherwise; that even relatively small amounts of missing data can have substantive impacts on observed race effects if not treated properly. Furthermore, we suggest that incomplete data may even be a key determinant of variable race effects measured across studies and over time and is therefore in need of further evaluation. Along with their previous statement, Brame and Paternoster (2003) note that "there is some value in the development of methods that will allow researchers to investigate the robustness of their conclusions to different assumptions about missing data mechanisms" (p.76). Our study directly addresses this call and moves forward the study of race effects in criminological research.
+
+### Current Study
+
+Using the Pennsylvania Commission on Sentencing’s (PCS) case-level sentencing data for individuals convicted in a Court of Common Pleas between January 1, 2010 and December 31, 2019 $(N = 864,422)$, we employ a data simulation to illustrate how patterns of incomplete data may impact differences in the likelihood of an incarceration sentence between White, non-Latino   (hereafter “White”) defendants and Black, non-Latino (hereafter “Black”) defendants. Similar methods have proven useful in other fields (Belin, 2009; Perkins et al., 2018; Sidi \& Harel, 2018). All methodological and measurement decisions (described in detail below) stem from the intention to present a clear and straightforward simulation with conventions that are familiar to criminological researchers.
 
 ## METHOD {#sec-method}
 
 ### Simulated Data Set {#sec-sim-data}
 
-Using an administrative data set from the State of Pennsylvania (2010-2019) as a guide, we created a simulated data set of the same size ($N = 864,422$) to act as a hypothetical population of records. Associations within the independent variables and the control variables add complications of confounding to the analysis which may or may not bias estimates [@bartlettAsymptoticallyUnbiasedEstimation2015]. To avoid this complication, we draw from the simulated population which was generated so that the only relationships are with the sentencing decision dependent variable. For all of the models in this paper, we used the independent and control variables race, age, age-squared, offense gravity score (OGS), OGS-squared, previous criminal history, crime type, recommended minimum, trial (or plea), gender, county, and year to model the sentencing decision \[**needs a citation**\]. These variables have varying levels of evidence of being meaningful for modelling the sentencing decision. We include as many variables as possible in the simulation model to create a richer data set.
+Using the PCS administrativve data set as a guide, we created a simulated data set of the same size ($N = 864,422$) to act as a hypothetical population of records. Associations within the independent variables and the control variables add complications of confounding to the analysis which may or may not bias estimates [@bartlettAsymptoticallyUnbiasedEstimation2015]. To avoid this complication, we draw from the simulated population which was generated so that the only relationships are with the sentencing decision dependent variable. For all of the models in this paper, we used the independent and control variables race, age, age-squared, offense gravity score (OGS), OGS-squared, previous criminal history, crime type, recommended minimum, trial (or plea), gender, county, and year to model the sentencing decision \[**needs a citation**\]. These variables have varying levels of evidence of being meaningful for modelling the sentencing decision. We include as many variables as possible in the simulation model to create a richer data set.
 
 Summaries of each of the independent and control variables were used to construct the simulated data. For categorical demographic or legal variables, we used the marginal probabilities of belonging to each category to randomly and independently select levels for each variable for each hypothetical record. The means and variances of the continuous variables were used to draw from normal or gamma distributions depending on if the variable should be strictly positive. Using the observed data, a complete case analysis logistic regression for the sentencing decision on all of the previously referenced independent and control variables was used to obtain plausible values for each independent and control variables' regression coefficient, $\beta$. From the regression coefficients, we calculated the fitted probabilities for each case using our simulated data as the independent and control variables to then draw an incarceration decision for each case by flipping a coin weighted by the fitted probabilities. Appending this new simulated dependent variable to the simulated independent and control variables, we have our complete simulated data set.
 
@@ -175,68 +206,68 @@ The simulations demonstrate that regardless of sample size and with less than 10
 The simulation results are displayed in [@fig-or-sim; @fig-diff-sim; @tbl-prop-miss]. These figures display the distribution of the race effect odds ratios estimated by both analyses under both missingness mechanisms with various simulation settings. The key comparison in the figures is from the boxplots for MI with MAR and MNAR missingness to the boxplots for the CCA with the same missingness type. Multiple imputation produces estimates with a median closer to the complete data estimate in every case.
 
 ```{r}
-#| label: tbl-prop-miss
-#| tbl-cap: "Proportion of missing cases by missingness type and number of imputations for the sample size of 500 simulations. The CCA and MI logistic regression is run on the same data sets, so there's the same amount of missing cases under each analysis method."
-#| tab-cap-location: bottom
-tbl500 <- present_tables(Q = 225, M = 500, m = c(3,5,8,25))$PROP_MISS
-tbl500$n <- rep(500, nrow(tbl500))
-tbl1000 <- present_tables(Q = 225, M = 1000, m = c(3,5,8))$PROP_MISS
-tbl1000$n <- rep(1000, nrow(tbl1000))
-tbl2500 <- present_tables(Q = 225, M = 2500, m = c(3,5,8))$PROP_MISS
-tbl2500$n <- rep(2500, nrow(tbl2500))
-tbl25000 <- present_tables(Q = 105, M = 25000, m = c(3))$PROP_MISS
-tbl25000$n <- rep(25000, nrow(tbl25000))
-
-tbl <- bind_rows(tbl500, tbl1000, tbl2500, tbl25000) %>% select(n, "Miss Type", Direction, "Prop. of Inc. Cases", "0.025 Quantile", "0.975 Quantile")
-tbl
+# #| label: tbl-prop-miss
+# #| tbl-cap: "Proportion of missing cases by missingness type and number of imputations for the sample size of 500 simulations. The CCA and MI logistic regression is run on the same data sets, so there's the same amount of missing cases under each analysis method."
+# #| tab-cap-location: bottom
+# tbl500 <- present_tables(Q = 225, M = 500, m = c(3,5,8,25))$PROP_MISS
+# tbl500$n <- rep(500, nrow(tbl500))
+# tbl1000 <- present_tables(Q = 225, M = 1000, m = c(3,5,8))$PROP_MISS
+# tbl1000$n <- rep(1000, nrow(tbl1000))
+# tbl2500 <- present_tables(Q = 225, M = 2500, m = c(3,5,8))$PROP_MISS
+# tbl2500$n <- rep(2500, nrow(tbl2500))
+# tbl25000 <- present_tables(Q = 105, M = 25000, m = c(3))$PROP_MISS
+# tbl25000$n <- rep(25000, nrow(tbl25000))
+# 
+# tbl <- bind_rows(tbl500, tbl1000, tbl2500, tbl25000) %>% select(n, "Miss Type", Direction, "Prop. of Inc. Cases", "0.025 Quantile", "0.975 Quantile")
+# tbl
 ```
 
 Depending on the missingness model parameters, between 5-10% of cases are incomplete for each simulated sample regardless of sample size as shown in @tbl-prop-miss. While this is slightly higher than the proportion of incomplete cases in the observed data, it still seems to be a plausible amount of incompleteness [@balesRacialEthnicDifferentials2012; @kutateladzeCumulativeDisadvantageExamining2014; @cassidyDoesSentenceType2020] \[**more citations?**\]. Even this relatively small amount of missingness produces biases in the complete case analysis estimates under both MAR and MNAR missingness mechanisms. We have chosen the parameters for the missingness model to flip the direction of the race effect from the true underlying effect when estimating with CCA. As a result, the estimates made with complete case analysis are unreliable and do not provide suitable estimates of the race effect as we wouldn't know the nature of a missingness mechanism with a real-world data set.
 
 ```{r}
-#| label: generate-figs
-#| include: false
-
-plt500 <- present_figs(M = 500, Q = 225, m = c(3,5,8,25), horizontal = F)
-plt1000 <- present_figs(M = 1000, Q = 225, m = c(3,5,8), horizontal = F)
-plt2500 <- present_figs(M = 2500, Q = 225, m = c(3,5,8), horizontal = F)
-plt25000 <- present_figs(M = 25000, Q = 105, m = c(3), horizontal = F)
+# #| label: generate-figs
+# #| include: false
+# 
+# plt500 <- present_figs(M = 500, Q = 225, m = c(3,5,8,25), horizontal = F)
+# plt1000 <- present_figs(M = 1000, Q = 225, m = c(3,5,8), horizontal = F)
+# plt2500 <- present_figs(M = 2500, Q = 225, m = c(3,5,8), horizontal = F)
+# plt25000 <- present_figs(M = 25000, Q = 105, m = c(3), horizontal = F)
 ```
 
 ```{r}
-#| label: fig-or-sim
-#| echo: false
-#| fig-cap: "Boxplots of the odds ratios."
-#| fig-subcap: 
-#|     - "Odds ratios for n = 500"
-#|     - "Odds ratios for n = 1000"
-#|     - "Odds ratios for n = 2500"
-#|     - "Odds ratios for n = 25000"
-#| layout-nrow: 2
-#| layout-ncol: 2
-
-plt500$OR
-plt1000$OR
-plt2500$OR
-plt25000$OR
+# #| label: fig-or-sim
+# #| echo: false
+# #| fig-cap: "Boxplots of the odds ratios."
+# #| fig-subcap: 
+# #|     - "Odds ratios for n = 500"
+# #|     - "Odds ratios for n = 1000"
+# #|     - "Odds ratios for n = 2500"
+# #|     - "Odds ratios for n = 25000"
+# #| layout-nrow: 2
+# #| layout-ncol: 2
+# 
+# plt500$OR
+# plt1000$OR
+# plt2500$OR
+# plt25000$OR
 ```
 
 ```{r}
-#| label: fig-diff-sim
-#| echo: false
-#| fig-cap: "Boxplots of the differences between the missing data estimateof the odds ratio under MI or CCA and the complete data estimate of the odds ratio $OR_{Dir}^{MI/CCA} - OR_{COMP}$."
-#| fig-subcap: 
-#|     - "Differences for n = 500"
-#|     - "Differences for n = 1000"
-#|     - "Differences for n = 2500"
-#|     - "Differences for n = 25000"
-#| layout-nrow: 2
-#| layout-ncol: 2
-
-plt500$DIFF
-plt1000$DIFF
-plt2500$DIFF
-plt25000$DIFF
+# #| label: fig-diff-sim
+# #| echo: false
+# #| fig-cap: "Boxplots of the differences between the missing data estimateof the odds ratio under MI or CCA and the complete data estimate of the odds ratio $OR_{Dir}^{MI/CCA} - OR_{COMP}$."
+# #| fig-subcap: 
+# #|     - "Differences for n = 500"
+# #|     - "Differences for n = 1000"
+# #|     - "Differences for n = 2500"
+# #|     - "Differences for n = 25000"
+# #| layout-nrow: 2
+# #| layout-ncol: 2
+# 
+# plt500$DIFF
+# plt1000$DIFF
+# plt2500$DIFF
+# plt25000$DIFF
 ```
 
 Statistical bias refers to the expected difference between the estimate and the true population parameter value. In our situation, we want our estimates to be unbiased so that we can accurately estimate at the true value of the race effect.

@@ -1,0 +1,78 @@
+%% Full length research paper template
+%% Created by Simon Hengchen and Nilo Pedrazzini for the Journal of Open Humanities Data (https://openhumanitiesdata.metajnl.com)
+
+\documentclass[titlepage]{article}
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{amsfonts}
+\usepackage{authblk}
+\usepackage{fancyhdr}
+\usepackage[skip=10pt plus1pt, indent=0pt]{parskip}
+\usepackage[paperheight=11in,paperwidth=8.5in,textwidth=6.5in,textheight=9in, margin = 1in, headheight=0.5in, headsep=.25in]{geometry}
+
+\renewcommand{\thefootnote}{\fnsymbol{footnote}}
+\title{Now you see it, now you don't: A simulation and illustration of the importance of treating incomplete data in estimating race effects in criminology}
+\author{}
+
+\date{} %leave blank
+
+\begin{document}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{ESTIMATING RACE EFFECTS IN CRIMINOLOGY}
+\fancyfoot[R]{\thepage}
+
+
+\section*{7. APPENDIX}
+
+\subsection*{7.1. Missingness Model Parameters}
+
+The multinomial model uses two variables to determine the probability of an observation being missing: incarceration and whether the defendant’s race is Black. Two interaction variables were created for non-incarceration and race being Black and being incarcerated and race being Black. The intercept of the model is set for each of the eight missing data patterns to reflect the observed probability of that pattern in the Pennsylvania data. The parameters of the model vary by pattern and to induce over- or under-estimation of the race effect in the complete case analysis. See Table I for a list of the missing data patterns in the PCS data.
+
+\subsubsection*{7.1.1. MNAR Missingness}
+
+The missingness model assigns slightly more missingness than we saw in the administrative data while still having a relatively low number of incomplete cases.
+
+\begin{equation}\label{eq:miss-model-4par}
+    P(Pattern ~ r ~ for ~ Subject ~ i) = \frac{\exp\left(\alpha_r + \beta_{1r} INCAR_i + \beta_{2r} Black_i + \beta_{3r} Z_{1i} + \beta_{4r} Z_{2i}\right)}{1 + \sum_{r=1}^8 \exp\left(\alpha_r + \beta_{1r} INCAR_i + \beta_{2r} Black_i + \beta_{3r} Z_{1i} + \beta_{4r} Z_{2i}\right)}
+\end{equation}
+
+\begin{center}
+    \textbf{Table III about here}
+\end{center}
+
+To over-estimate the race effect, missingness in race is conditional on race being Black and incarceration so we set the parameters of the model to be \(\exp(\beta) = (10, 0.1, 0.001, 100)^T \in \mathbb{R}^4\). The first element in $\beta$ emphasizes missingness based on incarceration, the second de-emphasizes missingness based on being Black while the third element corresponding to \(Z_1\)greatly de-emphasizes missingness for defendants who aren’t incarcerated and are Black and the fourth corresponding to \(Z_2\) greatly emphasizes missingness for individuals who are incarcerated and are Black.
+
+\begin{equation}\label{eq:miss-model-3par}
+    P(Pattern ~ r ~ for ~ Subject ~ i) = \frac{\exp\left(\alpha_r + \beta_{1r} INCAR_i + \beta_{2r} Black_i + \beta_{3r} Z_{1i}\right)}{1 + \sum_{r=1}^8 \exp\left(\alpha_r + \beta_{1r} INCAR_i + \beta_{2r} Black_i + \beta_{3r} Z_{1i}\right)}
+\end{equation}
+
+\begin{center}
+    \textbf{Table IV about here}
+\end{center}
+
+To under-estimate the effect, missingness in race is again conditional on race being Black and incarceration, so we set the parameters of the model to be \(\exp(\beta) = (5,5,10)^T \in \mathbb{R}^3\). The first element in \(\beta\) emphasizes missingness based on incarceration, the second element emphasizes missingness based on being Black while the third element greatly emphasizes missingness for defendants who aren’t incarcerated and are Black corresponding to \(Z_1\).
+
+\subsubsection*{7.1.2. MAR Missingness}
+
+We used similar parameter settings for the MAR simulations as we did for the MNAR simulations, but now missingness based on race is only for patterns 1,3,5, and 7 which have no missing variables, missing in age, missing in recommended minimum, and missing in both age and recommended minimum. This maintains the MAR assumption since the missingness is not contingent on race for the patterns where race is missing. However, since we are performing the analyses with complete case analysis, we are still systematically excluding data from our analysis in such a way that will dramatically bias the results based on the values of race and incarceration.
+
+Slightly different parameter values are used for patterns 3 and 5 compared to patterns 1 and 7. See Table I for a list of the missing data patterns. We used Eq. \ref{eq:miss-model-3par} for the over-estimation in the MAR context. 
+
+\begin{center}
+    \textbf{Table V about here}
+\end{center}
+
+To get an over-estimated race effect estimate with CCA, I de-emphasize missingness based on \(Z_1\) for patterns where race is observed.
+
+\begin{center}
+    \textbf{Table VI about here}
+\end{center}
+
+\begin{equation}\label{eq:miss-model-2par}
+    P(Pattern ~ r ~ for ~ Subject ~ i) = \frac{\exp\left(\alpha_r + \beta_{1r} Z_{1i} + \beta_{2r} Z_{2i}\right)}{1 + \sum_{r=1}^8 \exp\left(\alpha_r + \beta_{1r} Z_{1i} + \beta_{2r} Z_{2i}\right)}
+\end{equation}
+
+To under-estimate the effect with CCA, we emphasize \(Z_1\) and de-emphasize \(Z_2\) for patterns where race is observed.
+
+\end{document}

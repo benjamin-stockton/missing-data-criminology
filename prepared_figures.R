@@ -125,7 +125,7 @@ prep_figs <- function(data, plot_filepath, fig.width = 8, fig.height = 6) {
              x = "Intended Direction of Bias due to Missing Data",
              y = "Odds Ratio")
     
-    ggsave2(paste0(plot_filepath, "odds_ratio.png"), dpi = 600, width = 8, height = 6, units = "in")
+    ggsave2(paste0(plot_filepath, "odds_ratio.tiff"), dpi = 600, width = 8, height = 6, units = "in")
     
     # Plot bias
     bias <- p1 +
@@ -135,7 +135,7 @@ prep_figs <- function(data, plot_filepath, fig.width = 8, fig.height = 6) {
              x = "Intended Direction of Bias due to Missing Data",
              y = "Statistical Bias")
     
-    ggsave2(paste0(plot_filepath, "or_bias.png"), dpi = 600, width = 8, height = 6, units = "in")
+    ggsave2(paste0(plot_filepath, "or_bias.tiff"), dpi = 600, width = 8, height = 6, units = "in")
     
     # Plot missing cases proportions
     
@@ -157,7 +157,7 @@ prep_figs <- function(data, plot_filepath, fig.width = 8, fig.height = 6) {
              x = "Intended Direction of Bias due to Missing Data",
              y = "Proportion of Incomplete Cases")
     
-    ggsave2(paste0(plot_filepath, "prop_miss.png"), dpi = 600, width = 8, height = 6, units = "in")
+    ggsave2(paste0(plot_filepath, "prop_miss.tiff"), dpi = 600, width = 8, height = 6, units = "in")
     
     ordiff <- p2 + 
         geom_hline(yintercept = 0, color = "gray") +
@@ -167,7 +167,7 @@ prep_figs <- function(data, plot_filepath, fig.width = 8, fig.height = 6) {
              y = "Difference in the OR")
     
     # cowplot::plot_grid(or, bias, pmiss, ordiff, nrow = 2)
-    ggsave2(paste0(plot_filepath, "or_diff.png"), dpi = 600, width = 8, height = 6, units = "in")
+    ggsave2(paste0(plot_filepath, "or_diff.tiff"), dpi = 600, width = 8, height = 6, units = "in")
 }
 
 # Small Sample Size Plots
