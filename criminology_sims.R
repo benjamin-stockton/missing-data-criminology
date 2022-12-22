@@ -38,7 +38,7 @@ coreQ <- ceiling(Q / cores)
 
 # Load in the simulated data
 dat <- read_csv("Data/simulated_data.csv", col_types = "dfdffffffdfdd") %>% as.data.frame()
-dat$OFF_RACER %<>% fct_relevel(c("WHITE", "BLACK", "LATINO", "OTHER"))
+dat$OFF_RACER %<>% forcats::fct_relevel(c("WHITE", "BLACK", "LATINO", "OTHER"))
 levels(dat$OFF_RACER)
 
 # load in the coefficients from the CCA logistic regression on the full data set

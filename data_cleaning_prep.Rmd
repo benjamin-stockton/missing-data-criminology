@@ -61,11 +61,19 @@ table(dat$PRS_45, useNA = "ifany")
 table(dat$PRS_RR, useNA = "ifany")
 ```
 
+```{r}
+round(prop.table(table(dat$MALE)), round(3))
+```
+
+
 Defendant Age at Trial
 
 ```{r}
 hist(dat$DOSAGE, main = "Defendant Age at Trial", xlab = "Age")
 summary(dat$DOSAGE)
+
+summary(dat$DOSAGE - min(dat$DOSAGE, na.rm = T))
+var(dat$DOSAGE - min(dat$DOSAGE, na.rm = T), na.rm = T)
 ```
 
 Offense Gravity Score
@@ -74,6 +82,8 @@ Offense Gravity Score
 table(dat$OGS)
 hist(dat$OGS, breaks = 16, main = "Offense Gravity Score", xlab = "Score")
 summary(dat$OGS)
+
+round(prop.table(table(dat$OGS)), 3)
 ```
 
 Previous Criminal History
@@ -82,6 +92,8 @@ Previous Criminal History
 dat$PRS <- factor(dat$PRS_0 + 2 * dat$PRS_123 + 3 * dat$PRS_45 + 4 * dat$PRS_RR,
                   labels = c("None", "1/2/3", "4/5", "REVOC/RFEL"))
 table(dat$PRS, useNA = "ifany")
+
+round(prop.table(table(dat$PRS)), 3)
 ```
 
 Crime Type
@@ -94,6 +106,8 @@ dat$CRIMETYPE <- factor(dat$PERSONS + 2 * dat$PROPERTY + 3 * dat$DRUGNEW
                         labels = c("PERSONS", "PROPERTY", "DRUGNEW",
                                    "DUI", "OTHER"))
 table(dat$CRIMETYPE, useNA = "ifany")
+
+round(prop.table(table(dat$CRIMETYPE)), 3)
 ```
 
 Year
@@ -104,6 +118,8 @@ dat$YEAR <- factor(dat$YEAR1 + 2 * dat$YEAR2 + 3 * dat$YEAR3 + 4 * dat$YEAR4
                    + 5 * dat$YEAR5 + 6 * dat$YEAR6 + 7 * dat$YEAR7 
                    + 8 * dat$YEAR8 + 9 * dat$YEAR9 + 10 * dat$YEAR10 + 2009)
 table(dat$YEAR, useNA = "ifany")
+
+round(prop.table(table(dat$YEAR)), 3)
 ```
 
 County
@@ -117,6 +133,10 @@ for (k in 1:67) {
 dat$COUNTY <- factor(dat$COUNTY)
 table(dat$COUNTY, useNA = "ifany")
 table(dat$COUNTY32, useNA = "ifany")
+
+
+round(prop.table(table(dat$COUNTY)), 4)
+knitr::kable(t(round(prop.table(table(dat$COUNTY)), 4)), format = "latex")
 ```
 
 ```{r}
