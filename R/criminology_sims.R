@@ -4,6 +4,7 @@
 library(dplyr, warn.conflicts = FALSE)
 # Suppress summarise info
 options(dplyr.summarise.inform = FALSE)
+library(mice)
 library(magrittr)
 library(ggplot2)
 library(latex2exp)
@@ -12,7 +13,11 @@ library(readr)
 library(cowplot)
 library(doParallel)
 library(forcats)
-source("helpers.R")
+file.sources = list.files(c("R/sim_funcs"), 
+                          pattern="*.R$", full.names=TRUE, 
+                          ignore.case=TRUE)
+invisible(capture.output(sapply(file.sources,source,.GlobalEnv)))
+invisible(capture.output(source("R/helpers.R")))
 
 # Simulation parameters from command line
 args <- commandArgs(trailingOnly = T)
@@ -23,11 +28,11 @@ if (length(args) != 3) {
     # Number of iterations to run in each parallel thread
     Q <- as.numeric(args[1]) # Q
     # Sample size
-    M <- as.numeric(args[2])
+    N <- as.numeric(args[2])
     # Number of imputations for MI
     m <- as.numeric(args[3])
 }
-print(paste0("Running simulations with ", Q, " iterations, n = ", M, " sample size, and M = ", m, " imputations"))
+print(paste0("Running simulations with ", Q, " iterations, n = ", N, " sample size, and N = ", m, " imputations"))
 
 # Sample with replacement?
 replace <- FALSE
@@ -67,7 +72,7 @@ miss_pars_undr <- build_miss_par_matrix(
     miss_type = "MNAR", sim_size = "full")
 
 fs <- full_sim(miss_type = "MNAR", sim_size = "full", pop_data = dat,
-               beta = beta, M = M, m = m, miss_pars_over = miss_pars_over,
+               beta = beta, N = N, m = m, miss_pars_over = miss_pars_over,
                miss_pars_undr = miss_pars_undr, Q = 1, replace = replace)
 fs
 
@@ -93,7 +98,7 @@ ptime <- system.time({
     mnar <- foreach(i = 1:cores, .combine = rbind) %dopar% {
         source("helpers.R")
         full_sim(miss_type = "MNAR", sim_size = "full", pop_data = dat,
-                 beta = beta, M = M, m = m, miss_pars_over = miss_pars_mnar_over, 
+                 beta = beta, N = N, m = m, miss_pars_over = miss_pars_mnar_over, 
                  miss_pars_undr = miss_pars_mnar_undr, Q = coreQ, replace = replace)
     }
 })[3]
@@ -122,7 +127,7 @@ ptime <- system.time({
     mar <- foreach(i = 1:cores, .combine = rbind) %dopar% {
         source("helpers.R")
         full_sim(miss_type = "MAR", sim_size = "full", pop_data = dat,
-                 beta = beta, M = M, m = m, miss_pars_over = miss_pars_mar_over, 
+                 beta = beta, N = N, m = m, miss_pars_over = miss_pars_mar_over, 
                  miss_pars_undr = miss_pars_mar_undr, Q = coreQ, replace = replace)
     }
 })[3]
@@ -131,4 +136,4 @@ stopCluster(cl)
 
 sim.res <- rbind(mnar, mar)
 
-write_csv(sim.res, paste0("Sim_Results/simulation_results_Q", Q, "_n_", M, "_m_", m, ".csv"))
+write_csv(sim.res, paste0("Sim_Results/simulation_results_Q", Q, "_n_", N, "_m_", m, ".csv"))

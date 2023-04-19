@@ -17,8 +17,10 @@ nul
 *.xlsx
 *.zip
 *.dta
-\Project_Proposal
-\Data
+/Project_Proposal
+/Data
+/Drafts
+/Literature
 *.html
 *.rds
 *.pdf
@@ -26,6 +28,8 @@ nul
 *.eps
 *.jpg
 *.jpeg
+*.rda
+*.rds
 *.tiff
 
 # History files
