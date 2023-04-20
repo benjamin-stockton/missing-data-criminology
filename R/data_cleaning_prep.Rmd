@@ -27,7 +27,7 @@ source("helpers.R")
 ## Data Prep and Tidying
 
 ```{r}
-dat <- read_dta("Data/Most Serious Sentence (2010-2019, limited).dta")
+dat <- read_dta("../Data/Most Serious Sentence (2010-2019, limited).dta")
 colnames(dat)
 ```
 
@@ -184,7 +184,7 @@ prop_mis <- (30005) / nrow(dat.sm)
 # CCA Logistic Regression INCAR ~ .
 fit <- glm(INCAR ~ ., data = dat.sm,
            family = binomial(link = "logit"), model = F)
-# summary(fit)
+summary(fit)
 coef(fit) %>% round(3)
 beta <- coef(fit)
 
@@ -198,7 +198,7 @@ fit$y <- NULL
 ```{r}
 
 # save(fit, file = "full_data_cca_log_reg_no_data.rda")
-save(beta, file = "full_data_cca_log_reg_coef.rda")
+# save(beta, file = "full_data_cca_log_reg_coef.rda")
 ```
 
 

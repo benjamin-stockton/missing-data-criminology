@@ -20,6 +20,7 @@ invisible(capture.output(sapply(file.sources,source,.GlobalEnv)))
 invisible(capture.output(source("R/helpers.R")))
 
 # Simulation parameters from command line
+args <- c(15, 1000, 5)
 args <- commandArgs(trailingOnly = T)
 
 if (length(args) != 3) {
@@ -43,11 +44,12 @@ coreQ <- ceiling(Q / cores)
 
 # Load in the simulated data
 dat <- read_csv("Data/simulated_data.csv", col_types = "dfdffffffdfdd") %>% as.data.frame()
-dat$OFF_RACER %<>% forcats::fct_relevel(c("WHITE", "BLACK", "LATINO", "OTHER"))
+dat$OFF_RACER <- dat$OFF_RACER %>% forcats::fct_relevel(c("WHITE", "BLACK", "LATINO", "OTHER"))
 levels(dat$OFF_RACER)
 
 # load in the coefficients from the CCA logistic regression on the full data set
-load("full_data_cca_log_reg_coef.rda")
+# named 'beta'
+load("Data/full_data_cca_log_reg_coef.rda")
 
 beta["OFF_RACERBLACK"]
 # sort(beta, decreasing = T)[1:5]
@@ -56,22 +58,22 @@ beta["OFF_RACERBLACK"]
 
 ##------------------------------------------------------------------------------
 # Test simulation
-print("Test Simulation: 1 Iteration of MNAR")
+print("Test Simulation: 1 Iteration of MAR")
 
 # Missingness model parameters for MNAR - OVER
 miss_pars_over <- build_miss_par_matrix(
     beta = log(c(1, rep(1, 87))),
     gamma = log(c(1, rep(1, 5), .001, 25)),
-    miss_type = "MNAR", sim_size = "full")
+    miss_type = "MAR", sim_size = "full")
 # print(miss_pars_over[, c(1:4, 90:97)])
 
 # Missingness model parameters for MNAR - UNDR
 miss_pars_undr <- build_miss_par_matrix(
     beta = log(c(1, rep(1, 87))),
     gamma = log(c(1, rep(1, 5), 25, .1)),
-    miss_type = "MNAR", sim_size = "full")
+    miss_type = "MAR", sim_size = "full")
 
-fs <- full_sim(miss_type = "MNAR", sim_size = "full", pop_data = dat,
+fs <- full_sim(miss_type = "MAR", sim_size = "full", pop_data = dat,
                beta = beta, N = N, m = m, miss_pars_over = miss_pars_over,
                miss_pars_undr = miss_pars_undr, Q = 1, replace = replace)
 fs

@@ -1,27 +1,288 @@
 ---
 title: "Entropy Balancing"
 author: "Benjamin Stockton"
-format: pdf
+number-sections: true 
+df-print: paged
+pdf-engine: pdflatex
+keep-tex: true
+keep-md: true
+toc: true
+tbl-cap-location: bottom
+format: 
+  pdf:
+    geometry: 
+      - top=30mm
+      - left=30mm
+    shift-heading-level-by: -1
+  docx:
+    shift-heading-level-by: -1
 editor: visual
+execute: 
+  cache: true
+  keep-md: true
+  keep-tex: true
+bibliography: ../Literature/Criminology.bib
+csl: '../Drafts/JQC_Manuscript/journal-of-quantitative-criminology.csl'
 ---
 
-## Quarto
+## Entropy Balancing
 
-Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+To make causal inferences in observational data, the observed Y(1)\|D=1 and counterfactual Y(0)\|D=1 are compared to get the Population Average Treatment Effect on Treated (PATT) defined as $\tau = E(Y(1)|D=1) - E(Y(0) | D=1)$. In experimental studies where treatment assignment is independent of the potential outcomes, approximate the second expectation by $E(Y(0) | D=0)$ i.e. the mean of the control group. In observational studies, if we can "assume ignorable treatment assignment and overlap", then $Y(0) \perp D|X$ and $P(D = 1| X=x) \leq 1$ for all $x$ in the support of $f_{X|D=1}$. That means that if the confounding covariates are similar on both the treatment and control groups, we can estimate the counterfactual average outcome by $\tau = E(Y|D=1) = \int E(Y|X=x, D=0) f_{X|D=1}(x) dx.$
 
-## Running Code
+To make causal inferences in observational data, the observed $Y(1)|D=1$ and counterfactual $Y(0)|D=1$ are compared to get the Population Average Treatment Effect on Treated (PATT) defined as $\tau = E(Y(1)|D=1) - E(Y(0) | D=1)$. In experimental studies where treatment assignment is independent of the potential outcomes, approximate the second expectation by $E(Y(0) | D=0)$ i.e. the mean of the control group. In observational studies, if we can "assume ignorable treatment assignment and overlap", then $Y(0) \perp D|X$ and $P(D = 1| X=x) \leq 1$ for all $x$ in the support of $f_{X|D=1}$. That means that if the confounding covariates are similar on both the treatment and control groups, we can estimate the counterfactual average outcome by $\tau = E(Y|D=1) = \int E(Y|X=x, D=0) f_{X|D=1}(x) dx.$
 
-When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+> Notice that the last term in this expression is equal to the covariate adjusted mean, that is, the estimated mean of $Y$ in the source population if its covariates were distributed as in the target population.
+
+-   p\. 28 [@hainmueller2012]
+
+> \[Rosenbaum and Rubin (1983)\] showed that the multivariate matching pre-processing problem\] can be reduced to a single dimension if the counterfactual mean can be identified as $E(Y(0)|D=1) = \int E(Y|p(X) = \rho, D=0) f_{p|D=1}(\rho)d\rho$ where $f_{p|D=1}$ is the dist. of the propensity score $p(x) = P(D=1 | X=x)$ in the target population.
+
+-   p\. 28 [@hainmueller2012]
+
+Propensity score weighting is performed by using a binary response (logit/probit) regression to estimate a probability $p_i$ to be in the treatment given the covariates. These are converted to weights $d_i$ by the inverse of the link function $d_i = p_i / (1-p_i)$ so that the counterfactual mean is estimated as $\widehat{E(Y(0)|D=1)} = \frac{\sum_{i|D=0}Y_i d_i}{\sum_{i|D=0}d_i}.$
+
+Drawbacks of PSW:
+
+-   The true propensity score is valuable because it balances the covariate distributions of the two groups, but is unknown and difficult to accurately estimate.
+
+-   Mis-specified scores can lead to biased estimation of TE
+
+-   Practitioners often iterate between weighting and matching, modeling the PS, and then evaluating the balance until a suitable balance is achieved. Imai, King and Stuart (2008) call this the "propensity score tautology".
+
+    -   Despite this balance often isn't achieved and can make balance worse among confounders.
+
+### Entropy Balancing Procedure: 
+
+**Goal:** Estimate $\tau = E(Y(1) |D=1) - E(Y(0) | D=1).$
+
+The counterfactual mean could be estimated by $\widehat{E(Y(0)|D=1)}=\frac{\sum_{i|D=0} Y_i w_i}{\sum_{i|D=0} w_i}.$ The weights are found by minimizing $H(w) = \sum_{i|D=0} h(w_i)$ subject to $\sum_{i|D=0} w_i c_{ri}(X_i) = m_r$ for $r =1,…,R$ and $\sum_{i|D=0} w_i = 1$ and $w_i \geq 0$ for all $i$ given $D_i = 0$ where $h(.)$ is a distance metric and $c_{ri}(X_i)=m_r$ describes the set of $R$ balance constraints imposed by the covariate moments of the re-weighted control group.
+
+Authors choose to use $h(w_i)=w_i\log(w_i/q_i)$ the Kullback entropy divergence.
+
+In conventional PSW, the researcher (1) estimates $d_i$ then (2) checks if the weights balance the covariate distribution. Entropy balancing reverses the approach by obtaining weights by minimizing a linear equation with constraints that guarantee balance while remaining close to the uniform weights to guarantee efficiency.
+
+Optimization is performed using Lagrangian Multipliers.
+
+#### 3 Main Issues with Entropy Balancing:
+
+1.  "No weighting solution exists if the balance constraints are inconsistent." Easy to avoid as constraints are researcher imposed.
+2.  "Balance constraints are consistent but there exists no set of positive weights to actually satisfy the constraints." For example, there's heavy imbalance in a binary categorical variable between the treatment and control groups. "If there aren't enough controls that look anything like the treated units, then the existing data do not contain sufficient information to reliably infer the counterfactual."
+3.  "A solution exists, but due to limited overlap, the solution involves an extreme adjustment to the weights of some control units." Only a few units receive relatively large weights and all others are set near 0, then the variance will increase and effective sample size is small.
+
+Issues 2 and 3 are also relevant to most pre-processing that involves balancing including propensity score weighting.
+
+## Implementation by ebal
+
+### Simulated Data
+
+First, we'll demonstrate entropy balancing in a logistic regression setting to estimate the race effect on the simulated data. This data contains the same number of observations as the PCS data on the same variables which have been simulated independently, so a priori we should expect the marginal means of the variables to be the same for "Black" and "Non-Black" simulated defendants. The simulated data set is complete.
 
 ```{r}
-1 + 1
+library(ebal)
+library(dplyr)
+
+dat <- read.csv("../Data/simulated_data.csv")
+
+dat$OFF_RACER <- factor(dat$OFF_RACER, levels = c("WHITE", "BLACK", "LATINO", "OTHER"))
+
+dat %>%
+    select(-c(INCAR, YEAR, COUNTY, OFF_RACER)) -> X
+X <- model.matrix(~., data = X)[,-1]
+
+treatment <- ifelse(dat$OFF_RACER == "BLACK", TRUE, FALSE)
+
+eb.out <- ebalance(Treatment = treatment, 
+                   X = X, print.level = 2)
 ```
 
-You can add options to executable code like this
+Entropy balancing seems to be performed very quickly. Next we check the marginal means for each of the covariates
 
 ```{r}
-#| echo: false
-2 * 2
+c1 <- apply(X[treatment,], 2, mean)
+
+
+c2 <- apply(X[!treatment,], 2, weighted.mean, w = eb.out$w)
+
+
+c3 <- apply(X[!treatment,], 2, mean)
+
+X.means <- bind_rows(c1, c2, c3) %>% as.data.frame()
+rownames(X.means) <- c("Black", "Non-Black - EB", "Non-Black - Unbalanced")
+X.means
 ```
 
-The `echo: false` option disables the printing of code (only output is displayed).
+The means are essentially the same between the covariates before balancing, so it won't have any effect on the actual analysis. This is a key point regarding use of the modal approach in the simulations.
+
+```{r}
+c(summary(eb.out$w), "Std. Dev" = sd(eb.out$w))
+```
+
+The weights are essentially uniform still indicating little needs to be done to balance the covariates.
+
+```{r}
+weights <- numeric(nrow(dat))
+for (i in 1:nrow(dat)) {
+    if (treatment[i]) {
+        weights[i] <- 1
+    }
+    else {
+        weights[i] <- eb.out$w[i]
+    }
+}
+
+fit_sim_unweighted <- glm(INCAR ~ ., 
+                          data = dat, 
+                          family = binomial(link = "probit"))
+
+fit_sim_weighted <- glm(INCAR ~ ., 
+                          data = dat, 
+                          weights = weights,
+                          family = binomial(link = "probit"))
+
+summary(fit_sim_unweighted)$coefficients
+summary(fit_sim_weighted)$coefficients
+```
+
+### Real PCS Data
+
+```{r}
+pcs <- read.csv("../Data/most_serious_sentence_2010-2019_slim.csv")
+
+pcs$YEAR <- factor(pcs$YEAR)
+pcs$COUNTY <- factor(pcs$COUNTY)
+pcs$OFF_RACER <- factor(pcs$OFF_RACER, levels = c("WHITE", "BLACK", "LATINO", "OTHER"))
+
+mice::md.pattern(pcs, rotate.names = T)
+```
+
+```{r}
+pcs %>% 
+    filter(!is.na(OFF_RACER),
+           !is.na(DOSAGE),
+           !is.na(RECMIN),
+           !is.na(PRS)) -> pcs.cc
+pcs.cc %>%
+    select(-c(INCAR, YEAR, COUNTY, OFF_RACER)) -> X
+X <- model.matrix(~., data = X)[,-1]
+
+treatment <- ifelse(pcs.cc$OFF_RACER == "BLACK", TRUE, FALSE)
+
+eb.out <- ebalance(Treatment = treatment, 
+                   X = X, print.level = 2)
+
+c1 <- apply(X[treatment,], 2, mean)
+
+
+c2 <- apply(X[!treatment,], 2, weighted.mean, w = eb.out$w)
+
+
+c3 <- apply(X[!treatment,], 2, mean)
+
+X.means <- bind_rows(c1, c2, c3) %>% as.data.frame()
+rownames(X.means) <- c("Black", "Non-Black - EB", "Non-Black - Unbalanced")
+X.means
+c(summary(eb.out$w), "Std. Dev" = sd(eb.out$w))
+
+mean(pcs.cc$INCAR[treatment]) - mean(pcs.cc$INCAR[!treatment])
+
+mean(pcs.cc$INCAR[treatment]) - weighted.mean(pcs.cc$INCAR[!treatment], w = eb.out$w)
+```
+
+```{r}
+weights <- numeric(nrow(pcs.cc))
+for (i in 1:nrow(pcs.cc)) {
+    if (treatment[i]) {
+        weights[i] <- 1
+    }
+    else {
+        weights[i] <- eb.out$w[i]
+    }
+}
+
+fit_sim_unweighted <- glm(INCAR ~ ., 
+                          data = pcs, 
+                          family = binomial(link = "logit"))
+
+fit_sim_weighted <- glm(INCAR ~ ., 
+                          data = pcs.cc, 
+                          weights = weights,
+                          family = binomial(link = "logit"))
+
+summary(fit_sim_unweighted)$coefficients
+summary(fit_sim_weighted)$coefficients
+```
+
+## Incomplete Data
+
+The impact of incomplete data is the next topic to tackle. We know that CCA can be biased under several (untestable) assumptions for the missingness mechanisms for logistic regression. Need to show that missingness also has an impact on weights doubly impacting the inferential results.
+
+```{r}
+p <- 1 - (1 + exp(-(-9 + .5 * pcs.cc$DOSAGE + .5 * pcs.cc$OGS)))^-1
+boxplot(p)
+
+mis <- sample(nrow(pcs.cc), size = ceiling(0.25 * nrow(pcs.cc)), prob = p)
+str(mis)
+```
+
+```{r}
+pcs.inc <- pcs.cc
+pcs.inc[mis, "OFF_RACER"] <- NA
+
+
+pcs.inc %>% 
+    filter(!is.na(OFF_RACER),
+           !is.na(DOSAGE),
+           !is.na(RECMIN),
+           !is.na(PRS)) -> pcs.cc2
+pcs.cc2 %>%
+    select(-c(INCAR, YEAR, COUNTY, OFF_RACER)) -> X
+X <- model.matrix(~., data = X)[,-1]
+
+treatment <- ifelse(pcs.cc2$OFF_RACER == "BLACK", TRUE, FALSE)
+
+eb.out2 <- ebalance(Treatment = treatment, 
+                   X = X, print.level = 2)
+
+c1 <- apply(X[treatment,], 2, mean)
+
+
+c2 <- apply(X[!treatment,], 2, weighted.mean, w = eb.out2$w)
+
+
+c3 <- apply(X[!treatment,], 2, mean)
+
+X.means <- bind_rows(c1, c2, c3) %>% as.data.frame()
+rownames(X.means) <- c("Black", "Non-Black - EB", "Non-Black - Unbalanced")
+X.means
+c(summary(eb.out2$w), "Std. Dev" = sd(eb.out2$w))
+
+mean(pcs.cc2$INCAR[treatment]) - mean(pcs.cc2$INCAR[!treatment])
+
+mean(pcs.cc2$INCAR[treatment]) - weighted.mean(pcs.cc2$INCAR[!treatment], w = eb.out2$w)
+```
+
+```{r}
+weights2 <- numeric(nrow(pcs.cc2))
+for (i in 1:nrow(pcs.cc2)) {
+    if (treatment[i]) {
+        weights2[i] <- 1
+    }
+    else {
+        weights2[i] <- eb.out2$w[i]
+    }
+}
+
+fit_sim_unweighted2 <- glm(INCAR ~ ., 
+                          data = pcs.cc2, 
+                          family = binomial(link = "logit"))
+
+fit_sim_weighted2 <- glm(INCAR ~ ., 
+                          data = pcs.cc2, 
+                          weights = weights2,
+                          family = binomial(link = "logit"))
+
+summary(fit_sim_unweighted2)$coefficients[1:18,]
+summary(fit_sim_weighted2)$coefficients[1:18,]
+```
+
+## References
