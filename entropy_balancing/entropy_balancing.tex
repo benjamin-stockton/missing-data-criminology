@@ -213,7 +213,7 @@
 
 \begin{document}
 \maketitle
-\ifdefined\Shaded\renewenvironment{Shaded}{\begin{tcolorbox}[borderline west={3pt}{0pt}{shadecolor}, interior hidden, frame hidden, sharp corners, enhanced, boxrule=0pt, breakable]}{\end{tcolorbox}}\fi
+\ifdefined\Shaded\renewenvironment{Shaded}{\begin{tcolorbox}[sharp corners, frame hidden, interior hidden, boxrule=0pt, enhanced, borderline west={3pt}{0pt}{shadecolor}, breakable]}{\end{tcolorbox}}\fi
 
 \renewcommand*\contentsname{Table of contents}
 {
@@ -363,6 +363,10 @@ Balancing:}\label{main-issues-with-entropy-balancing}}
 Issues 2 and 3 are also relevant to most pre-processing that involves
 balancing including propensity score weighting.
 
+\hypertarget{entropy-balancing-in-sentencing-research}{%
+\subsection{Entropy Balancing in Sentencing
+Research}\label{entropy-balancing-in-sentencing-research}}
+
 \hypertarget{implementation-by-ebal}{%
 \section{Implementation by ebal}\label{implementation-by-ebal}}
 
@@ -380,44 +384,12 @@ complete.
 \begin{Shaded}
 \begin{Highlighting}[]
 \FunctionTok{library}\NormalTok{(ebal)}
-\end{Highlighting}
-\end{Shaded}
-
-\begin{verbatim}
-##
-## ebal Package: Implements Entropy Balancing.
-\end{verbatim}
-
-\begin{verbatim}
-## See http://www.stanford.edu/~jhain/ for additional information.
-\end{verbatim}
-
-\begin{Shaded}
-\begin{Highlighting}[]
 \FunctionTok{library}\NormalTok{(dplyr)}
-\end{Highlighting}
-\end{Shaded}
 
-\begin{verbatim}
-
-Attaching package: 'dplyr'
-\end{verbatim}
-
-\begin{verbatim}
-The following objects are masked from 'package:stats':
-
-    filter, lag
-\end{verbatim}
-
-\begin{verbatim}
-The following objects are masked from 'package:base':
-
-    intersect, setdiff, setequal, union
-\end{verbatim}
-
-\begin{Shaded}
-\begin{Highlighting}[]
 \NormalTok{dat }\OtherTok{\textless{}{-}} \FunctionTok{read.csv}\NormalTok{(}\StringTok{"../Data/simulated\_data.csv"}\NormalTok{)}
+
+\NormalTok{dat}\SpecialCharTok{$}\NormalTok{YEAR }\OtherTok{\textless{}{-}} \FunctionTok{factor}\NormalTok{(dat}\SpecialCharTok{$}\NormalTok{YEAR)}
+\NormalTok{dat}\SpecialCharTok{$}\NormalTok{COUNTY }\OtherTok{\textless{}{-}} \FunctionTok{factor}\NormalTok{(dat}\SpecialCharTok{$}\NormalTok{COUNTY)}
 
 \NormalTok{dat}\SpecialCharTok{$}\NormalTok{OFF\_RACER }\OtherTok{\textless{}{-}} \FunctionTok{factor}\NormalTok{(dat}\SpecialCharTok{$}\NormalTok{OFF\_RACER, }\AttributeTok{levels =} \FunctionTok{c}\NormalTok{(}\StringTok{"WHITE"}\NormalTok{, }\StringTok{"BLACK"}\NormalTok{, }\StringTok{"LATINO"}\NormalTok{, }\StringTok{"OTHER"}\NormalTok{))}
 
@@ -454,70 +426,27 @@ marginal means for each of the covariates
 
 \NormalTok{X.means }\OtherTok{\textless{}{-}} \FunctionTok{bind\_rows}\NormalTok{(c1, c2, c3) }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{as.data.frame}\NormalTok{()}
 \FunctionTok{rownames}\NormalTok{(X.means) }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\StringTok{"Black"}\NormalTok{, }\StringTok{"Non{-}Black {-} EB"}\NormalTok{, }\StringTok{"Non{-}Black {-} Unbalanced"}\NormalTok{)}
-\NormalTok{X.means}
+\FunctionTok{round}\NormalTok{(}\FunctionTok{t}\NormalTok{(X.means), }\DecValTok{4}\NormalTok{)}
 \end{Highlighting}
 \end{Shaded}
 
-\begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.1243}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0703}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0811}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0919}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0973}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0486}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0541}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0541}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0541}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0541}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0757}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0486}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0541}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0486}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0432}}@{}}
-\toprule()
-\begin{minipage}[b]{\linewidth}\raggedright
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-CRIMETYPEDUI
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-CRIMETYPEOTHER
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-CRIMETYPEPERSONS
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-CRIMETYPEPROPERTY
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-OGS
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-TRIALYes
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-MALEMale
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-PRS4/5
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-PRSNone
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-PRSREVOC/RFEL
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-DOSAGE
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-RECMINYes
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-OGSQ
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-DOSAGEQ
-\end{minipage} \\
-\midrule()
-\endhead
-Black & 0.2366739 & 0.1241161 & 0.1559758 & 0.2556212 & 3.428270 &
-0.9781985 & 0.7730749 & 0.1813235 & 0.4855552 & 0.0300028 & 34.26663 &
-0.6701455 & 17.94439 & 1306.29 \\
-Non-Black - EB & 0.2366739 & 0.1241161 & 0.1559758 & 0.2556212 &
-3.428270 & 0.9781985 & 0.7730749 & 0.1813235 & 0.4855552 & 0.0300028 &
-34.26663 & 0.6701455 & 17.94439 & 1306.29 \\
-Non-Black - Unbalanced & 0.2378830 & 0.1230355 & 0.1567942 & 0.2548193 &
-3.418447 & 0.9785810 & 0.7738696 & 0.1819709 & 0.4858597 & 0.0299742 &
-34.27654 & 0.6707129 & 17.85047 & 1307.20 \\
-\bottomrule()
-\end{longtable}
+\begin{verbatim}
+                      Black Non-Black - EB Non-Black - Unbalanced
+CRIMETYPEDUI         0.2367         0.2367                 0.2379
+CRIMETYPEOTHER       0.1241         0.1241                 0.1230
+CRIMETYPEPERSONS     0.1560         0.1560                 0.1568
+CRIMETYPEPROPERTY    0.2556         0.2556                 0.2548
+OGS                  3.4283         3.4283                 3.4184
+TRIALYes             0.9782         0.9782                 0.9786
+MALEMale             0.7731         0.7731                 0.7739
+PRS4/5               0.1813         0.1813                 0.1820
+PRSNone              0.4856         0.4856                 0.4859
+PRSREVOC/RFEL        0.0300         0.0300                 0.0300
+DOSAGE              34.2666        34.2666                34.2765
+RECMINYes            0.6701         0.6701                 0.6707
+OGSQ                17.9444        17.9444                17.8505
+DOSAGEQ           1306.2898      1306.2898              1307.1996
+\end{verbatim}
 
 The means are essentially the same between the covariates before
 balancing, so it won't have any effect on the actual analysis. This is a
@@ -551,14 +480,14 @@ done to balance the covariates.
 \NormalTok{    \}}
 \NormalTok{\}}
 
-\NormalTok{fit\_sim\_unweighted }\OtherTok{\textless{}{-}} \FunctionTok{glm}\NormalTok{(INCAR }\SpecialCharTok{\textasciitilde{}}\NormalTok{ ., }
+\NormalTok{fit\_sim\_unweighted }\OtherTok{\textless{}{-}} \FunctionTok{summary}\NormalTok{(}\FunctionTok{glm}\NormalTok{(INCAR }\SpecialCharTok{\textasciitilde{}}\NormalTok{ ., }
                           \AttributeTok{data =}\NormalTok{ dat, }
-                          \AttributeTok{family =} \FunctionTok{binomial}\NormalTok{(}\AttributeTok{link =} \StringTok{"probit"}\NormalTok{))}
+                          \AttributeTok{family =} \FunctionTok{binomial}\NormalTok{(}\AttributeTok{link =} \StringTok{"logit"}\NormalTok{)))}
 
-\NormalTok{fit\_sim\_weighted }\OtherTok{\textless{}{-}} \FunctionTok{glm}\NormalTok{(INCAR }\SpecialCharTok{\textasciitilde{}}\NormalTok{ ., }
+\NormalTok{fit\_sim\_weighted }\OtherTok{\textless{}{-}} \FunctionTok{summary}\NormalTok{(}\FunctionTok{glm}\NormalTok{(INCAR }\SpecialCharTok{\textasciitilde{}}\NormalTok{ ., }
                           \AttributeTok{data =}\NormalTok{ dat, }
                           \AttributeTok{weights =}\NormalTok{ weights,}
-                          \AttributeTok{family =} \FunctionTok{binomial}\NormalTok{(}\AttributeTok{link =} \StringTok{"probit"}\NormalTok{))}
+                          \AttributeTok{family =} \FunctionTok{binomial}\NormalTok{(}\AttributeTok{link =} \StringTok{"logit"}\NormalTok{)))}
 \end{Highlighting}
 \end{Shaded}
 
@@ -568,62 +497,44 @@ Warning in eval(family$initialize): non-integer #successes in a binomial glm!
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\FunctionTok{summary}\NormalTok{(fit\_sim\_unweighted)}\SpecialCharTok{$}\NormalTok{coefficients}
+\FunctionTok{print}\NormalTok{(}\StringTok{"Unweighted Race Effect Estimate:"}\NormalTok{)}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{verbatim}
-                       Estimate   Std. Error      z value      Pr(>|z|)
-(Intercept)        3.830398e+01 1.012930e+00   37.8150494  0.000000e+00
-CRIMETYPEDUI       9.074809e-01 4.306022e-03  210.7469276  0.000000e+00
-CRIMETYPEOTHER     1.622619e-01 5.122938e-03   31.6735970 3.589737e-220
-CRIMETYPEPERSONS   4.304650e-01 4.721347e-03   91.1741989  0.000000e+00
-CRIMETYPEPROPERTY  2.574592e-01 4.179114e-03   61.6061650  0.000000e+00
-OGS               -4.130227e-02 2.069069e-03  -19.9617677  1.184475e-88
-TRIALYes          -4.561072e-01 1.002301e-02  -45.5060157  0.000000e+00
-MALEMale           2.016262e-01 3.465355e-03   58.1834178  0.000000e+00
-COUNTY             3.741836e-03 6.982189e-05   53.5911638  0.000000e+00
-OFF_RACERBLACK     1.219948e-01 3.251429e-03   37.5203817  0.000000e+00
-OFF_RACERLATINO    2.964218e-01 1.522038e-02   19.4753272  1.777847e-84
-OFF_RACEROTHER     8.046870e-02 1.921822e-02    4.1871039  2.825365e-05
-YEAR              -1.901935e-02 5.027857e-04  -37.8279452  0.000000e+00
-PRS4/5             3.329805e-01 4.254095e-03   78.2729157  0.000000e+00
-PRSNone           -2.839164e-01 3.324887e-03  -85.3913052  0.000000e+00
-PRSREVOC/RFEL      5.344067e-01 8.871957e-03   60.2355002  0.000000e+00
-DOSAGE             2.645076e-04 5.797219e-04    0.4562663  6.481985e-01
-RECMINYes         -4.823003e-01 3.067745e-03 -157.2165664  0.000000e+00
-OGSQ               1.951886e-02 2.234857e-04   87.3382871  0.000000e+00
-DOSAGEQ           -9.272507e-05 7.103584e-06  -13.0532799  6.086935e-39
+[1] "Unweighted Race Effect Estimate:"
 \end{verbatim}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\FunctionTok{summary}\NormalTok{(fit\_sim\_weighted)}\SpecialCharTok{$}\NormalTok{coefficients}
+\NormalTok{fit\_sim\_unweighted}\SpecialCharTok{$}\NormalTok{coefficients[}\StringTok{"OFF\_RACERBLACK"}\NormalTok{,]}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{verbatim}
-                       Estimate   Std. Error      z value      Pr(>|z|)
-(Intercept)        3.797745e+01 1.482243e+00   25.6216059 8.764839e-145
-CRIMETYPEDUI       9.096021e-01 6.308351e-03  144.1901516  0.000000e+00
-CRIMETYPEOTHER     1.567543e-01 7.464402e-03   21.0002558  6.523342e-98
-CRIMETYPEPERSONS   4.258800e-01 6.902394e-03   61.7003248  0.000000e+00
-CRIMETYPEPROPERTY  2.557673e-01 6.095232e-03   41.9618661  0.000000e+00
-OGS               -3.933741e-02 3.037251e-03  -12.9516499  2.299580e-38
-TRIALYes          -4.622854e-01 1.470887e-02  -31.4290142 8.125160e-217
-MALEMale           2.020727e-01 5.060972e-03   39.9276418  0.000000e+00
-COUNTY             3.761282e-03 1.021222e-04   36.8312019 5.848480e-297
-OFF_RACERBLACK     1.221394e-01 4.295976e-03   28.4311115 8.344373e-178
-OFF_RACERLATINO    2.884860e-01 2.935308e-02    9.8281365  8.518029e-23
-OFF_RACEROTHER     8.179438e-02 3.717607e-02    2.2001888  2.779351e-02
-YEAR              -1.885807e-02 7.357313e-04  -25.6317277 6.759630e-145
-PRS4/5             3.385901e-01 6.244637e-03   54.2209329  0.000000e+00
-PRSNone           -2.786268e-01 4.861425e-03  -57.3138030  0.000000e+00
-PRSREVOC/RFEL      5.333212e-01 1.307879e-02   40.7775698  0.000000e+00
-DOSAGE             2.881435e-04 8.493937e-04    0.3392344  7.344332e-01
-RECMINYes         -4.816797e-01 4.496268e-03 -107.1287924  0.000000e+00
-OGSQ               1.932917e-02 3.291902e-04   58.7173477  0.000000e+00
-DOSAGEQ           -9.289192e-05 1.040864e-05   -8.9245039  4.477011e-19
+    Estimate   Std. Error      z value     Pr(>|z|) 
+ 0.225326688  0.005659322 39.815138611  0.000000000 
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{print}\NormalTok{(}\StringTok{"Weighted Race Effect Estimate:"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+[1] "Weighted Race Effect Estimate:"
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{fit\_sim\_weighted}\SpecialCharTok{$}\NormalTok{coefficients[}\StringTok{"OFF\_RACERBLACK"}\NormalTok{,]}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+     Estimate    Std. Error       z value      Pr(>|z|) 
+ 2.246423e-01  7.484070e-03  3.001606e+01 6.057134e-198 
 \end{verbatim}
 
 \hypertarget{real-pcs-data}{%
@@ -683,7 +594,7 @@ DOSAGEQ           -9.289192e-05 1.040864e-05   -8.9245039  4.477011e-19
 
 \NormalTok{treatment }\OtherTok{\textless{}{-}} \FunctionTok{ifelse}\NormalTok{(pcs.cc}\SpecialCharTok{$}\NormalTok{OFF\_RACER }\SpecialCharTok{==} \StringTok{"BLACK"}\NormalTok{, }\ConstantTok{TRUE}\NormalTok{, }\ConstantTok{FALSE}\NormalTok{)}
 
-\NormalTok{eb.out }\OtherTok{\textless{}{-}} \FunctionTok{ebalance}\NormalTok{(}\AttributeTok{Treatment =}\NormalTok{ treatment, }
+\NormalTok{eb.pcs }\OtherTok{\textless{}{-}} \FunctionTok{ebalance}\NormalTok{(}\AttributeTok{Treatment =}\NormalTok{ treatment, }
                    \AttributeTok{X =}\NormalTok{ X, }\AttributeTok{print.level =} \DecValTok{2}\NormalTok{)}
 \end{Highlighting}
 \end{Shaded}
@@ -705,81 +616,38 @@ Converged within tolerance
 \NormalTok{c1 }\OtherTok{\textless{}{-}} \FunctionTok{apply}\NormalTok{(X[treatment,], }\DecValTok{2}\NormalTok{, mean)}
 
 
-\NormalTok{c2 }\OtherTok{\textless{}{-}} \FunctionTok{apply}\NormalTok{(X[}\SpecialCharTok{!}\NormalTok{treatment,], }\DecValTok{2}\NormalTok{, weighted.mean, }\AttributeTok{w =}\NormalTok{ eb.out}\SpecialCharTok{$}\NormalTok{w)}
+\NormalTok{c2 }\OtherTok{\textless{}{-}} \FunctionTok{apply}\NormalTok{(X[}\SpecialCharTok{!}\NormalTok{treatment,], }\DecValTok{2}\NormalTok{, weighted.mean, }\AttributeTok{w =}\NormalTok{ eb.pcs}\SpecialCharTok{$}\NormalTok{w)}
 
 
 \NormalTok{c3 }\OtherTok{\textless{}{-}} \FunctionTok{apply}\NormalTok{(X[}\SpecialCharTok{!}\NormalTok{treatment,], }\DecValTok{2}\NormalTok{, mean)}
 
 \NormalTok{X.means }\OtherTok{\textless{}{-}} \FunctionTok{bind\_rows}\NormalTok{(c1, c2, c3) }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{as.data.frame}\NormalTok{()}
 \FunctionTok{rownames}\NormalTok{(X.means) }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\StringTok{"Black"}\NormalTok{, }\StringTok{"Non{-}Black {-} EB"}\NormalTok{, }\StringTok{"Non{-}Black {-} Unbalanced"}\NormalTok{)}
-\NormalTok{X.means}
+\FunctionTok{round}\NormalTok{(}\FunctionTok{t}\NormalTok{(X.means), }\DecValTok{4}\NormalTok{)}
 \end{Highlighting}
 \end{Shaded}
 
-\begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.1237}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0699}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0806}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0914}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0968}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0484}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0484}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0538}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0538}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0538}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0538}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0753}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0538}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0484}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0484}}@{}}
-\toprule()
-\begin{minipage}[b]{\linewidth}\raggedright
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-CRIMETYPEDUI
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-CRIMETYPEOTHER
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-CRIMETYPEPERSONS
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-CRIMETYPEPROPERTY
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-OGS
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-OGSQ
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-RECMINYes
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-TRIALYes
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-PRS4/5
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-PRSNone
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-PRSREVOC/RFEL
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-MALEMale
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-DOSAGE
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-DOSAGEQ
-\end{minipage} \\
-\midrule()
-\endhead
-Black & 0.1273646 & 0.1631852 & 0.1837841 & 0.2444743 & 4.060074 &
-24.72683 & 0.5303072 & 0.9591100 & 0.2719857 & 0.3863420 & 0.0506138 &
-0.8271758 & 32.91218 & 1213.208 \\
-Non-Black - EB & 0.1273646 & 0.1631852 & 0.1837841 & 0.2444743 &
-4.060074 & 24.72683 & 0.5303072 & 0.9591100 & 0.2719857 & 0.3863420 &
-0.0506138 & 0.8271758 & 32.91218 & 1213.208 \\
-Non-Black - Unbalanced & 0.2789910 & 0.1083844 & 0.1457777 & 0.2588077 &
-3.182647 & 15.32104 & 0.7201719 & 0.9857942 & 0.1516569 & 0.5151632 &
-0.0227518 & 0.7545445 & 34.78861 & 1342.119 \\
-\bottomrule()
-\end{longtable}
+\begin{verbatim}
+                      Black Non-Black - EB Non-Black - Unbalanced
+CRIMETYPEDUI         0.1274         0.1274                 0.2790
+CRIMETYPEOTHER       0.1632         0.1632                 0.1084
+CRIMETYPEPERSONS     0.1838         0.1838                 0.1458
+CRIMETYPEPROPERTY    0.2445         0.2445                 0.2588
+OGS                  4.0601         4.0601                 3.1826
+OGSQ                24.7268        24.7268                15.3210
+RECMINYes            0.5303         0.5303                 0.7202
+TRIALYes             0.9591         0.9591                 0.9858
+PRS4/5               0.2720         0.2720                 0.1517
+PRSNone              0.3863         0.3863                 0.5152
+PRSREVOC/RFEL        0.0506         0.0506                 0.0228
+MALEMale             0.8272         0.8272                 0.7545
+DOSAGE              32.9122        32.9122                34.7886
+DOSAGEQ           1213.2078      1213.2078              1342.1189
+\end{verbatim}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\FunctionTok{c}\NormalTok{(}\FunctionTok{summary}\NormalTok{(eb.out}\SpecialCharTok{$}\NormalTok{w), }\StringTok{"Std. Dev"} \OtherTok{=} \FunctionTok{sd}\NormalTok{(eb.out}\SpecialCharTok{$}\NormalTok{w))}
+\FunctionTok{c}\NormalTok{(}\FunctionTok{summary}\NormalTok{(eb.pcs}\SpecialCharTok{$}\NormalTok{w), }\StringTok{"Std. Dev"} \OtherTok{=} \FunctionTok{sd}\NormalTok{(eb.pcs}\SpecialCharTok{$}\NormalTok{w))}
 \end{Highlighting}
 \end{Shaded}
 
@@ -788,26 +656,6 @@ Non-Black - Unbalanced & 0.2789910 & 0.1083844 & 0.1457777 & 0.2588077 &
  0.07609185  0.18832187  0.29698135  0.36708400  0.45848952 16.65560610 
    Std. Dev 
  0.28137031 
-\end{verbatim}
-
-\begin{Shaded}
-\begin{Highlighting}[]
-\FunctionTok{mean}\NormalTok{(pcs.cc}\SpecialCharTok{$}\NormalTok{INCAR[treatment]) }\SpecialCharTok{{-}} \FunctionTok{mean}\NormalTok{(pcs.cc}\SpecialCharTok{$}\NormalTok{INCAR[}\SpecialCharTok{!}\NormalTok{treatment])}
-\end{Highlighting}
-\end{Shaded}
-
-\begin{verbatim}
-[1] 0.07171713
-\end{verbatim}
-
-\begin{Shaded}
-\begin{Highlighting}[]
-\FunctionTok{mean}\NormalTok{(pcs.cc}\SpecialCharTok{$}\NormalTok{INCAR[treatment]) }\SpecialCharTok{{-}} \FunctionTok{weighted.mean}\NormalTok{(pcs.cc}\SpecialCharTok{$}\NormalTok{INCAR[}\SpecialCharTok{!}\NormalTok{treatment], }\AttributeTok{w =}\NormalTok{ eb.out}\SpecialCharTok{$}\NormalTok{w)}
-\end{Highlighting}
-\end{Shaded}
-
-\begin{verbatim}
-[1] 1.803935e-06
 \end{verbatim}
 
 \begin{Shaded}
@@ -822,14 +670,18 @@ Non-Black - Unbalanced & 0.2789910 & 0.1083844 & 0.1457777 & 0.2588077 &
 \NormalTok{    \}}
 \NormalTok{\}}
 
-\NormalTok{fit\_sim\_unweighted }\OtherTok{\textless{}{-}} \FunctionTok{glm}\NormalTok{(INCAR }\SpecialCharTok{\textasciitilde{}}\NormalTok{ ., }
+\NormalTok{fit\_pcs\_unweighted }\OtherTok{\textless{}{-}} \FunctionTok{summary}\NormalTok{(}\FunctionTok{glm}\NormalTok{(INCAR }\SpecialCharTok{\textasciitilde{}}\NormalTok{ ., }
                           \AttributeTok{data =}\NormalTok{ pcs, }
-                          \AttributeTok{family =} \FunctionTok{binomial}\NormalTok{(}\AttributeTok{link =} \StringTok{"logit"}\NormalTok{))}
+                          \AttributeTok{family =} \FunctionTok{binomial}\NormalTok{(}\AttributeTok{link =} \StringTok{"logit"}\NormalTok{),}
+                          \AttributeTok{model =} \ConstantTok{FALSE}\NormalTok{, }
+                          \AttributeTok{y =} \ConstantTok{FALSE}\NormalTok{))}
 
-\NormalTok{fit\_sim\_weighted }\OtherTok{\textless{}{-}} \FunctionTok{glm}\NormalTok{(INCAR }\SpecialCharTok{\textasciitilde{}}\NormalTok{ ., }
+\NormalTok{fit\_pcs\_weighted }\OtherTok{\textless{}{-}} \FunctionTok{summary}\NormalTok{(}\FunctionTok{glm}\NormalTok{(INCAR }\SpecialCharTok{\textasciitilde{}}\NormalTok{ ., }
                           \AttributeTok{data =}\NormalTok{ pcs.cc, }
                           \AttributeTok{weights =}\NormalTok{ weights,}
-                          \AttributeTok{family =} \FunctionTok{binomial}\NormalTok{(}\AttributeTok{link =} \StringTok{"logit"}\NormalTok{))}
+                          \AttributeTok{family =} \FunctionTok{binomial}\NormalTok{(}\AttributeTok{link =} \StringTok{"logit"}\NormalTok{),}
+                          \AttributeTok{model =} \ConstantTok{FALSE}\NormalTok{, }
+                          \AttributeTok{y =} \ConstantTok{FALSE}\NormalTok{))}
 \end{Highlighting}
 \end{Shaded}
 
@@ -839,208 +691,44 @@ Warning in eval(family$initialize): non-integer #successes in a binomial glm!
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\FunctionTok{summary}\NormalTok{(fit\_sim\_unweighted)}\SpecialCharTok{$}\NormalTok{coefficients}
+\FunctionTok{print}\NormalTok{(}\StringTok{"Unweighted Race Effect Estimate:"}\NormalTok{)}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{verbatim}
-                       Estimate   Std. Error     z value      Pr(>|z|)
-(Intercept)        0.0791698702 4.588853e-02   1.7252649  8.447975e-02
-CRIMETYPEDUI       1.6607541495 8.358420e-03 198.6923432  0.000000e+00
-CRIMETYPEOTHER     0.2926194571 9.636481e-03  30.3657997 1.554420e-202
-CRIMETYPEPERSONS   0.8031921931 9.098203e-03  88.2803146  0.000000e+00
-CRIMETYPEPROPERTY  0.4755398328 7.771432e-03  61.1907572  0.000000e+00
-OGS               -0.0903808342 4.514791e-03 -20.0188309  3.774744e-89
-OGSQ               0.0375267840 5.041694e-04  74.4328916  0.000000e+00
-RECMINYes         -0.8857852416 9.841437e-03 -90.0056816  0.000000e+00
-TRIALYes          -0.8596690757 2.175274e-02 -39.5200277  0.000000e+00
-PRS4/5             0.6083893499 8.883492e-03  68.4853794  0.000000e+00
-PRSNone           -0.5131654207 6.387457e-03 -80.3395500  0.000000e+00
-PRSREVOC/RFEL      0.9663597882 1.838004e-02  52.5765837  0.000000e+00
-MALEMale           0.3779387317 6.465877e-03  58.4512692  0.000000e+00
-DOSAGE            -0.0006248020 1.364183e-03  -0.4580044  6.469493e-01
-DOSAGEQ           -0.0001572646 1.695965e-05  -9.2728680  1.812067e-20
-OFF_RACERBLACK     0.2268134981 6.511253e-03  34.8340761 7.418640e-266
-OFF_RACERLATINO    0.5580945764 2.909170e-02  19.1839804  5.037246e-82
-OFF_RACEROTHER     0.1091751407 3.502621e-02   3.1169556  1.827291e-03
-COUNTY2           -1.0714931536 2.743214e-02 -39.0597770  0.000000e+00
-COUNTY3            1.1352643885 4.497096e-02  25.2443887 1.305225e-140
-COUNTY4           -0.5053071542 3.477475e-02 -14.5308643  7.723967e-48
-COUNTY5            1.3936737582 4.562394e-02  30.5469839 6.200964e-205
-COUNTY6            0.6927524487 2.961900e-02  23.3887854 5.558268e-121
-COUNTY7           -0.2654833569 3.354364e-02  -7.9145672  2.481147e-15
-COUNTY8            1.2441300734 4.340660e-02  28.6622338 1.128520e-180
-COUNTY9            0.6580331743 2.834224e-02  23.2174031 3.037952e-119
-COUNTY10          -0.2122959239 3.373233e-02  -6.2935451  3.102964e-10
-COUNTY11           0.7282115284 3.460184e-02  21.0454538  2.516967e-98
-COUNTY12           1.0085931966 1.352009e-01   7.4599566  8.655100e-14
-COUNTY13           0.9843872363 3.656998e-02  26.9179062 1.355585e-159
-COUNTY14           0.3704114670 3.651972e-02  10.1427802  3.567976e-24
-COUNTY15           1.6705039276 3.028825e-02  55.1535369  0.000000e+00
-COUNTY16           0.3637590168 5.229172e-02   6.9563402  3.492260e-12
-COUNTY17           1.9534987592 5.310015e-02  36.7889508 2.773228e-296
-COUNTY18           0.4014243885 4.789329e-02   8.3816423  5.219424e-17
-COUNTY19           0.9485946513 4.738136e-02  20.0204164  3.656525e-89
-COUNTY20           1.3438437779 3.799607e-02  35.3679674 5.308767e-274
-COUNTY21           0.8883182200 3.110137e-02  28.5620266 1.991641e-179
-COUNTY22          -0.5608005108 3.041043e-02 -18.4410577  6.152586e-76
-COUNTY23           1.0119912070 2.793587e-02  36.2255135 2.414984e-287
-COUNTY24           0.4617039035 6.124922e-02   7.5381184  4.768008e-14
-COUNTY25           0.0566772129 3.164156e-02   1.7912269  7.325688e-02
-COUNTY26          -0.2230225890 3.301076e-02  -6.7560566  1.417980e-11
-COUNTY27           1.5020331710 1.331938e-01  11.2770475  1.703683e-29
-COUNTY28           0.4357238037 3.193780e-02  13.6428887  2.225664e-42
-COUNTY29           0.0207383694 7.152614e-02   0.2899411  7.718613e-01
-COUNTY30           1.2090952497 5.726669e-02  21.1134124  5.988859e-99
-COUNTY31           0.6829033508 4.920790e-02  13.8779222  8.620681e-44
-COUNTY32           0.3521581388 3.925878e-02   8.9701762  2.960404e-19
-COUNTY33           0.8664845907 4.814340e-02  17.9979942  2.020033e-72
-COUNTY34           0.8060917202 6.282257e-02  12.8312447  1.095893e-37
-COUNTY35           0.6799990973 3.234142e-02  21.0256415  3.821926e-98
-COUNTY36           0.6528141635 3.005240e-02  21.7225312 1.256611e-104
-COUNTY37           0.0103442919 4.242338e-02   0.2438347  8.073589e-01
-COUNTY38           0.6820690240 3.476446e-02  19.6197196  1.049303e-85
-COUNTY39           0.4856109247 2.990790e-02  16.2368765  2.766565e-59
-COUNTY40           0.1044309492 3.067713e-02   3.4041961  6.635910e-04
-COUNTY41           0.0278576989 3.350528e-02   0.8314421  4.057239e-01
-COUNTY42           0.6164017123 4.715890e-02  13.0707396  4.839272e-39
-COUNTY43           1.4453386402 3.628799e-02  39.8296743  0.000000e+00
-COUNTY44           1.3608899454 4.449883e-02  30.5825972 2.085541e-205
-COUNTY45           0.9365340113 3.421361e-02  27.3731400 5.728536e-165
-COUNTY46           0.7407782520 2.779426e-02  26.6521996 1.687648e-156
-COUNTY47           1.0801992817 7.781789e-02  13.8811178  8.244802e-44
-COUNTY48           0.8813930005 3.023176e-02  29.1545421 7.316810e-187
-COUNTY49           0.0878336762 3.854421e-02   2.2787774  2.268030e-02
-COUNTY50           0.8855366691 4.733863e-02  18.7064269  4.388282e-78
-COUNTY51          -0.1758148309 2.890723e-02  -6.0820376  1.186648e-09
-COUNTY52           1.7582303450 4.706300e-02  37.3590759 1.805963e-305
-COUNTY53           1.0261802427 6.786202e-02  15.1215700  1.167262e-51
-COUNTY54           1.0842813854 3.415294e-02  31.7478183 3.403201e-221
-COUNTY55           0.5360874118 4.892656e-02  10.9569816  6.151704e-28
-COUNTY56           0.8157273225 4.387542e-02  18.5918987  3.737114e-77
-COUNTY57           1.8667096854 1.200203e-01  15.5532865  1.511464e-54
-COUNTY58           0.4831135013 5.564139e-02   8.6826276  3.867290e-18
-COUNTY59          -0.1469591333 5.872179e-02  -2.5026339  1.232730e-02
-COUNTY60           0.3866481224 5.365718e-02   7.2058966  5.766314e-13
-COUNTY61           0.9933733256 4.311957e-02  23.0376433 1.956498e-117
-COUNTY62           1.2594691507 5.233195e-02  24.0669234 5.551914e-128
-COUNTY63          -0.3891846733 3.904084e-02  -9.9686539  2.090426e-23
-COUNTY64           1.9076332419 5.349459e-02  35.6602995 1.631598e-278
-COUNTY65          -0.0350393396 2.975585e-02  -1.1775612  2.389716e-01
-COUNTY66           1.3930770855 5.263907e-02  26.4646992 2.471749e-154
-COUNTY67          -0.1145135705 2.828399e-02  -4.0487067  5.150144e-05
-YEAR2011          -0.0367098951 1.162948e-02  -3.1566244  1.596068e-03
-YEAR2012          -0.0754205412 1.156329e-02  -6.5224147  6.918443e-11
-YEAR2013          -0.0684118619 1.139929e-02  -6.0014152  1.956050e-09
-YEAR2014          -0.0923933754 1.141123e-02  -8.0967083  5.646626e-16
-YEAR2015          -0.1333609171 1.169312e-02 -11.4050719  3.944512e-30
-YEAR2016          -0.2013514925 1.153574e-02 -17.4545869  3.176674e-68
-YEAR2017          -0.2274482838 1.164669e-02 -19.5290133  6.223019e-85
-YEAR2018          -0.2533493071 1.172629e-02 -21.6052385 1.603584e-103
-YEAR2019          -0.3173972797 1.160196e-02 -27.3572035 8.865296e-165
+[1] "Unweighted Race Effect Estimate:"
 \end{verbatim}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\FunctionTok{summary}\NormalTok{(fit\_sim\_weighted)}\SpecialCharTok{$}\NormalTok{coefficients}
+\NormalTok{fit\_pcs\_unweighted}\SpecialCharTok{$}\NormalTok{coefficients[}\StringTok{"OFF\_RACERBLACK"}\NormalTok{,]}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{verbatim}
-                       Estimate   Std. Error     z value      Pr(>|z|)
-(Intercept)       -0.1836082050 7.087135e-02  -2.5907254  9.577388e-03
-CRIMETYPEDUI       1.6928888726 1.298568e-02 130.3658384  0.000000e+00
-CRIMETYPEOTHER     0.2552356315 1.353174e-02  18.8619898  2.342365e-79
-CRIMETYPEPERSONS   0.7123043297 1.296758e-02  54.9296458  0.000000e+00
-CRIMETYPEPROPERTY  0.4126352969 1.113065e-02  37.0719882 7.945285e-301
-OGS                0.0069520176 6.664665e-03   1.0431159  2.968946e-01
-OGSQ               0.0297563857 6.866720e-04  43.3342049  0.000000e+00
-RECMINYes         -0.8528909121 1.442524e-02 -59.1248965  0.000000e+00
-TRIALYes          -0.9007884569 2.817148e-02 -31.9751855 2.413527e-224
-PRS4/5             0.5897421204 1.276206e-02  46.2105905  0.000000e+00
-PRSNone           -0.5430559809 9.594326e-03 -56.6017874  0.000000e+00
-PRSREVOC/RFEL      0.9491943978 2.484836e-02  38.1994827  0.000000e+00
-MALEMale           0.4795400127 1.004210e-02  47.7529830  0.000000e+00
-DOSAGE            -0.0042777885 2.024868e-03  -2.1126257  3.463282e-02
-DOSAGEQ           -0.0001194381 2.545426e-05  -4.6922630  2.701994e-06
-OFF_RACERBLACK     0.2610236800 9.287781e-03  28.1039876 8.756373e-174
-OFF_RACERLATINO    0.5974633296 5.156595e-02  11.5863922  4.830537e-31
-OFF_RACEROTHER     0.1626183484 6.411818e-02   2.5362284  1.120536e-02
-COUNTY2           -1.0145125525 4.715457e-02 -21.5146182 1.136108e-102
-COUNTY3            1.2479009459 8.297375e-02  15.0397077  4.033272e-51
-COUNTY4           -0.3541141282 5.650368e-02  -6.2670990  3.678362e-10
-COUNTY5            1.5911471937 8.626838e-02  18.4441530  5.810228e-76
-COUNTY6            0.6649921917 5.126836e-02  12.9708111  1.791249e-38
-COUNTY7           -0.1044024773 5.715709e-02  -1.8265885  6.776167e-02
-COUNTY8            1.2698272183 7.984900e-02  15.9028574  6.053933e-57
-COUNTY9            0.6547089536 4.917209e-02  13.3146468  1.902702e-40
-COUNTY10          -0.0172695397 5.856390e-02  -0.2948837  7.680827e-01
-COUNTY11           0.9162596946 5.811708e-02  15.7657572  5.352698e-56
-COUNTY12           1.1224009943 2.476941e-01   4.5314007  5.859388e-06
-COUNTY13           1.0032899377 6.598453e-02  15.2049274  3.279940e-52
-COUNTY14           0.5873001105 6.171287e-02   9.5166548  1.788435e-21
-COUNTY15           1.6428737182 5.122178e-02  32.0737322 1.025008e-225
-COUNTY16           0.4425098704 9.551148e-02   4.6330544  3.603098e-06
-COUNTY17           2.0495176716 1.006629e-01  20.3602003  3.770394e-92
-COUNTY18           0.7152576963 8.603792e-02   8.3132847  9.308883e-17
-COUNTY19           0.9992777976 8.460342e-02  11.8113167  3.411760e-32
-COUNTY20           1.5696311989 6.780259e-02  23.1500200 1.453078e-118
-COUNTY21           1.0123680370 5.320452e-02  19.0278570  1.002702e-80
-COUNTY22          -0.4397376054 5.003889e-02  -8.7879172  1.523582e-18
-COUNTY23           1.0896183674 4.766393e-02  22.8604414 1.150610e-115
-COUNTY24           0.3701653738 1.163787e-01   3.1806979  1.469208e-03
-COUNTY25           0.3074857704 5.275765e-02   5.8282693  5.600515e-09
-COUNTY26           0.0478965112 5.605377e-02   0.8544745  3.928422e-01
-COUNTY27           2.2036456817 2.637128e-01   8.3562349  6.475173e-17
-COUNTY28           0.6336674944 5.448514e-02  11.6300969  2.897685e-31
-COUNTY29           0.2913837954 1.229724e-01   2.3695047  1.781193e-02
-COUNTY30           1.3660512270 1.012023e-01  13.4982297  1.601789e-41
-COUNTY31           0.8668353427 8.635063e-02  10.0385526  1.031769e-23
-COUNTY32           0.3917180794 6.719452e-02   5.8296137  5.555585e-09
-COUNTY33           1.0553316419 8.553778e-02  12.3376084  5.681864e-35
-COUNTY34           0.9486366024 1.128033e-01   8.4096519  4.112293e-17
-COUNTY35           0.9216619660 5.487548e-02  16.7955150  2.632101e-63
-COUNTY36           0.7580444148 5.193015e-02  14.5973855  2.918239e-48
-COUNTY37           0.2111081695 6.816101e-02   3.0971983  1.953591e-03
-COUNTY38           0.8031199226 5.978359e-02  13.4337852  3.833068e-41
-COUNTY39           0.5811679588 5.113211e-02  11.3660072  6.174810e-30
-COUNTY40           0.3567618445 5.254761e-02   6.7893069  1.126735e-11
-COUNTY41           0.1887240579 5.550757e-02   3.3999697  6.739332e-04
-COUNTY42           0.7296078775 8.404613e-02   8.6810407  3.921637e-18
-COUNTY43           1.5477353738 6.078580e-02  25.4621203 5.182887e-143
-COUNTY44           1.3599766955 8.076302e-02  16.8391023  1.261355e-63
-COUNTY45           1.1716817647 5.715706e-02  20.4993359  2.182515e-93
-COUNTY46           0.7279920103 4.778309e-02  15.2353478  2.060279e-52
-COUNTY47           1.3049316930 1.421769e-01   9.1782257  4.382525e-20
-COUNTY48           0.9604983383 5.175058e-02  18.5601474  6.751911e-77
-COUNTY49           0.3301120448 6.726598e-02   4.9075628  9.221514e-07
-COUNTY50           0.9424052034 8.485184e-02  11.1064799  1.166685e-28
-COUNTY51          -0.1525311772 4.821949e-02  -3.1632683  1.560085e-03
-COUNTY52           1.9212047609 8.233112e-02  23.3350992 1.952688e-120
-COUNTY53           1.0354082940 1.296750e-01   7.9846435  1.409290e-15
-COUNTY54           1.1823054321 6.155396e-02  19.2076248  3.195556e-82
-COUNTY55           0.8270574692 8.653717e-02   9.5572514  1.209255e-21
-COUNTY56           1.0291988386 8.003516e-02  12.8593333  7.623136e-38
-COUNTY57           2.1270228191 2.102848e-01  10.1149617  4.742027e-24
-COUNTY58           0.6630241459 1.021660e-01   6.4896729  8.602291e-11
-COUNTY59          -0.2187084462 1.090432e-01  -2.0057037  4.488787e-02
-COUNTY60           0.5796338543 9.274064e-02   6.2500520  4.103160e-10
-COUNTY61           1.1383695747 7.711814e-02  14.7613728  2.599353e-49
-COUNTY62           1.6621762511 9.852928e-02  16.8698709  7.496004e-64
-COUNTY63          -0.1981720098 6.495914e-02  -3.0507180  2.282949e-03
-COUNTY64           1.9860780072 9.660838e-02  20.5580304  6.522757e-94
-COUNTY65           0.0653364949 5.146811e-02   1.2694558  2.042785e-01
-COUNTY66           1.4875489895 9.782901e-02  15.2056013  3.246360e-52
-COUNTY67           0.0555396740 4.872140e-02   1.1399440  2.543096e-01
-YEAR2011          -0.0415007682 1.603882e-02  -2.5875207  9.666940e-03
-YEAR2012          -0.0632676209 1.592152e-02  -3.9737180  7.075933e-05
-YEAR2013          -0.0515653091 1.566810e-02  -3.2911023  9.979562e-04
-YEAR2014          -0.0729563400 1.571624e-02  -4.6421003  3.448853e-06
-YEAR2015          -0.1234164343 1.617245e-02  -7.6312756  2.324422e-14
-YEAR2016          -0.1840584288 1.590915e-02 -11.5693468  5.892963e-31
-YEAR2017          -0.2155245555 1.835707e-02 -11.7406820  7.884808e-32
-YEAR2018          -0.2896316228 2.018502e-02 -14.3488374  1.083382e-46
-YEAR2019          -0.3759073124 1.986956e-02 -18.9187546  7.992077e-80
+     Estimate    Std. Error       z value      Pr(>|z|) 
+ 2.268135e-01  6.511253e-03  3.483408e+01 7.418640e-266 
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{print}\NormalTok{(}\StringTok{"Weighted Race Effect Estimate:"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+[1] "Weighted Race Effect Estimate:"
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{fit\_pcs\_weighted}\SpecialCharTok{$}\NormalTok{coefficients[}\StringTok{"OFF\_RACERBLACK"}\NormalTok{,]}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+     Estimate    Std. Error       z value      Pr(>|z|) 
+ 2.578608e-01  9.128484e-03  2.824794e+01 1.508926e-175 
 \end{verbatim}
 
 \hypertarget{incomplete-data}{%
@@ -1095,7 +783,7 @@ inferential results.
 
 \NormalTok{treatment }\OtherTok{\textless{}{-}} \FunctionTok{ifelse}\NormalTok{(pcs.cc2}\SpecialCharTok{$}\NormalTok{OFF\_RACER }\SpecialCharTok{==} \StringTok{"BLACK"}\NormalTok{, }\ConstantTok{TRUE}\NormalTok{, }\ConstantTok{FALSE}\NormalTok{)}
 
-\NormalTok{eb.out2 }\OtherTok{\textless{}{-}} \FunctionTok{ebalance}\NormalTok{(}\AttributeTok{Treatment =}\NormalTok{ treatment, }
+\NormalTok{eb.pcs2 }\OtherTok{\textless{}{-}} \FunctionTok{ebalance}\NormalTok{(}\AttributeTok{Treatment =}\NormalTok{ treatment, }
                    \AttributeTok{X =}\NormalTok{ X, }\AttributeTok{print.level =} \DecValTok{2}\NormalTok{)}
 \end{Highlighting}
 \end{Shaded}
@@ -1118,81 +806,38 @@ Converged within tolerance
 \NormalTok{c1 }\OtherTok{\textless{}{-}} \FunctionTok{apply}\NormalTok{(X[treatment,], }\DecValTok{2}\NormalTok{, mean)}
 
 
-\NormalTok{c2 }\OtherTok{\textless{}{-}} \FunctionTok{apply}\NormalTok{(X[}\SpecialCharTok{!}\NormalTok{treatment,], }\DecValTok{2}\NormalTok{, weighted.mean, }\AttributeTok{w =}\NormalTok{ eb.out2}\SpecialCharTok{$}\NormalTok{w)}
+\NormalTok{c2 }\OtherTok{\textless{}{-}} \FunctionTok{apply}\NormalTok{(X[}\SpecialCharTok{!}\NormalTok{treatment,], }\DecValTok{2}\NormalTok{, weighted.mean, }\AttributeTok{w =}\NormalTok{ eb.pcs2}\SpecialCharTok{$}\NormalTok{w)}
 
 
 \NormalTok{c3 }\OtherTok{\textless{}{-}} \FunctionTok{apply}\NormalTok{(X[}\SpecialCharTok{!}\NormalTok{treatment,], }\DecValTok{2}\NormalTok{, mean)}
 
 \NormalTok{X.means }\OtherTok{\textless{}{-}} \FunctionTok{bind\_rows}\NormalTok{(c1, c2, c3) }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{as.data.frame}\NormalTok{()}
 \FunctionTok{rownames}\NormalTok{(X.means) }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\StringTok{"Black"}\NormalTok{, }\StringTok{"Non{-}Black {-} EB"}\NormalTok{, }\StringTok{"Non{-}Black {-} Unbalanced"}\NormalTok{)}
-\NormalTok{X.means}
+\FunctionTok{round}\NormalTok{(}\FunctionTok{t}\NormalTok{(X.means), }\DecValTok{4}\NormalTok{)}
 \end{Highlighting}
 \end{Shaded}
 
-\begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.1237}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0699}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0806}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0914}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0968}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0484}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0484}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0538}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0538}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0538}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0538}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0753}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0538}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0484}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 28\tabcolsep) * \real{0.0484}}@{}}
-\toprule()
-\begin{minipage}[b]{\linewidth}\raggedright
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-CRIMETYPEDUI
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-CRIMETYPEOTHER
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-CRIMETYPEPERSONS
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-CRIMETYPEPROPERTY
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-OGS
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-OGSQ
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-RECMINYes
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-TRIALYes
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-PRS4/5
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-PRSNone
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-PRSREVOC/RFEL
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-MALEMale
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-DOSAGE
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-DOSAGEQ
-\end{minipage} \\
-\midrule()
-\endhead
-Black & 0.1341005 & 0.1617950 & 0.1932661 & 0.2357290 & 4.456137 &
-28.98569 & 0.4368614 & 0.9513104 & 0.3345942 & 0.3054136 & 0.0654353 &
-0.8266604 & 36.80899 & 1475.290 \\
-Non-Black - EB & 0.1341005 & 0.1617950 & 0.1932661 & 0.2357290 &
-4.456137 & 28.98569 & 0.4368614 & 0.9513104 & 0.3345942 & 0.3054136 &
-0.0654353 & 0.8266604 & 36.80899 & 1475.290 \\
-Non-Black - Unbalanced & 0.2903635 & 0.1095579 & 0.1531073 & 0.2541371 &
-3.436914 & 17.52876 & 0.6647483 & 0.9833888 & 0.1822157 & 0.4559702 &
-0.0279250 & 0.7489164 & 38.48105 & 1595.486 \\
-\bottomrule()
-\end{longtable}
+\begin{verbatim}
+                      Black Non-Black - EB Non-Black - Unbalanced
+CRIMETYPEDUI         0.1341         0.1341                 0.2904
+CRIMETYPEOTHER       0.1618         0.1618                 0.1096
+CRIMETYPEPERSONS     0.1933         0.1933                 0.1531
+CRIMETYPEPROPERTY    0.2357         0.2357                 0.2541
+OGS                  4.4561         4.4561                 3.4369
+OGSQ                28.9857        28.9857                17.5288
+RECMINYes            0.4369         0.4369                 0.6647
+TRIALYes             0.9513         0.9513                 0.9834
+PRS4/5               0.3346         0.3346                 0.1822
+PRSNone              0.3054         0.3054                 0.4560
+PRSREVOC/RFEL        0.0654         0.0654                 0.0279
+MALEMale             0.8267         0.8267                 0.7489
+DOSAGE              36.8090        36.8090                38.4811
+DOSAGEQ           1475.2901      1475.2901              1595.4856
+\end{verbatim}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\FunctionTok{c}\NormalTok{(}\FunctionTok{summary}\NormalTok{(eb.out2}\SpecialCharTok{$}\NormalTok{w), }\StringTok{"Std. Dev"} \OtherTok{=} \FunctionTok{sd}\NormalTok{(eb.out2}\SpecialCharTok{$}\NormalTok{w))}
+\FunctionTok{c}\NormalTok{(}\FunctionTok{summary}\NormalTok{(eb.pcs2}\SpecialCharTok{$}\NormalTok{w), }\StringTok{"Std. Dev"} \OtherTok{=} \FunctionTok{sd}\NormalTok{(eb.pcs2}\SpecialCharTok{$}\NormalTok{w))}
 \end{Highlighting}
 \end{Shaded}
 
@@ -1205,44 +850,28 @@ Non-Black - Unbalanced & 0.2903635 & 0.1095579 & 0.1531073 & 0.2541371 &
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\FunctionTok{mean}\NormalTok{(pcs.cc2}\SpecialCharTok{$}\NormalTok{INCAR[treatment]) }\SpecialCharTok{{-}} \FunctionTok{mean}\NormalTok{(pcs.cc2}\SpecialCharTok{$}\NormalTok{INCAR[}\SpecialCharTok{!}\NormalTok{treatment])}
-\end{Highlighting}
-\end{Shaded}
-
-\begin{verbatim}
-[1] 0.09151778
-\end{verbatim}
-
-\begin{Shaded}
-\begin{Highlighting}[]
-\FunctionTok{mean}\NormalTok{(pcs.cc2}\SpecialCharTok{$}\NormalTok{INCAR[treatment]) }\SpecialCharTok{{-}} \FunctionTok{weighted.mean}\NormalTok{(pcs.cc2}\SpecialCharTok{$}\NormalTok{INCAR[}\SpecialCharTok{!}\NormalTok{treatment], }\AttributeTok{w =}\NormalTok{ eb.out2}\SpecialCharTok{$}\NormalTok{w)}
-\end{Highlighting}
-\end{Shaded}
-
-\begin{verbatim}
-[1] -0.002102528
-\end{verbatim}
-
-\begin{Shaded}
-\begin{Highlighting}[]
 \NormalTok{weights2 }\OtherTok{\textless{}{-}} \FunctionTok{numeric}\NormalTok{(}\FunctionTok{nrow}\NormalTok{(pcs.cc2))}
 \ControlFlowTok{for}\NormalTok{ (i }\ControlFlowTok{in} \DecValTok{1}\SpecialCharTok{:}\FunctionTok{nrow}\NormalTok{(pcs.cc2)) \{}
     \ControlFlowTok{if}\NormalTok{ (treatment[i]) \{}
 \NormalTok{        weights2[i] }\OtherTok{\textless{}{-}} \DecValTok{1}
 \NormalTok{    \}}
     \ControlFlowTok{else}\NormalTok{ \{}
-\NormalTok{        weights2[i] }\OtherTok{\textless{}{-}}\NormalTok{ eb.out2}\SpecialCharTok{$}\NormalTok{w[i]}
+\NormalTok{        weights2[i] }\OtherTok{\textless{}{-}}\NormalTok{ eb.pcs2}\SpecialCharTok{$}\NormalTok{w[i]}
 \NormalTok{    \}}
 \NormalTok{\}}
 
-\NormalTok{fit\_sim\_unweighted2 }\OtherTok{\textless{}{-}} \FunctionTok{glm}\NormalTok{(INCAR }\SpecialCharTok{\textasciitilde{}}\NormalTok{ ., }
+\NormalTok{fit\_pcs\_unweighted2 }\OtherTok{\textless{}{-}} \FunctionTok{summary}\NormalTok{(}\FunctionTok{glm}\NormalTok{(INCAR }\SpecialCharTok{\textasciitilde{}}\NormalTok{ ., }
                           \AttributeTok{data =}\NormalTok{ pcs.cc2, }
-                          \AttributeTok{family =} \FunctionTok{binomial}\NormalTok{(}\AttributeTok{link =} \StringTok{"logit"}\NormalTok{))}
+                          \AttributeTok{family =} \FunctionTok{binomial}\NormalTok{(}\AttributeTok{link =} \StringTok{"logit"}\NormalTok{),}
+                          \AttributeTok{model =} \ConstantTok{FALSE}\NormalTok{, }
+                          \AttributeTok{y =} \ConstantTok{FALSE}\NormalTok{))}
 
-\NormalTok{fit\_sim\_weighted2 }\OtherTok{\textless{}{-}} \FunctionTok{glm}\NormalTok{(INCAR }\SpecialCharTok{\textasciitilde{}}\NormalTok{ ., }
+\NormalTok{fit\_pcs\_weighted2 }\OtherTok{\textless{}{-}} \FunctionTok{summary}\NormalTok{(}\FunctionTok{glm}\NormalTok{(INCAR }\SpecialCharTok{\textasciitilde{}}\NormalTok{ ., }
                           \AttributeTok{data =}\NormalTok{ pcs.cc2, }
                           \AttributeTok{weights =}\NormalTok{ weights2,}
-                          \AttributeTok{family =} \FunctionTok{binomial}\NormalTok{(}\AttributeTok{link =} \StringTok{"logit"}\NormalTok{))}
+                          \AttributeTok{family =} \FunctionTok{binomial}\NormalTok{(}\AttributeTok{link =} \StringTok{"logit"}\NormalTok{),}
+                          \AttributeTok{model =} \ConstantTok{FALSE}\NormalTok{, }
+                          \AttributeTok{y =} \ConstantTok{FALSE}\NormalTok{))}
 \end{Highlighting}
 \end{Shaded}
 
@@ -1252,58 +881,44 @@ Warning in eval(family$initialize): non-integer #successes in a binomial glm!
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\FunctionTok{summary}\NormalTok{(fit\_sim\_unweighted2)}\SpecialCharTok{$}\NormalTok{coefficients[}\DecValTok{1}\SpecialCharTok{:}\DecValTok{18}\NormalTok{,]}
+\FunctionTok{print}\NormalTok{(}\StringTok{"Unweighted Race Effect Estimate with Incomplete Data:"}\NormalTok{)}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{verbatim}
-                       Estimate   Std. Error    z value      Pr(>|z|)
-(Intercept)        4.828647e-01 5.820112e-02   8.296484  1.072381e-16
-CRIMETYPEDUI       1.394976e+00 9.543873e-03 146.164533  0.000000e+00
-CRIMETYPEOTHER     2.170020e-01 1.116722e-02  19.432062  4.134152e-84
-CRIMETYPEPERSONS   7.386641e-01 1.050214e-02  70.334644  0.000000e+00
-CRIMETYPEPROPERTY  4.252373e-01 9.041083e-03  47.033885  0.000000e+00
-OGS               -1.549486e-01 5.081191e-03 -30.494551 3.077529e-204
-OGSQ               4.194846e-02 5.481273e-04  76.530502  0.000000e+00
-RECMINYes         -8.764497e-01 1.079381e-02 -81.199297  0.000000e+00
-TRIALYes          -8.661510e-01 2.397820e-02 -36.122440 1.007990e-285
-PRS4/5             6.225093e-01 9.522558e-03  65.372071  0.000000e+00
-PRSNone           -4.421836e-01 7.413999e-03 -59.641710  0.000000e+00
-PRSREVOC/RFEL      9.864536e-01 1.917982e-02  51.431854  0.000000e+00
-MALEMale           3.884446e-01 7.338357e-03  52.933456  0.000000e+00
-DOSAGE            -1.033700e-02 1.830968e-03  -5.645650  1.645579e-08
-DOSAGEQ           -4.512922e-05 2.124577e-05  -2.124151  3.365753e-02
-OFF_RACERBLACK     2.088674e-01 7.604425e-03  27.466566 4.405814e-166
-OFF_RACERLATINO    5.357477e-01 3.431845e-02  15.611070  6.120153e-55
-OFF_RACEROTHER     6.693911e-02 3.983922e-02   1.680232  9.291227e-02
+[1] "Unweighted Race Effect Estimate with Incomplete Data:"
 \end{verbatim}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\FunctionTok{summary}\NormalTok{(fit\_sim\_weighted2)}\SpecialCharTok{$}\NormalTok{coefficients[}\DecValTok{1}\SpecialCharTok{:}\DecValTok{18}\NormalTok{,]}
+\NormalTok{fit\_pcs\_unweighted2}\SpecialCharTok{$}\NormalTok{coefficients[}\StringTok{"OFF\_RACERBLACK"}\NormalTok{,]}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{verbatim}
-                       Estimate   Std. Error     z value      Pr(>|z|)
-(Intercept)        4.335875e-01 8.904442e-02   4.8693390  1.119722e-06
-CRIMETYPEDUI       1.381584e+00 1.492585e-02  92.5631789  0.000000e+00
-CRIMETYPEOTHER     1.484442e-01 1.598374e-02   9.2872000  1.584004e-20
-CRIMETYPEPERSONS   6.530335e-01 1.523409e-02  42.8665882  0.000000e+00
-CRIMETYPEPROPERTY  3.591615e-01 1.315553e-02  27.3011898 4.105856e-164
-OGS               -7.096068e-02 7.678490e-03  -9.2414900  2.430883e-20
-OGSQ               3.537983e-02 7.650282e-04  46.2464398  0.000000e+00
-RECMINYes         -8.386817e-01 1.616259e-02 -51.8903030  0.000000e+00
-TRIALYes          -8.843858e-01 3.136351e-02 -28.1979191 6.201418e-175
-PRS4/5             6.085924e-01 1.392847e-02  43.6941250  0.000000e+00
-PRSNone           -4.787503e-01 1.147468e-02 -41.7223309  0.000000e+00
-PRSREVOC/RFEL      9.686141e-01 2.608076e-02  37.1390216 6.593295e-302
-MALEMale           4.716421e-01 1.156488e-02  40.7822723  0.000000e+00
-DOSAGE            -1.459800e-02 2.699655e-03  -5.4073575  6.396139e-08
-DOSAGEQ           -4.711231e-06 3.159097e-05  -0.1491322  8.814493e-01
-OFF_RACERBLACK     2.432750e-01 1.084716e-02  22.4275354 2.120633e-111
-OFF_RACERLATINO    5.325347e-01 6.183470e-02   8.6122307  7.165247e-18
-OFF_RACEROTHER     2.860340e-02 7.238727e-02   0.3951440  6.927366e-01
+     Estimate    Std. Error       z value      Pr(>|z|) 
+ 2.088674e-01  7.604425e-03  2.746657e+01 4.405814e-166 
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{print}\NormalTok{(}\StringTok{"Weighted Race Effect Estimate with Incomplete Data:"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+[1] "Weighted Race Effect Estimate with Incomplete Data:"
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{fit\_pcs\_weighted2}\SpecialCharTok{$}\NormalTok{coefficients[}\StringTok{"OFF\_RACERBLACK"}\NormalTok{,]}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+     Estimate    Std. Error       z value      Pr(>|z|) 
+ 2.432750e-01  1.084716e-02  2.242754e+01 2.120633e-111 
 \end{verbatim}
 
 \hypertarget{references}{%
