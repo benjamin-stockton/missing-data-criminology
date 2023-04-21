@@ -160,7 +160,7 @@ md.pattern(dat.sm[,c("INCAR", "OFF_RACER", "CRIMETYPE", "TRIAL", "OGS",
 ```
 
 ```{r}
-c(834548, 26206, 2078, 34, 1465, 92, 3) / 86442
+c(834548, 26206, 2078, 34, 1465, 92, 3) / 864422
 prop_mis <- (30005) / nrow(dat.sm)
 ```
 

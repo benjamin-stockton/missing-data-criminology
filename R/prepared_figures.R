@@ -1,4 +1,6 @@
-source("helpers.R")
+source("R/helpers.R")
+source("R/results_figures.R")
+source("R/results_tables.R")
 library(magrittr)
 library(ggplot2)
 library(cowplot)
@@ -23,7 +25,7 @@ for (n in Ns) {
     tmp_str <- paste0("res_", n)
     print(tmp_str)
     print(Q)
-    tmp <- load_sim_results(Q = Q, N = n, M = M)
+    tmp <- load_sim_results(Q = Q, N = n, m = M)
 
     tmp %<>% mutate(IMPUTATION = ifelse(ANALYSIS == "MI", levels(IMPUTATION)[IMPUTATION], ""),
                     ANALYSIS2 = ifelse(ANALYSIS == "MI", paste0(ANALYSIS, " - ", IMPUTATION), levels(ANALYSIS)[ANALYSIS]),

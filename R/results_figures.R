@@ -49,20 +49,25 @@ my_gg_bar <- function(dat, X, ...) {
                   position = position_dodge(.9),
                   vjust = -0.5,
                   size = 3) +
-        scale_y_continuous(labels = scales::percent) + 
+        scale_y_continuous(labels = scales::percent) +
+        ggthemes::scale_fill_colorblind() +
+        ggthemes::scale_color_colorblind() + 
         labs(y = "Percent")
     return(p1)
 }
 
 my_gg_box <- function(dat, X, main = "", xlab = "", Q = 225, N = 500, horizontal = T, ...) {
     p1 <- ggplot(dat, aes_string(x = X)) +
-        geom_vline(xintercept = 0, color = "gray") +
+        geom_vline(xintercept = 0, color = "darkgray") +
         geom_boxplot(aes(y = IMPUTATION, fill = DIRECTION)) +
+        # geom_violin(aes(y = IMPUTATION, fill = DIRECTION),
+        #             draw_quantiles = c(0.25, 0.5, 0.75)) +
         labs(title = main,
              subtitle = paste0(Q, " iterations, n = ", N),
              x = xlab) +
         facet_grid(MISS_TYPE ~ ANALYSIS, scales = "free_y") +
-        scale_fill_grey()
+        ggthemes::scale_fill_colorblind() +
+        ggthemes::scale_color_colorblind() 
     
     if (!horizontal) {
         p1 <- p1 + coord_flip()

@@ -1,4 +1,16 @@
 # helpers.R
+library(dplyr, warn.conflicts = FALSE)
+# Suppress summarise info
+options(dplyr.summarise.inform = FALSE)
+library(mice)
+library(magrittr)
+library(ggplot2)
+library(latex2exp)
+library(RColorBrewer)
+library(readr)
+library(cowplot)
+library(doParallel)
+library(forcats)
 
 sample_from_pop <- function(pop_dat, N = 1000, replace = FALSE) {
     s <- sample(1:nrow(pop_dat), size = N, replace = replace)

@@ -1,17 +1,31 @@
 load_sim_results <- function(Q = 225, N = 500, m = 3) {
-    for (i in 1:length(m)) {
-        fname <- paste0("Sim_Results/simulation_results_Q", Q[i], "_n_", N, "_m_", m[i], ".csv")
-        print(fname)
-        if (i == 1) {
-            sim.res <- read.csv(fname, header = T)
-            sim.res$IMPUTATION <- rep(paste0(N[i], " imps"), nrow(sim.res))
-        }
-        else {
-            tmp <- read.csv(fname, header = T)
-            tmp$IMPUTATION <- rep(paste0(N[i], " imps"), nrow(tmp))
-            sim.res <- rbind(sim.res, tmp)
-        }
+    sim_res_list <- list()
+    
+    for (i in 1:3) {
+        fname <- paste0("../simulation_results_Q", Q, "_n_", N[1], "_m_", m[i], "_p_miss_0.01.csv")
+        tmp <- read.csv(fname, header = T)
+        tmp$IMPUTATION <- paste0(m[i], " imps")
+        # tmp[which(tmp$DIRECTION == "COMP"), "ANALYSIS"] <- "COMP"
+        # tmp[which(tmp$DIRECTION == "COMP"), "DIRECTION"] <- "No Missing Data"
+        # tmp$DIRECTION %<>% fct_relevel(c("OVER", "UNDR", "No Missing Data"))
+        # tmp$ANALYSIS %<>% fct_relevel(c("CCA", "COMP", "MI"))
+        # tmp$IMPUTATION %<>% fct_relevel(paste0(m, " imps"))
+        sim_res_list[[i]] <- tmp
     }
+    sim_res_list %>% purrr::reduce(bind_rows) -> sim.res
+    # for (i in 1:length(m)) {
+    #     fname <- paste0("../simulation_results_Q", Q[i], "_n_", N, "_m_", m[i], "_p_miss_0.01.csv")
+    #     print(fname)
+    #     if (i == 1) {
+    #         sim.res <- read.csv(fname, header = T)
+    #         sim.res$IMPUTATION <- rep(paste0(N[i], " imps"), nrow(sim.res))
+    #     }
+    #     else {
+    #         tmp <- read.csv(fname, header = T)
+    #         tmp$IMPUTATION <- rep(paste0(N[i], " imps"), nrow(tmp))
+    #         sim.res <- rbind(sim.res, tmp)
+    #     }
+    # }
     
     sim.res[which(sim.res$DIRECTION == "COMP"), "ANALYSIS"] <- "COMP"
     sim.res[which(sim.res$DIRECTION == "COMP"), "DIRECTION"] <- "No Missing Data"
@@ -74,5 +88,5 @@ present_tables <- function(Q = 225, N = 500, m = c(3)) {
         
         tbls[[i]] <- tmp
     }
-    return(tbls)
+    return(list(sim_data = sim.res, tables = tbls))
 }
