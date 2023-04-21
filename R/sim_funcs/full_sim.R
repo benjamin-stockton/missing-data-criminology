@@ -1,5 +1,6 @@
 
-full_sim <- function(beta, miss_pars_over, miss_pars_undr, miss_type = "MAR", 
+full_sim <- function(beta, miss_pars_over, miss_pars_undr,
+                     p_miss_target = 0.01, miss_type = "MAR", 
                      sim_size = "small", pop_data = NULL,
                      Q = 1, replace = FALSE, N = 100, m = 3) {
     res <- matrix(data = numeric(Q * 12), nrow = Q, ncol = 12)
@@ -32,7 +33,6 @@ full_sim <- function(beta, miss_pars_over, miss_pars_undr, miss_type = "MAR",
                                  N = N,
                                  m = m,
                                  levs = levs)
-        print(tmp)
         res[q,] <- tmp$cc
         mi_res[q,] <- tmp$mi
     }
@@ -59,7 +59,8 @@ full_sim <- function(beta, miss_pars_over, miss_pars_undr, miss_type = "MAR",
     return(sim.res)
 }
 
-simulate_analysis <- function(beta, miss_pars_over, miss_pars_undr, 
+simulate_analysis <- function(beta, miss_pars_over, miss_pars_undr,
+                              p_miss_target = 0.01, 
                               sim_size = "small", pop_data = NULL,
                               replace = FALSE, N = 100, m = 3,
                               levs = c("COMP", "OVER", "UNDR")) {
@@ -82,7 +83,8 @@ simulate_analysis <- function(beta, miss_pars_over, miss_pars_undr,
     }
     
     # Create the missing data
-    dat.list <- generate_missing_x(data, sim_size = sim_size,
+    dat.list <- generate_missing_x(data, p_miss_target = p_miss_target,
+                                   sim_size = sim_size,
                                    miss_pars_over = miss_pars_over,
                                    miss_pars_undr = miss_pars_undr)
     

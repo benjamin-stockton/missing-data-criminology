@@ -1,18 +1,5 @@
 # criminology_sims_script.R
 
-# Load packages
-library(dplyr, warn.conflicts = FALSE)
-# Suppress summarise info
-options(dplyr.summarise.inform = FALSE)
-library(mice)
-library(magrittr)
-library(ggplot2)
-library(latex2exp)
-library(RColorBrewer)
-library(readr)
-library(cowplot)
-library(doParallel)
-library(forcats)
 file.sources = list.files(c("R/sim_funcs"), 
                           pattern="*.R$", full.names=TRUE, 
                           ignore.case=TRUE)
@@ -20,20 +7,22 @@ invisible(capture.output(sapply(file.sources,source,.GlobalEnv)))
 invisible(capture.output(source("R/helpers.R")))
 
 # Simulation parameters from command line
-args <- c(15, 1000, 5)
+args <- c(15, 1000, 5, 0.03)
 args <- commandArgs(trailingOnly = T)
 
-if (length(args) != 3) {
-    stop("Simulation parameters misspecificed. Should be Q, n, m")
-} else if (length(args) == 3) {
+if (length(args) != 4) {
+    stop("Simulation parameters misspecificed. Should be Q, n, m, p_target")
+} else if (length(args) == 4) {
     # Number of iterations to run in each parallel thread
     Q <- as.numeric(args[1]) # Q
     # Sample size
     N <- as.numeric(args[2])
     # Number of imputations for MI
     m <- as.numeric(args[3])
+    # Target Proportion of missingness
+    p_miss_target <- as.numeric(args[4])
 }
-print(paste0("Running simulations with ", Q, " iterations, n = ", N, " sample size, and N = ", m, " imputations"))
+print(paste0("Running simulations with ", Q, " iterations, n = ", N, " sample size, and M = ", m, " imputations with p_target = ", p_miss_target))
 
 # Sample with replacement?
 replace <- FALSE
@@ -74,7 +63,8 @@ miss_pars_undr <- build_miss_par_matrix(
     miss_type = "MAR", sim_size = "full")
 
 fs <- full_sim(miss_type = "MAR", sim_size = "full", pop_data = dat,
-               beta = beta, N = N, m = m, miss_pars_over = miss_pars_over,
+               p_miss_target = p_miss_target,
+               beta = beta, N = N, m = 2, miss_pars_over = miss_pars_over,
                miss_pars_undr = miss_pars_undr, Q = 1, replace = replace)
 fs
 
@@ -98,8 +88,10 @@ cl <- makeCluster(cores)
 registerDoParallel(cl)
 ptime <- system.time({
     mnar <- foreach(i = 1:cores, .combine = rbind) %dopar% {
-        source("helpers.R")
+        invisible(capture.output(sapply(file.sources,source,.GlobalEnv)))
+        invisible(capture.output(source("R/helpers.R")))
         full_sim(miss_type = "MNAR", sim_size = "full", pop_data = dat,
+                 p_miss_target = p_miss_target,
                  beta = beta, N = N, m = m, miss_pars_over = miss_pars_mnar_over, 
                  miss_pars_undr = miss_pars_mnar_undr, Q = coreQ, replace = replace)
     }
@@ -127,8 +119,10 @@ cl <- makeCluster(cores)
 registerDoParallel(cl)
 ptime <- system.time({
     mar <- foreach(i = 1:cores, .combine = rbind) %dopar% {
-        source("helpers.R")
+        invisible(capture.output(sapply(file.sources,source,.GlobalEnv)))
+        invisible(capture.output(source("R/helpers.R")))
         full_sim(miss_type = "MAR", sim_size = "full", pop_data = dat,
+                 p_miss_target = p_miss_target,
                  beta = beta, N = N, m = m, miss_pars_over = miss_pars_mar_over, 
                  miss_pars_undr = miss_pars_mar_undr, Q = coreQ, replace = replace)
     }
@@ -138,4 +132,5 @@ stopCluster(cl)
 
 sim.res <- rbind(mnar, mar)
 
-write_csv(sim.res, paste0("Sim_Results/simulation_results_Q", Q, "_n_", N, "_m_", m, ".csv"))
+write_csv(sim.res, paste0("Sim_Results/simulation_results_Q", Q, "_n_", N, 
+                          "_m_", m, "_p_miss_", p_miss_target, ".csv"))

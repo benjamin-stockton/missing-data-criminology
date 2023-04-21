@@ -1,4 +1,4 @@
-missingness_model <- function(data, miss_pars, sim_size = "small") {
+missingness_model <- function(data, miss_pars, sim_size = "small", p_miss_target = 0.01) {
     # data: N x p+1 matrix (Y, X)
     # miss_pars: a matrix of parameters for the missingness model
     
@@ -35,11 +35,26 @@ missingness_model <- function(data, miss_pars, sim_size = "small") {
     EV <- apply(V, 2, mean); EL <- apply(L, 2, mean)
     prob.mat <- calc_pattern_probs(V, L, beta, gamma, EV, EL)
     
+    p_true <- apply(prob.mat, 2, mean)
+    
+    # prob.mat <- prob.mat * p_miss_target / sum(p_true[-1])
+    
     # Create probabilities of missingness in Race/X
-    assigned_pattern <- apply(matrix(1:nrow(data), ncol = 1), 1,
-                              function(r) {
-                                  return(sample(1:8, 1, prob = prob.mat[r,]))
-                              })
+    # assigned_pattern <- apply(matrix(1:nrow(data), ncol = 1), 1,
+    #                           function(r) {
+    #                               return(sample(1:8, 1, prob = prob.mat[r,]))
+    #                           })
+    id_set <- 1:nrow(data)
+    assigned_pattern <- rep(1, nrow(data))
+    for (r in 2:8) {
+        nr <- nrow(data) * p_true[r] * p_miss_target / sum(p_true[-1]) 
+        # print(paste0("N_", r, " = ", nr))
+        # print(length(id_set))
+        sr <- sample(id_set, size = floor(nr), replace = F, prob = prob.mat[id_set,r])
+        assigned_pattern[sr] <- r
+        id_set <- setdiff(id_set, sr)
+    }
+    
     # print(prop.table(table(assigned_pattern)))
     return(assigned_pattern)
 }

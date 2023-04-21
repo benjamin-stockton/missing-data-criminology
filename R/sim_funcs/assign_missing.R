@@ -28,9 +28,12 @@ assign_missing <- function(data, miss_pattern, sim_size = "small") {
     return(df)
 }
 
-generate_missing_x <- function(data, miss_pars_over, miss_pars_undr, sim_size = "small") {
-    p1 <- missingness_model(data, miss_pars = miss_pars_over, sim_size = sim_size)
-    p2 <- missingness_model(data, miss_pars = miss_pars_undr, sim_size = sim_size)
+generate_missing_x <- function(data, miss_pars_over, miss_pars_undr,
+                               p_miss_target = 0.01, sim_size = "small") {
+    p1 <- missingness_model(data, p_miss_target = p_miss_target,
+                            miss_pars = miss_pars_over, sim_size = sim_size)
+    p2 <- missingness_model(data, p_miss_target = p_miss_target,
+                            miss_pars = miss_pars_undr, sim_size = sim_size)
     data.over <- assign_missing(data, p1, sim_size = sim_size)
     data.under <- assign_missing(data, p2, sim_size = sim_size)
     
