@@ -85,7 +85,7 @@ The authors also claim entropy balancing as doubly robust, while other papers ha
 
 The central claim by the authors is that
 
-> \"Although the coefficients produced from the linear regression and the other approaches are not statistically different from each other (e.g. all coefficients are within 1 standard deviation of each other), the change in the size of the estimated mean sentence length difference between Blacks and Whites suggests that the regression model is downwardly biased. Specifically, race coefficients have similar precision, but the parameter estimated from the linear regression is one-half the size of the coefficients estimated from entropy or propensity score weighting.\" [@macdonaldEvaluatingRoleRace2019, p. 675]
+> "Although the coefficients produced from the linear regression and the other approaches are not statistically different from each other (e.g. all coefficients are within 1 standard deviation of each other), the change in the size of the estimated mean sentence length difference between Blacks and Whites suggests that the regression model is downwardly biased. Specifically, race coefficients have similar precision, but the parameter estimated from the linear regression is one-half the size of the coefficients estimated from entropy or propensity score weighting." [@macdonaldEvaluatingRoleRace2019, p. 675]
 
 But there's no justification for any of these claims. No engagement with the uncertainty measures; in fact saying they're all within one standard error of each other should be the end of the conversation. That means there are no real distinctions between results so trying to draw any is pointless.
 

@@ -16,6 +16,9 @@ format:
   docx:
     shift-heading-level-by: -1
 editor: visual
+fig-width: 7
+fig-height: 5
+fig-dpi: 300
 execute: 
   cache: true
 bibliography: ../../Literature/Criminology.bib
@@ -40,7 +43,7 @@ source("../../R/results_tables.R")
 
 ## Overview
 
-I ran the simulations under a variety of settings, each for 225 iterations.
+I ran the simulations under a variety of settings, each for 1000 iterations.
 
 | Sample Size ($n$) | Number of Imputations ($M$) |
 |-------------------|-----------------------------|
@@ -73,11 +76,12 @@ m <- c(3, 5, 8)
 
 tbs <- present_tables(Q = Q, N = N[1], m = m)
 
-plts <- result_plots(tbs$sim_data, Q = 225, N = N[1], horizontal = T)
+plts <- result_plots(tbs$sim_data, Q = Q, N = N[1], horizontal = T)
 
 print(plts$DIFF)
-print(tbs$tables$DIFF)
+tbs$tables$DIFF
 print(plts$BIAS)
+tbs$tables$BIAS
 ```
 
 ### n = 1000
@@ -88,11 +92,12 @@ print(plts$BIAS)
 
 tbs <- present_tables(Q = Q, N = N[2], m = m)
 
-plts <- result_plots(tbs$sim_data, Q = 225, N = N[2], horizontal = T)
+plts <- result_plots(tbs$sim_data, Q = Q, N = N[2], horizontal = T)
 
 print(plts$DIFF)
-print(tbs$tables$DIFF)
+tbs$tables$DIFF
 print(plts$BIAS)
+tbs$tables$BIAS
 ```
 
 ### n = 2500
@@ -103,9 +108,10 @@ print(plts$BIAS)
 
 tbs <- present_tables(Q = Q, N = N[3], m = m)
 
-plts <- result_plots(tbs$sim_data, Q = 225, N = N[3], horizontal = T)
+plts <- result_plots(tbs$sim_data, Q = Q, N = N[3], horizontal = T)
 
 print(plts$DIFF)
-print(tbs$tables$DIFF)
+tbs$tables$DIFF
 print(plts$BIAS)
+tbs$tables$BIAS
 ```

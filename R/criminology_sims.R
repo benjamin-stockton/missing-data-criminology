@@ -7,7 +7,7 @@ invisible(capture.output(sapply(file.sources,source,.GlobalEnv)))
 invisible(capture.output(source("R/helpers.R")))
 
 # Simulation parameters from command line
-args <- c(15, 1000, 5, 0.03)
+# args <- c(15, 1000, 5, 0.03)
 args <- commandArgs(trailingOnly = T)
 
 if (length(args) != 4) {
@@ -64,7 +64,7 @@ miss_pars_undr <- build_miss_par_matrix(
 
 fs <- full_sim(miss_type = "MAR", sim_size = "full", pop_data = dat,
                p_miss_target = p_miss_target,
-               beta = beta, N = N, m = 2, miss_pars_over = miss_pars_over,
+               beta = beta, N = N, m = m, miss_pars_over = miss_pars_over,
                miss_pars_undr = miss_pars_undr, Q = 1, replace = replace)
 fs
 
