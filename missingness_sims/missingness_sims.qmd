@@ -37,13 +37,17 @@ library(forcats)
 library(ggthemes)
 
 cores <- detectCores()
-source("helpers.R")
+source("../R/helpers.R")
+file.sources = list.files(c("../R/sim_funcs"), 
+                          pattern="*.R$", full.names=TRUE, 
+                          ignore.case=TRUE)
+sapply(file.sources,source,.GlobalEnv)
 ```
 
 ```{r load-data}
 #| echo: false
 #| results: "hide"
-dat <- read_csv("Data/simulated_data.csv", col_types = "dfdffffffdfdd")
+dat <- read_csv("../Data/simulated_data.csv", col_types = "dfdffffffdfdd")
 dat$OFF_RACER %<>% fct_relevel(c("WHITE", "BLACK", "LATINO", "OTHER"))
 levels(dat$OFF_RACER)
 ```
@@ -58,9 +62,7 @@ To create the "population" data set, I'll draw a random sample from a distributi
 #| echo: false
 #| cache: true
 #| output: false
-load("full_data_cca_log_reg.rda")
-beta <- coef(fit)
-rm(fit)
+load("../Data/full_data_cca_log_reg_coef.rda")
 
 beta["OFF_RACERBLACK"]
 sort(beta, decreasing = T)[1:5]
@@ -113,7 +115,7 @@ For my simulations, I'll use a sample size of $n = 1,000$ which can be adjusted 
 
 ```{r sim-params}
 # Sample size
-M <- 500
+N <- 1000
 # Number of imputations for MI
 m <- 3
 # Number of iterations to run in each parallel thread
@@ -146,7 +148,7 @@ test.df %>% str()
 
 ```{r}
 #| include: false
-source("helpers.R")
+# source("helpers.R")
 miss_pars_mnar <- build_miss_par_matrix(
     beta = c(-5, rep(0, 87)),
     gamma = c(4, .5, .01, rep(0, 3), 10, 0),
@@ -179,14 +181,14 @@ EV <- apply(V, 2, mean); EL <- apply(L, 2, mean)
 prob.mat <- calc_pattern_probs(V, L, b, g, EV, EL)
 
 apply(prob.mat, 1, sum)
-apply(prob.mat, 2, mean)
+apply(prob.mat, 2, mean) %>% round(3)
 
 # sapply(prob.mat[,1], function(p) {return(ifelse(p > 0, p, 0))})
 ```
 
 ```{r}
 #| include: false
-source("helpers.R")
+# source("helpers.R")
 
 miss_pars_mnar <- build_miss_par_matrix(
     beta = log(c(.001, rep(1, 87))),
@@ -213,7 +215,7 @@ prop.table(table(test.df.mis$INCAR, test.df.mis$OFF_RACER), margin = 2)
 As a test for the simulation, I run a single iteration to check to make sure the output is formatted correctly to create the summary tables and figures in the Results section. The actual results aren't relevant to our analysis.
 
 ```{r test-full-sim-iter1}
-source("helpers.R")
+# source("helpers.R")
 # Missingness model parameters for MNAR - OVER
 miss_pars_over <- build_miss_par_matrix(
     beta = log(c(1, rep(1, 87))),
@@ -229,7 +231,7 @@ miss_pars_undr <- build_miss_par_matrix(
 
 start <- Sys.time()
 fs <- full_sim(miss_type = "MNAR", sim_size = "full", pop_data = dat,
-         beta = beta, M = 25000, m = m, miss_pars_over = miss_pars_over, 
+         beta = beta, N = N, m = m, miss_pars_over = miss_pars_over, 
          miss_pars_undr = miss_pars_undr, Q = 1, replace = replace)
 Sys.time() - start
 fs
@@ -266,7 +268,7 @@ ptime <- system.time({
     mnar <- foreach(i = 1:15, .combine = rbind) %dopar% {
     source("helpers.R")
     full_sim(miss_type = "MNAR", sim_size = "full", pop_data = dat,
-         beta = beta, M = M, m = m, miss_pars_over = miss_pars_mnar_over, 
+         beta = beta, N = N, m = m, miss_pars_over = miss_pars_mnar_over, 
          miss_pars_undr = miss_pars_mnar_undr, Q = Q, replace = replace)
     }
 })[3]
@@ -297,9 +299,13 @@ cl <- makeCluster(cores[1] - 1)
 registerDoParallel(cl)
 ptime <- system.time({
     mar <- foreach(i = 1:15, .combine = rbind) %dopar% {
-    source("helpers.R")
+    source("../R/helpers.R")
+    file.sources = list.files(c("../R/sim_funcs"), 
+                              pattern="*.R$", full.names=TRUE, 
+                              ignore.case=TRUE)
+    sapply(file.sources,source,.GlobalEnv)
     full_sim(miss_type = "MAR", sim_size = "full", pop_data = dat,
-         beta = beta, M = M, m = m, miss_pars_over = miss_pars_mar_over, 
+         beta = beta, N = N, m = m, miss_pars_over = miss_pars_mar_over, 
          miss_pars_undr = miss_pars_mar_undr, Q = Q, replace = replace)
     }
 })[3]

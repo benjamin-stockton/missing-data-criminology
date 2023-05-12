@@ -21,7 +21,7 @@ full_sim <- function(beta, miss_pars_over, miss_pars_undr,
     colnames(mi_res) <- lbls[5:12]
     
     for (q in 1:Q) {
-        if (q %% 50 == 0)
+        if (q %% 25 == 0)
             print(paste0("Iteration: ", q))
         # Simulation Step
         tmp <- simulate_analysis(beta = beta,

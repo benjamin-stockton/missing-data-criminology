@@ -10,19 +10,24 @@ missingness_model <- function(data, miss_pars, sim_size = "small", p_miss_target
         L <- data %>% select(X, Z1, Z1Q, Z2) %>% as.matrix()
     }
     else if (sim_size == "full") {
-        V <- data %>% select(-c(OFF_RACERBLACK, 
-                                OFF_RACERLATINO, 
-                                OFF_RACEROTHER, 
-                                DOSAGE, DOSAGEQ,
-                                RECMIN)) %>% as.matrix()
+        V <- data %>% 
+            select(-c(OFF_RACERBLACK, 
+                    OFF_RACERLATINO, 
+                    OFF_RACEROTHER, 
+                    DOSAGE, DOSAGEQ,
+                    RECMIN)) %>% 
+            as.matrix()
         
-        L <- data %>% select(c(INCAR, OFF_RACERBLACK, 
-                               OFF_RACERLATINO, 
-                               OFF_RACEROTHER, 
-                               DOSAGE, DOSAGEQ,
-                               RECMIN)) %>% 
+        L <- data %>% 
+            select(c(INCAR, OFF_RACERBLACK, 
+                   OFF_RACERLATINO, 
+                   OFF_RACEROTHER, 
+                   DOSAGE, DOSAGEQ,
+                   RECMIN)) %>% 
             mutate(Z1 = OFF_RACERBLACK * (1 - INCAR),
-                   Z2 = OFF_RACERBLACK * INCAR) %>% select(-INCAR) %>% as.matrix()
+                   Z2 = OFF_RACERBLACK * INCAR) %>% 
+            select(-INCAR) %>% 
+            as.matrix()
     }
     # print(colnames(V[,1:6]))
     # print(colnames(L))
@@ -36,7 +41,7 @@ missingness_model <- function(data, miss_pars, sim_size = "small", p_miss_target
     prob.mat <- calc_pattern_probs(V, L, beta, gamma, EV, EL)
     
     p_true <- apply(prob.mat, 2, mean)
-    
+    # print(p_true)
     # prob.mat <- prob.mat * p_miss_target / sum(p_true[-1])
     
     # Create probabilities of missingness in Race/X
@@ -49,7 +54,7 @@ missingness_model <- function(data, miss_pars, sim_size = "small", p_miss_target
     for (r in 2:8) {
         nr <- nrow(data) * p_true[r] * p_miss_target / sum(p_true[-1]) 
         # print(paste0("N_", r, " = ", nr))
-        # print(length(id_set))
+        # print(paste0("len(id_set): ", length(id_set)))
         sr <- sample(id_set, size = floor(nr), replace = F, prob = prob.mat[id_set,r])
         assigned_pattern[sr] <- r
         id_set <- setdiff(id_set, sr)

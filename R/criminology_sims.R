@@ -7,7 +7,7 @@ invisible(capture.output(sapply(file.sources,source,.GlobalEnv)))
 invisible(capture.output(source("R/helpers.R")))
 
 # Simulation parameters from command line
-# args <- c(15, 1000, 5, 0.03)
+args <- c(100, 1000, 3, 0.03)
 args <- commandArgs(trailingOnly = T)
 
 if (length(args) != 4) {
@@ -51,14 +51,14 @@ print("Test Simulation: 1 Iteration of MAR")
 
 # Missingness model parameters for MNAR - OVER
 miss_pars_over <- build_miss_par_matrix(
-    beta = log(c(1, rep(1, 87))),
-    gamma = log(c(1, rep(1, 5), .001, 25)),
+    beta = log(c(10, rep(1, 87))),
+    gamma = log(c(25, rep(1, 5), 1,1)),
     miss_type = "MAR", sim_size = "full")
 # print(miss_pars_over[, c(1:4, 90:97)])
 
 # Missingness model parameters for MNAR - UNDR
 miss_pars_undr <- build_miss_par_matrix(
-    beta = log(c(1, rep(1, 87))),
+    beta = log(c(.1, rep(1, 87))),
     gamma = log(c(1, rep(1, 5), 25, .1)),
     miss_type = "MAR", sim_size = "full")
 
@@ -129,6 +129,7 @@ ptime <- system.time({
 })[3]
 ptime
 stopCluster(cl)
+mar
 
 sim.res <- rbind(mnar, mar)
 

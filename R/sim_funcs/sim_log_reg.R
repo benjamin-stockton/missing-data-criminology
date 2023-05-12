@@ -57,15 +57,15 @@ mi_log_reg <- function(data, sim_size = "small", m = 3) {
     }
     
     else if (sim_size == "full") {
-        ini <- mice(data, m = 1, maxit = 0, print = F, method = "pmm")
+        ini <- mice(data, m = 1, maxit = 0, print = FALSE, method = "pmm")
         
         methd <- ini$method
         methd["DOSAGEQ"] <- "~I(DOSAGE^2)"
-        print(methd)
+        # print(methd)
         pred_mat <- ini$predictorMatrix
         pred_mat["DOSAGE", "DOSAGEQ"] <- 0
         
-        imp <- mice(data, m = m, predictorMatrix = pred_mat, method = methd)
+        imp <- mice(data, m = m, predictorMatrix = pred_mat, method = methd, print = FALSE)
         fitm <- with(imp, glm(INCAR ~ CRIMETYPE + OGS + OGSQ + RECMIN + TRIAL + PRS + 
                                   MALE + DOSAGE + DOSAGEQ + OFF_RACER + COUNTY + YEAR, 
                               family = binomial(link = "logit")))
