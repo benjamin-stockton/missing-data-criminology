@@ -19,6 +19,7 @@ editor: visual
 fig-width: 7
 fig-height: 5
 fig-dpi: 300
+keep-tex: true
 execute: 
   cache: true
 bibliography: ../../Literature/Criminology.bib
@@ -79,9 +80,16 @@ tbs <- present_tables(Q = Q, N = N[1], m = m)
 plts <- result_plots(tbs$sim_data, Q = Q, N = N[1], horizontal = T)
 
 print(plts$DIFF)
-tbs$tables$DIFF
+tbs$tables$DIFF |> 
+    filter(`Miss Type` == "MAR") |> 
+    kableExtra::kbl(format = "latex", digits = 3, booktabs = TRUE)
+tbs$tables$PROP_MISS |> 
+    filter(`Miss Type` == "MAR") |> 
+    kableExtra::kbl(format = "latex", digits = 3, booktabs = TRUE)
 print(plts$BIAS)
-tbs$tables$BIAS
+tbs$tables$BIAS |> 
+    filter(`Miss Type` == "MAR") |> 
+    kableExtra::kbl(format = "latex", digits = 3, booktabs = TRUE)
 ```
 
 ### n = 1000
@@ -95,9 +103,10 @@ tbs <- present_tables(Q = Q, N = N[2], m = m)
 plts <- result_plots(tbs$sim_data, Q = Q, N = N[2], horizontal = T)
 
 print(plts$DIFF)
-tbs$tables$DIFF
+tbs$tables$DIFF |> kableExtra::kbl(format = "latex", digits = 3, booktabs = TRUE)
+tbs$tables$PROP_MISS |> kableExtra::kbl(format = "latex", digits = 3, booktabs = TRUE)
 print(plts$BIAS)
-tbs$tables$BIAS
+tbs$tables$BIAS |> kableExtra::kbl(format = "latex", digits = 3, booktabs = TRUE)
 ```
 
 ### n = 2500
@@ -111,7 +120,8 @@ tbs <- present_tables(Q = Q, N = N[3], m = m)
 plts <- result_plots(tbs$sim_data, Q = Q, N = N[3], horizontal = T)
 
 print(plts$DIFF)
-tbs$tables$DIFF
+tbs$tables$DIFF |> kableExtra::kbl(format = "latex", digits = 3, booktabs = TRUE)
+tbs$tables$PROP_MISS |> kableExtra::kbl(format = "latex", digits = 3, booktabs = TRUE)
 print(plts$BIAS)
-tbs$tables$BIAS
+tbs$tables$BIAS |> kableExtra::kbl(format = "latex", digits = 3, booktabs = TRUE)
 ```

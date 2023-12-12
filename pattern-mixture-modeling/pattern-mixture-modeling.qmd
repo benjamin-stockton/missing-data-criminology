@@ -1,0 +1,95 @@
+---
+title: "Sentencing Analysis with Pattern Mixture Modeling"
+author: 
+    - name: C. Clare Strange
+      email: cs3846@drexel.edu
+      affiliations:
+          - name: Department of Criminology and Justice Studies, Drexel University
+    - name: Benjamin Stockton
+      email: benjamin.stockton@uconn.edu
+      orcid: 0000-0002-3820-5293
+      affiliations: 
+          - name: Department of Statistics, University of Connecticut
+    - name: Ofer Harel
+      affiliations: 
+          - name: Department of Statistics, University of Connecticut
+date: today
+number-sections: true 
+number-depth: 2
+toc: false
+format:
+  pdf:
+    keep-tex: true
+execute: 
+  cache: true
+  echo: false
+  warning: false
+bibliography: ../Literature/Criminology.bib
+fig-height: 5
+fig-width: 8
+abstract: ""
+keywords: incomplete data, pattern-mixture model
+editor: visual
+---
+
+```{r}
+#| label: set-up
+library(dplyr, warn.conflicts = FALSE, quietly = TRUE)
+library(ggplot2, warn.conflicts = FALSE, quietly = TRUE)
+library(mice, warn.conflicts = FALSE, quietly = TRUE)
+
+```
+
+## Methods
+
+## Analysis
+
+```{r}
+#| label: load-data
+df <- readr::read_csv("../Data/PCS-most-serious-sentence-2010-2019-pmm.csv",
+                      show_col_types = FALSE)
+```
+
+```{r}
+md.pattern(df, rotate.names = TRUE)
+```
+
+```{r}
+df |>
+    filter(JP_MIN_MON > 0) |>
+    group_by(YEAR) |>
+    summarize(
+        mean_JP_MIN_MON = mean(JP_MIN_MON, na.rm = TRUE),
+        sd_JP_MIN_MON = sd(JP_MIN_MON, na.rm = TRUE),
+        min_JP_MIN_MON = min(JP_MIN_MON, na.rm = TRUE),
+        median_JP_MIN_MON = median(JP_MIN_MON, na.rm = TRUE),
+        max_JP_MIN_MON = max(JP_MIN_MON, na.rm = TRUE)
+    )
+
+df |>
+    filter(JP_MIN_MON > 0) |>
+    ggplot(aes(JP_MIN_MON)) +
+        geom_density() +
+        facet_wrap(YEAR~., scales = "free_y")
+df |>
+    filter(JP_MIN_MON > 0) |>
+    ggplot(aes(as.factor(YEAR), JP_MIN_MON)) +
+        geom_violin(draw_quantiles = c(0.025, 0.25, 0.5, 0.75, 0.975)) +
+        geom_point(size = 0.5)
+```
+
+```{r}
+ggplot(df, aes(as.factor(CRIMETYPE), JP_MIN_MON)) +
+    geom_violin(draw_quantiles = c(0.025, 0.25, 0.5, 0.75, 0.975)) +
+    geom_point(size = 0.5)
+```
+
+```{r}
+ggplot(df, aes(as.factor(OFF_RACER), JP_MIN_MON)) +
+    geom_violin(draw_quantiles = c(0.025, 0.25, 0.5, 0.75, 0.975)) +
+    geom_point(size = 0.5)
+```
+
+```{r}
+
+```

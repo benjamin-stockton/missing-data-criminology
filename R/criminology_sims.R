@@ -7,7 +7,7 @@ invisible(capture.output(sapply(file.sources,source,.GlobalEnv)))
 invisible(capture.output(source("R/helpers.R")))
 
 # Simulation parameters from command line
-args <- c(100, 1000, 3, 0.03)
+args <- c(250, 1000, 3, 0.03)
 args <- commandArgs(trailingOnly = T)
 
 if (length(args) != 4) {
@@ -28,7 +28,7 @@ print(paste0("Running simulations with ", Q, " iterations, n = ", N, " sample si
 replace <- FALSE
 
 # set up cores for parallel computation
-cores <- detectCores()[1] - 1
+cores <- detectCores()[1] - 3
 coreQ <- ceiling(Q / cores)
 
 # Load in the simulated data
@@ -52,52 +52,56 @@ print("Test Simulation: 1 Iteration of MAR")
 # Missingness model parameters for MNAR - OVER
 miss_pars_over <- build_miss_par_matrix(
     beta = log(c(10, rep(1, 87))),
-    gamma = log(c(25, rep(1, 5), 1,1)),
+    gamma = log(c(1.5, rep(1, 5), 1,1)),
     miss_type = "MAR", sim_size = "full")
 # print(miss_pars_over[, c(1:4, 90:97)])
 
 # Missingness model parameters for MNAR - UNDR
 miss_pars_undr <- build_miss_par_matrix(
-    beta = log(c(.1, rep(1, 87))),
-    gamma = log(c(1, rep(1, 5), 25, .1)),
+    beta = log(c(.001, rep(1, 87))),
+    gamma = log(c(10, rep(1, 5), 1, 1)),
     miss_type = "MAR", sim_size = "full")
 
 fs <- full_sim(miss_type = "MAR", sim_size = "full", pop_data = dat,
                p_miss_target = p_miss_target,
                beta = beta, N = N, m = m, miss_pars_over = miss_pars_over,
-               miss_pars_undr = miss_pars_undr, Q = 1, replace = replace)
-fs
+               miss_pars_undr = miss_pars_undr, Q = 5, replace = replace)
+fs |>
+    group_by(MISS_TYPE, DIRECTION, ANALYSIS) |>
+    summarize(across(c("ODDS_RATIO", "PROP_MISS", "OR_DIFF", "OR_BIAS"), 
+                     ~ mean(.x),
+                     .names = "{.col}_mean"))
 
 ##------------------------------------------------------------------------------
 # MNAR simulation
-print(paste0("MNAR Simulation: ", Q, " iterations"))
-
-# Missingness model parameters for MNAR - OVER
-miss_pars_mnar_over <- build_miss_par_matrix(
-    beta = log(c(10, rep(1, 87))),
-    gamma = log(c(.1, rep(1, 5), .001, 100)),
-    miss_type = "MNAR", sim_size = "full")
-
-# Missingness model parameters for MNAR - UNDR
-miss_pars_mnar_undr <- build_miss_par_matrix(
-    beta = log(c(5, rep(1, 87))),
-    gamma = log(c(5, rep(1, 5), 10, 1)),
-    miss_type = "MNAR", sim_size = "full")
-
-cl <- makeCluster(cores)
-registerDoParallel(cl)
-ptime <- system.time({
-    mnar <- foreach(i = 1:cores, .combine = rbind) %dopar% {
-        invisible(capture.output(sapply(file.sources,source,.GlobalEnv)))
-        invisible(capture.output(source("R/helpers.R")))
-        full_sim(miss_type = "MNAR", sim_size = "full", pop_data = dat,
-                 p_miss_target = p_miss_target,
-                 beta = beta, N = N, m = m, miss_pars_over = miss_pars_mnar_over, 
-                 miss_pars_undr = miss_pars_mnar_undr, Q = coreQ, replace = replace)
-    }
-})[3]
-ptime
-stopCluster(cl)
+#print(paste0("MNAR Simulation: ", Q, " iterations"))
+#
+## Missingness model parameters for MNAR - OVER
+#miss_pars_mnar_over <- build_miss_par_matrix(
+#    beta = log(c(10, rep(1, 87))),
+#    gamma = log(c(.1, rep(1, 5), .001, 100)),
+#    miss_type = "MNAR", sim_size = "full")
+#
+## Missingness model parameters for MNAR - UNDR
+#miss_pars_mnar_undr <- build_miss_par_matrix(
+#    beta = log(c(5, rep(1, 87))),
+#    gamma = log(c(5, rep(1, 5), 10, 1)),
+#    miss_type = "MNAR", sim_size = "full")
+#
+#cl <- makeCluster(cores)
+#registerDoParallel(cl)
+#ptime <- system.time({
+#    mnar <- foreach(i = 1:cores, .combine = rbind) %dopar% {
+#        invisible(capture.output(sapply(file.sources,source,.GlobalEnv)))
+#        invisible(capture.output(source("R/helpers.R")))
+#        full_sim(miss_type = "MNAR", sim_size = "full", pop_data = dat,
+#                 p_miss_target = p_miss_target,
+#                 beta = beta, N = N, m = m, miss_pars_over = miss_pars_mnar_over, 
+#                 miss_pars_undr = miss_pars_mnar_undr, Q = coreQ, replace = replace)
+#    }
+#})[3]
+#ptime
+#stopCluster(cl)
 
 ##------------------------------------------------------------------------------
 # MAR simulation
@@ -106,13 +110,13 @@ print(paste0("MAR Simulation: ", Q, " iterations"))
 # Missingness model parameters for MAR - OVER
 miss_pars_mar_over <- build_miss_par_matrix(
     beta = log(c(10, rep(1, 87))),
-    gamma = log(c(.1, rep(1, 5), .00001, 1)),
+    gamma = log(c(.01, rep(1, 5), .01,10)),
     miss_type = "MAR", sim_size = "full")
 
 # Missingness model parameters for MAR - UNDR
 miss_pars_mar_undr <- build_miss_par_matrix(
-    beta = log(c(1, rep(1, 87))),
-    gamma = log(c(1, rep(1, 5), 30, .1)),
+    beta = log(c(10, rep(1, 87))),
+    gamma = log(c(5, rep(1, 5), 10, .1)),
     miss_type = "MAR", sim_size = "full")
 
 cl <- makeCluster(cores)
@@ -129,9 +133,13 @@ ptime <- system.time({
 })[3]
 ptime
 stopCluster(cl)
-mar
+mar |>
+    group_by(MISS_TYPE, DIRECTION, ANALYSIS) |>
+    summarize(across(c("ODDS_RATIO", "PROP_MISS", "OR_DIFF", "OR_BIAS"), 
+                     ~ mean(.x),
+                     .names = "{.col}_mean"))
 
-sim.res <- rbind(mnar, mar)
-
+# sim.res <- rbind(mnar, mar)
+sim.res <- mar
 write_csv(sim.res, paste0("Sim_Results/simulation_results_Q", Q, "_n_", N, 
                           "_m_", m, "_p_miss_", p_miss_target, ".csv"))

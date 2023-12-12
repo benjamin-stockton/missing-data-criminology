@@ -9,7 +9,6 @@
   numbers=noendperiod]{scrartcl}
 
 \usepackage{amsmath,amssymb}
-\usepackage{lmodern}
 \usepackage{iftex}
 \ifPDFTeX
   \usepackage[T1]{fontenc}
@@ -19,6 +18,10 @@
   \usepackage{unicode-math}
   \defaultfontfeatures{Scale=MatchLowercase}
   \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else  
+    % xetex/luatex font selection
 \fi
 % Use upquote if available, for straight quotes in verbatim environments
 \IfFileExists{upquote.sty}{\usepackage{upquote}}{}
@@ -139,6 +142,20 @@
 \newcommand{\CSLRightInline}[1]{\parbox[t]{\linewidth - \csllabelwidth}{#1}\break}
 \newcommand{\CSLIndent}[1]{\hspace{\cslhangindent}#1}
 
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{colortbl}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+\usepackage{threeparttablex}
+\usepackage[normalem]{ulem}
+\usepackage{makecell}
+\usepackage{xcolor}
 \KOMAoption{captions}{tablesignature}
 \makeatletter
 \makeatother
@@ -184,10 +201,12 @@
 \@ifpackageloaded{subcaption}{}{\usepackage{subcaption}}
 \makeatother
 \makeatletter
-\@ifpackageloaded{tcolorbox}{}{\usepackage[many]{tcolorbox}}
+\@ifpackageloaded{tcolorbox}{}{\usepackage[skins,breakable]{tcolorbox}}
 \makeatother
 \makeatletter
 \@ifundefined{shadecolor}{\definecolor{shadecolor}{rgb}{.97, .97, .97}}
+\makeatother
+\makeatletter
 \makeatother
 \makeatletter
 \makeatother
@@ -213,7 +232,7 @@
 
 \begin{document}
 \maketitle
-\ifdefined\Shaded\renewenvironment{Shaded}{\begin{tcolorbox}[sharp corners, frame hidden, interior hidden, boxrule=0pt, enhanced, borderline west={3pt}{0pt}{shadecolor}, breakable]}{\end{tcolorbox}}\fi
+\ifdefined\Shaded\renewenvironment{Shaded}{\begin{tcolorbox}[interior hidden, sharp corners, breakable, frame hidden, borderline west={3pt}{0pt}{shadecolor}, boxrule=0pt, enhanced]}{\end{tcolorbox}}\fi
 
 \renewcommand*\contentsname{Table of contents}
 {
@@ -262,7 +281,7 @@ population.
 \begin{itemize}
 \tightlist
 \item
-  p. 28 (Hainmueller 2012)
+  p. 28 (\textbf{hainmueller2012?})
 \end{itemize}
 
 \begin{quote}
@@ -277,7 +296,7 @@ counterfactual mean can be identified as
 \begin{itemize}
 \tightlist
 \item
-  p. 28 (Hainmueller 2012)
+  p. 28 (\textbf{hainmueller2012?})
 \end{itemize}
 
 Propensity score weighting is performed by using a binary response
@@ -367,8 +386,90 @@ balancing including propensity score weighting.
 \subsection{Entropy Balancing in Sentencing
 Research}\label{entropy-balancing-in-sentencing-research}}
 
-\hypertarget{implementation-by-ebal}{%
-\section{Implementation by ebal}\label{implementation-by-ebal}}
+These notes are largely based on and quotions from (MacDonald and
+Donnelly 2019). The authors note that a cetnral goal of contemporary
+criminal justice reform is to ``reduce racial disparities in prisons''
+in part by building an ``understanding of the sources of these
+inequalities.'' Regression has been the primary tool used to estimate
+the race effect (note that the authors make causal claims without
+specifying the use of causal methods). MacDonald and Donnelly motivate
+entropy balancing by noting that
+
+\begin{quote}
+``{[}M{]}ultivariate regression approaches to estimating the effect of
+race on sentencing may produce biased estimates if there are important
+subgroup differences across covariates that are not adequately removed
+through mean adjustment.''
+\end{quote}
+
+Given that is the extent of the motivation and the lack of theoretical
+basis for entropy balancing beyond making the covariate distributions
+identical on the moments, this doesn't seem to be the best path forward
+for causal methods in criminology or other social sciences. MacDonald
+and Donnelly engage with propensity score matching and weighting, but
+dismiss it for not producing well-balanced covariate data sets in every
+case. The balancing seems to me to be a side-effect of constructing
+suitable counterfactuals, and not the direct goal of propensity score
+methods. In other words, propensity scores (and resulting weights) have
+the theoretical meaning of being the likelihood of belonging to the
+treatment group given other characterisitcs. Entropy weights have no
+such meaning because they work backward from the assumption that the
+moments are matched.
+
+The authors also claim entropy balancing as doubly robust, while other
+papers have called the doubly robust claims into question
+(\textbf{freedman2008?}) (notably the co-author, Berk, is a
+criminology/statistics professor who has been critical of the way
+statistical methods have been used in criminology in other papers as
+well (Berk 2010)). MacDonald and Donnelly seem to define doubly robust
+estimation as ``assum{[}ing{]} consistent measurement of treatment
+effects if either the weights from the \textbf{balancing approaches} or
+\textbf{regression model} are correctly specified
+(\textbf{bang2005?}).'' (MacDonald and Donnelly 2019, p.
+662).\footnote{When actually checking Bang and Robins'
+  (\textbf{bang2005?}) definition they say ``In a missing data model, an
+  estimator is DR if it remains consistent when either (but not
+  necessarily both) a model for the missingness mechanism or a model for
+  the distribution of the complete data is correctly specified.'' which
+  is consistent with Funk et al's definition (\textbf{funk2011?}) .
+  These are markedly different definitions in that Bang and Robins are
+  discussing the model specification as being the source of biasedness
+  while MacDonald and Donnelly seem to be paraphrasing the definition as
+  caring only about whether the estimates are biased regardless of the
+  cause.} This does not seem to be the correct definition.
+
+The central claim by the authors is that
+
+\begin{quote}
+``Although the coefficients produced from the linear regression and the
+other approaches are not statistically different from each other
+(e.g.~all coefficients are within 1 standard deviation of each other),
+the change in the size of the estimated mean sentence length difference
+between Blacks and Whites suggests that the regression model is
+downwardly biased. Specifically, race coefficients have similar
+precision, but the parameter estimated from the linear regression is
+one-half the size of the coefficients estimated from entropy or
+propensity score weighting.'' (MacDonald and Donnelly 2019, p. 675)
+\end{quote}
+
+But there's no justification for any of these claims. No engagement with
+the uncertainty measures; in fact saying they're all within one standard
+error of each other should be the end of the conversation. That means
+there are no real distinctions between results so trying to draw any is
+pointless.
+
+A central issue with entropy weights is the lack of a clear causal
+estimand resulting from the weighting. IPW results in ATE (total
+population), ``treated'' results in ATT (target population is only the
+treated individuals), and ``overlap'' weights result in ATO (overlap of
+treatment and control in population) (\textbf{zhou2022?}). Generally,
+entropy weighting will also make comparisons on the portion of the total
+population where there's significant overlap between the treatment and
+control groups, but without theoretical optimality properties.
+
+\hypertarget{implemented-by-the-ebal-package}{%
+\section{Implemented by the ebal
+Package}\label{implemented-by-the-ebal-package}}
 
 \hypertarget{simulated-data}{%
 \subsection{Simulated Data}\label{simulated-data}}
@@ -384,15 +485,57 @@ complete.
 \begin{Shaded}
 \begin{Highlighting}[]
 \FunctionTok{library}\NormalTok{(ebal)}
-\FunctionTok{library}\NormalTok{(dplyr)}
+\end{Highlighting}
+\end{Shaded}
 
+\begin{verbatim}
+##
+## ebal Package: Implements Entropy Balancing.
+\end{verbatim}
+
+\begin{verbatim}
+## See http://www.stanford.edu/~jhain/ for additional information.
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(dplyr)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+
+Attaching package: 'dplyr'
+\end{verbatim}
+
+\begin{verbatim}
+The following objects are masked from 'package:stats':
+
+    filter, lag
+\end{verbatim}
+
+\begin{verbatim}
+The following objects are masked from 'package:base':
+
+    intersect, setdiff, setequal, union
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
 \NormalTok{dat }\OtherTok{\textless{}{-}} \FunctionTok{read.csv}\NormalTok{(}\StringTok{"../Data/simulated\_data.csv"}\NormalTok{)}
 
 \NormalTok{dat}\SpecialCharTok{$}\NormalTok{YEAR }\OtherTok{\textless{}{-}} \FunctionTok{factor}\NormalTok{(dat}\SpecialCharTok{$}\NormalTok{YEAR)}
 \NormalTok{dat}\SpecialCharTok{$}\NormalTok{COUNTY }\OtherTok{\textless{}{-}} \FunctionTok{factor}\NormalTok{(dat}\SpecialCharTok{$}\NormalTok{COUNTY)}
 
 \NormalTok{dat}\SpecialCharTok{$}\NormalTok{OFF\_RACER }\OtherTok{\textless{}{-}} \FunctionTok{factor}\NormalTok{(dat}\SpecialCharTok{$}\NormalTok{OFF\_RACER, }\AttributeTok{levels =} \FunctionTok{c}\NormalTok{(}\StringTok{"WHITE"}\NormalTok{, }\StringTok{"BLACK"}\NormalTok{, }\StringTok{"LATINO"}\NormalTok{, }\StringTok{"OTHER"}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
 
+Entropy balancing seems to be performed very quickly. Next we check the
+marginal means for each of the covariates.
+
+\begin{Shaded}
+\begin{Highlighting}[]
 \NormalTok{dat }\SpecialCharTok{\%\textgreater{}\%}
     \FunctionTok{select}\NormalTok{(}\SpecialCharTok{{-}}\FunctionTok{c}\NormalTok{(INCAR, YEAR, COUNTY, OFF\_RACER)) }\OtherTok{{-}\textgreater{}}\NormalTok{ X}
 \NormalTok{X }\OtherTok{\textless{}{-}} \FunctionTok{model.matrix}\NormalTok{(}\SpecialCharTok{\textasciitilde{}}\NormalTok{., }\AttributeTok{data =}\NormalTok{ X)[,}\SpecialCharTok{{-}}\DecValTok{1}\NormalTok{]}
@@ -411,9 +554,6 @@ Converged within tolerance
 Converged within tolerance 
 \end{verbatim}
 
-Entropy balancing seems to be performed very quickly. Next we check the
-marginal means for each of the covariates
-
 \begin{Shaded}
 \begin{Highlighting}[]
 \NormalTok{c1 }\OtherTok{\textless{}{-}} \FunctionTok{apply}\NormalTok{(X[treatment,], }\DecValTok{2}\NormalTok{, mean)}
@@ -426,26 +566,38 @@ marginal means for each of the covariates
 
 \NormalTok{X.means }\OtherTok{\textless{}{-}} \FunctionTok{bind\_rows}\NormalTok{(c1, c2, c3) }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{as.data.frame}\NormalTok{()}
 \FunctionTok{rownames}\NormalTok{(X.means) }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\StringTok{"Black"}\NormalTok{, }\StringTok{"Non{-}Black {-} EB"}\NormalTok{, }\StringTok{"Non{-}Black {-} Unbalanced"}\NormalTok{)}
-\FunctionTok{round}\NormalTok{(}\FunctionTok{t}\NormalTok{(X.means), }\DecValTok{4}\NormalTok{)}
+\FunctionTok{round}\NormalTok{(}\FunctionTok{t}\NormalTok{(X.means), }\DecValTok{4}\NormalTok{) }\SpecialCharTok{|\textgreater{}} 
+\NormalTok{    kableExtra}\SpecialCharTok{::}\FunctionTok{kbl}\NormalTok{(}\AttributeTok{format =} \StringTok{"latex"}\NormalTok{,}
+                    \AttributeTok{booktabs =} \ConstantTok{TRUE}\NormalTok{,}
+                    \AttributeTok{digits =} \DecValTok{3}\NormalTok{) }\SpecialCharTok{|\textgreater{}} 
+    \FunctionTok{print}\NormalTok{()}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{verbatim}
-                      Black Non-Black - EB Non-Black - Unbalanced
-CRIMETYPEDUI         0.2367         0.2367                 0.2379
-CRIMETYPEOTHER       0.1241         0.1241                 0.1230
-CRIMETYPEPERSONS     0.1560         0.1560                 0.1568
-CRIMETYPEPROPERTY    0.2556         0.2556                 0.2548
-OGS                  3.4283         3.4283                 3.4184
-TRIALYes             0.9782         0.9782                 0.9786
-MALEMale             0.7731         0.7731                 0.7739
-PRS4/5               0.1813         0.1813                 0.1820
-PRSNone              0.4856         0.4856                 0.4859
-PRSREVOC/RFEL        0.0300         0.0300                 0.0300
-DOSAGE              34.2666        34.2666                34.2765
-RECMINYes            0.6701         0.6701                 0.6707
-OGSQ                17.9444        17.9444                17.8505
-DOSAGEQ           1306.2898      1306.2898              1307.1996
+
+\begin{tabular}[t]{lrrr}
+\toprule
+  & Black & Non-Black - EB & Non-Black - Unbalanced\\
+\midrule
+CRIMETYPEDUI & 0.237 & 0.237 & 0.238\\
+CRIMETYPEOTHER & 0.124 & 0.124 & 0.123\\
+CRIMETYPEPERSONS & 0.156 & 0.156 & 0.157\\
+CRIMETYPEPROPERTY & 0.256 & 0.256 & 0.255\\
+OGS & 3.428 & 3.428 & 3.418\\
+\addlinespace
+TRIALYes & 0.978 & 0.978 & 0.979\\
+MALEMale & 0.773 & 0.773 & 0.774\\
+PRS4/5 & 0.181 & 0.181 & 0.182\\
+PRSNone & 0.486 & 0.486 & 0.486\\
+PRSREVOC/RFEL & 0.030 & 0.030 & 0.030\\
+\addlinespace
+DOSAGE & 34.267 & 34.267 & 34.276\\
+RECMINYes & 0.670 & 0.670 & 0.671\\
+OGSQ & 17.944 & 17.944 & 17.850\\
+DOSAGEQ & 1306.290 & 1306.290 & 1307.200\\
+\bottomrule
+\end{tabular}
 \end{verbatim}
 
 The means are essentially the same between the covariates before
@@ -480,19 +632,32 @@ done to balance the covariates.
 \NormalTok{    \}}
 \NormalTok{\}}
 
-\NormalTok{fit\_sim\_unweighted }\OtherTok{\textless{}{-}} \FunctionTok{summary}\NormalTok{(}\FunctionTok{glm}\NormalTok{(INCAR }\SpecialCharTok{\textasciitilde{}}\NormalTok{ ., }
-                          \AttributeTok{data =}\NormalTok{ dat, }
-                          \AttributeTok{family =} \FunctionTok{binomial}\NormalTok{(}\AttributeTok{link =} \StringTok{"logit"}\NormalTok{)))}
-
-\NormalTok{fit\_sim\_weighted }\OtherTok{\textless{}{-}} \FunctionTok{summary}\NormalTok{(}\FunctionTok{glm}\NormalTok{(INCAR }\SpecialCharTok{\textasciitilde{}}\NormalTok{ ., }
-                          \AttributeTok{data =}\NormalTok{ dat, }
-                          \AttributeTok{weights =}\NormalTok{ weights,}
-                          \AttributeTok{family =} \FunctionTok{binomial}\NormalTok{(}\AttributeTok{link =} \StringTok{"logit"}\NormalTok{)))}
+\NormalTok{ptime }\OtherTok{\textless{}{-}} \FunctionTok{system.time}\NormalTok{(\{}
+\NormalTok{    fit\_sim\_unweighted }\OtherTok{\textless{}{-}} \FunctionTok{summary}\NormalTok{(}\FunctionTok{glm}\NormalTok{(INCAR }\SpecialCharTok{\textasciitilde{}}\NormalTok{ ., }
+                              \AttributeTok{data =}\NormalTok{ dat, }
+                              \AttributeTok{family =} \FunctionTok{binomial}\NormalTok{(}\AttributeTok{link =} \StringTok{"logit"}\NormalTok{)))}
+    
+\NormalTok{    fit\_sim\_weighted }\OtherTok{\textless{}{-}} \FunctionTok{summary}\NormalTok{(}\FunctionTok{glm}\NormalTok{(INCAR }\SpecialCharTok{\textasciitilde{}}\NormalTok{ ., }
+                              \AttributeTok{data =}\NormalTok{ dat, }
+                              \AttributeTok{weights =}\NormalTok{ weights,}
+                              \AttributeTok{family =} \FunctionTok{binomial}\NormalTok{(}\AttributeTok{link =} \StringTok{"logit"}\NormalTok{)))}
+\NormalTok{\})[}\DecValTok{3}\NormalTok{]}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{verbatim}
 Warning in eval(family$initialize): non-integer #successes in a binomial glm!
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{print}\NormalTok{(ptime)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+elapsed 
+ 41.589 
 \end{verbatim}
 
 \begin{Shaded}
@@ -544,17 +709,24 @@ Warning in eval(family$initialize): non-integer #successes in a binomial glm!
 \begin{Highlighting}[]
 \NormalTok{pcs }\OtherTok{\textless{}{-}} \FunctionTok{read.csv}\NormalTok{(}\StringTok{"../Data/most\_serious\_sentence\_2010{-}2019\_slim.csv"}\NormalTok{)}
 
-\NormalTok{pcs}\SpecialCharTok{$}\NormalTok{YEAR }\OtherTok{\textless{}{-}} \FunctionTok{factor}\NormalTok{(pcs}\SpecialCharTok{$}\NormalTok{YEAR)}
-\NormalTok{pcs}\SpecialCharTok{$}\NormalTok{COUNTY }\OtherTok{\textless{}{-}} \FunctionTok{factor}\NormalTok{(pcs}\SpecialCharTok{$}\NormalTok{COUNTY)}
-\NormalTok{pcs}\SpecialCharTok{$}\NormalTok{OFF\_RACER }\OtherTok{\textless{}{-}} \FunctionTok{factor}\NormalTok{(pcs}\SpecialCharTok{$}\NormalTok{OFF\_RACER, }\AttributeTok{levels =} \FunctionTok{c}\NormalTok{(}\StringTok{"WHITE"}\NormalTok{, }\StringTok{"BLACK"}\NormalTok{, }\StringTok{"LATINO"}\NormalTok{, }\StringTok{"OTHER"}\NormalTok{))}
+\FunctionTok{set.seed}\NormalTok{(}\DecValTok{7822}\NormalTok{)}
+\NormalTok{pcs }\SpecialCharTok{\%\textgreater{}\%}
+    \FunctionTok{group\_by}\NormalTok{(COUNTY) }\SpecialCharTok{\%\textgreater{}\%}
+    \CommentTok{\# sample\_n(size = 300) \%\textgreater{}\%}
+    \FunctionTok{ungroup}\NormalTok{() }\SpecialCharTok{\%\textgreater{}\%}
+    \FunctionTok{mutate}\NormalTok{(}
+        \AttributeTok{YEAR =} \FunctionTok{as.factor}\NormalTok{(YEAR),}
+        \AttributeTok{COUNTY =} \FunctionTok{as.factor}\NormalTok{(COUNTY),}
+        \AttributeTok{OFF\_RACER =} \FunctionTok{factor}\NormalTok{(OFF\_RACER, }\AttributeTok{levels =} \FunctionTok{c}\NormalTok{(}\StringTok{"WHITE"}\NormalTok{, }\StringTok{"BLACK"}\NormalTok{, }\StringTok{"LATINO"}\NormalTok{, }\StringTok{"OTHER"}\NormalTok{))}
+\NormalTok{        ) }\OtherTok{{-}\textgreater{}}\NormalTok{ pcs.sub}
 
-\NormalTok{mice}\SpecialCharTok{::}\FunctionTok{md.pattern}\NormalTok{(pcs, }\AttributeTok{rotate.names =}\NormalTok{ T)}
+\NormalTok{mice}\SpecialCharTok{::}\FunctionTok{md.pattern}\NormalTok{(pcs.sub, }\AttributeTok{rotate.names =}\NormalTok{ T)}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{figure}[H]
 
-{\centering \includegraphics{entropy_balancing_files/figure-pdf/unnamed-chunk-5-1.pdf}
+{\centering \includegraphics{entropy_balancing_files/figure-pdf/PCS-set-up-1.pdf}
 
 }
 
@@ -583,7 +755,7 @@ Warning in eval(family$initialize): non-integer #successes in a binomial glm!
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\NormalTok{pcs }\SpecialCharTok{\%\textgreater{}\%} 
+\NormalTok{pcs.sub }\SpecialCharTok{\%\textgreater{}\%} 
     \FunctionTok{filter}\NormalTok{(}\SpecialCharTok{!}\FunctionTok{is.na}\NormalTok{(OFF\_RACER),}
            \SpecialCharTok{!}\FunctionTok{is.na}\NormalTok{(DOSAGE),}
            \SpecialCharTok{!}\FunctionTok{is.na}\NormalTok{(RECMIN),}
@@ -623,26 +795,38 @@ Converged within tolerance
 
 \NormalTok{X.means }\OtherTok{\textless{}{-}} \FunctionTok{bind\_rows}\NormalTok{(c1, c2, c3) }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{as.data.frame}\NormalTok{()}
 \FunctionTok{rownames}\NormalTok{(X.means) }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\StringTok{"Black"}\NormalTok{, }\StringTok{"Non{-}Black {-} EB"}\NormalTok{, }\StringTok{"Non{-}Black {-} Unbalanced"}\NormalTok{)}
-\FunctionTok{round}\NormalTok{(}\FunctionTok{t}\NormalTok{(X.means), }\DecValTok{4}\NormalTok{)}
+\FunctionTok{round}\NormalTok{(}\FunctionTok{t}\NormalTok{(X.means), }\DecValTok{4}\NormalTok{) }\SpecialCharTok{|\textgreater{}} 
+\NormalTok{    kableExtra}\SpecialCharTok{::}\FunctionTok{kbl}\NormalTok{(}\AttributeTok{format =} \StringTok{"latex"}\NormalTok{,}
+                    \AttributeTok{booktabs =} \ConstantTok{TRUE}\NormalTok{,}
+                    \AttributeTok{digits =} \DecValTok{3}\NormalTok{) }\SpecialCharTok{|\textgreater{}} 
+    \FunctionTok{print}\NormalTok{()}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{verbatim}
-                      Black Non-Black - EB Non-Black - Unbalanced
-CRIMETYPEDUI         0.1274         0.1274                 0.2790
-CRIMETYPEOTHER       0.1632         0.1632                 0.1084
-CRIMETYPEPERSONS     0.1838         0.1838                 0.1458
-CRIMETYPEPROPERTY    0.2445         0.2445                 0.2588
-OGS                  4.0601         4.0601                 3.1826
-OGSQ                24.7268        24.7268                15.3210
-RECMINYes            0.5303         0.5303                 0.7202
-TRIALYes             0.9591         0.9591                 0.9858
-PRS4/5               0.2720         0.2720                 0.1517
-PRSNone              0.3863         0.3863                 0.5152
-PRSREVOC/RFEL        0.0506         0.0506                 0.0228
-MALEMale             0.8272         0.8272                 0.7545
-DOSAGE              32.9122        32.9122                34.7886
-DOSAGEQ           1213.2078      1213.2078              1342.1189
+
+\begin{tabular}[t]{lrrr}
+\toprule
+  & Black & Non-Black - EB & Non-Black - Unbalanced\\
+\midrule
+CRIMETYPEDUI & 0.127 & 0.127 & 0.279\\
+CRIMETYPEOTHER & 0.163 & 0.163 & 0.108\\
+CRIMETYPEPERSONS & 0.184 & 0.184 & 0.146\\
+CRIMETYPEPROPERTY & 0.244 & 0.244 & 0.259\\
+OGS & 4.060 & 4.060 & 3.183\\
+\addlinespace
+OGSQ & 24.727 & 24.727 & 15.321\\
+RECMINYes & 0.530 & 0.530 & 0.720\\
+TRIALYes & 0.959 & 0.959 & 0.986\\
+PRS4/5 & 0.272 & 0.272 & 0.152\\
+PRSNone & 0.386 & 0.386 & 0.515\\
+\addlinespace
+PRSREVOC/RFEL & 0.051 & 0.051 & 0.023\\
+MALEMale & 0.827 & 0.827 & 0.754\\
+DOSAGE & 32.912 & 32.912 & 34.789\\
+DOSAGEQ & 1213.208 & 1213.208 & 1342.119\\
+\bottomrule
+\end{tabular}
 \end{verbatim}
 
 \begin{Shaded}
@@ -666,12 +850,12 @@ DOSAGEQ           1213.2078      1213.2078              1342.1189
 \NormalTok{        weights[i] }\OtherTok{\textless{}{-}} \DecValTok{1}
 \NormalTok{    \}}
     \ControlFlowTok{else}\NormalTok{ \{}
-\NormalTok{        weights[i] }\OtherTok{\textless{}{-}}\NormalTok{ eb.out}\SpecialCharTok{$}\NormalTok{w[i]}
+\NormalTok{        weights[i] }\OtherTok{\textless{}{-}}\NormalTok{ eb.pcs}\SpecialCharTok{$}\NormalTok{w[i]}
 \NormalTok{    \}}
 \NormalTok{\}}
 
 \NormalTok{fit\_pcs\_unweighted }\OtherTok{\textless{}{-}} \FunctionTok{summary}\NormalTok{(}\FunctionTok{glm}\NormalTok{(INCAR }\SpecialCharTok{\textasciitilde{}}\NormalTok{ ., }
-                          \AttributeTok{data =}\NormalTok{ pcs, }
+                          \AttributeTok{data =}\NormalTok{ pcs.cc, }
                           \AttributeTok{family =} \FunctionTok{binomial}\NormalTok{(}\AttributeTok{link =} \StringTok{"logit"}\NormalTok{),}
                           \AttributeTok{model =} \ConstantTok{FALSE}\NormalTok{, }
                           \AttributeTok{y =} \ConstantTok{FALSE}\NormalTok{))}
@@ -706,8 +890,8 @@ Warning in eval(family$initialize): non-integer #successes in a binomial glm!
 \end{Shaded}
 
 \begin{verbatim}
-     Estimate    Std. Error       z value      Pr(>|z|) 
- 2.268135e-01  6.511253e-03  3.483408e+01 7.418640e-266 
+    Estimate   Std. Error      z value     Pr(>|z|) 
+3.332389e-01 5.358802e-02 6.218533e+00 5.018254e-10 
 \end{verbatim}
 
 \begin{Shaded}
@@ -727,12 +911,12 @@ Warning in eval(family$initialize): non-integer #successes in a binomial glm!
 \end{Shaded}
 
 \begin{verbatim}
-     Estimate    Std. Error       z value      Pr(>|z|) 
- 2.578608e-01  9.128484e-03  2.824794e+01 1.508926e-175 
+    Estimate   Std. Error      z value     Pr(>|z|) 
+0.3464378239 0.0799957463 4.3307030664 0.0000148634 
 \end{verbatim}
 
 \hypertarget{incomplete-data}{%
-\section{Incomplete Data}\label{incomplete-data}}
+\subsection{Incomplete Data}\label{incomplete-data}}
 
 The impact of incomplete data is the next topic to tackle. We know that
 CCA can be biased under several (untestable) assumptions for the
@@ -749,7 +933,7 @@ inferential results.
 
 \begin{figure}[H]
 
-{\centering \includegraphics{entropy_balancing_files/figure-pdf/unnamed-chunk-8-1.pdf}
+{\centering \includegraphics{entropy_balancing_files/figure-pdf/missing-model-1.pdf}
 
 }
 
@@ -757,13 +941,14 @@ inferential results.
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\NormalTok{mis }\OtherTok{\textless{}{-}} \FunctionTok{sample}\NormalTok{(}\FunctionTok{nrow}\NormalTok{(pcs.cc), }\AttributeTok{size =} \FunctionTok{ceiling}\NormalTok{(}\FloatTok{0.25} \SpecialCharTok{*} \FunctionTok{nrow}\NormalTok{(pcs.cc)), }\AttributeTok{prob =}\NormalTok{ p)}
+\FunctionTok{set.seed}\NormalTok{(}\DecValTok{12948}\NormalTok{)}
+\NormalTok{mis }\OtherTok{\textless{}{-}} \FunctionTok{sample}\NormalTok{(}\FunctionTok{nrow}\NormalTok{(pcs.cc), }\AttributeTok{size =} \FunctionTok{ceiling}\NormalTok{(}\FloatTok{0.01} \SpecialCharTok{*} \FunctionTok{nrow}\NormalTok{(pcs.cc)), }\AttributeTok{prob =}\NormalTok{ p)}
 \FunctionTok{str}\NormalTok{(mis)}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{verbatim}
- int [1:208637] 238658 215529 148383 356638 752797 68920 88571 434253 722658 330656 ...
+ int [1:194] 11771 6050 2603 15054 2490 11909 13617 2250 14735 12330 ...
 \end{verbatim}
 
 \begin{Shaded}
@@ -789,14 +974,13 @@ inferential results.
 \end{Shaded}
 
 \begin{verbatim}
-Iteration 1 maximum deviation is = 19573597 
-Iteration 2 maximum deviation is = 18358262 
-Iteration 3 maximum deviation is = 16777100 
-Iteration 4 maximum deviation is = 14647799 
-Iteration 5 maximum deviation is = 11521672 
-Iteration 6 maximum deviation is = 5521037 
-Iteration 7 maximum deviation is = 108551 
-Iteration 8 maximum deviation is = 84.07 
+Iteration 1 maximum deviation is = 28904124 
+Iteration 2 maximum deviation is = 26520140 
+Iteration 3 maximum deviation is = 23186669 
+Iteration 4 maximum deviation is = 18189093 
+Iteration 5 maximum deviation is = 8411645 
+Iteration 6 maximum deviation is = 221142 
+Iteration 7 maximum deviation is = 310.9 
 Converged within tolerance 
 Converged within tolerance 
 \end{verbatim}
@@ -813,26 +997,38 @@ Converged within tolerance
 
 \NormalTok{X.means }\OtherTok{\textless{}{-}} \FunctionTok{bind\_rows}\NormalTok{(c1, c2, c3) }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{as.data.frame}\NormalTok{()}
 \FunctionTok{rownames}\NormalTok{(X.means) }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\StringTok{"Black"}\NormalTok{, }\StringTok{"Non{-}Black {-} EB"}\NormalTok{, }\StringTok{"Non{-}Black {-} Unbalanced"}\NormalTok{)}
-\FunctionTok{round}\NormalTok{(}\FunctionTok{t}\NormalTok{(X.means), }\DecValTok{4}\NormalTok{)}
+\FunctionTok{round}\NormalTok{(}\FunctionTok{t}\NormalTok{(X.means), }\DecValTok{4}\NormalTok{) }\SpecialCharTok{|\textgreater{}} 
+\NormalTok{    kableExtra}\SpecialCharTok{::}\FunctionTok{kbl}\NormalTok{(}\AttributeTok{format =} \StringTok{"latex"}\NormalTok{,}
+                    \AttributeTok{booktabs =} \ConstantTok{TRUE}\NormalTok{,}
+                    \AttributeTok{digits =} \DecValTok{3}\NormalTok{) }\SpecialCharTok{|\textgreater{}} 
+    \FunctionTok{print}\NormalTok{()}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{verbatim}
-                      Black Non-Black - EB Non-Black - Unbalanced
-CRIMETYPEDUI         0.1341         0.1341                 0.2904
-CRIMETYPEOTHER       0.1618         0.1618                 0.1096
-CRIMETYPEPERSONS     0.1933         0.1933                 0.1531
-CRIMETYPEPROPERTY    0.2357         0.2357                 0.2541
-OGS                  4.4561         4.4561                 3.4369
-OGSQ                28.9857        28.9857                17.5288
-RECMINYes            0.4369         0.4369                 0.6647
-TRIALYes             0.9513         0.9513                 0.9834
-PRS4/5               0.3346         0.3346                 0.1822
-PRSNone              0.3054         0.3054                 0.4560
-PRSREVOC/RFEL        0.0654         0.0654                 0.0279
-MALEMale             0.8267         0.8267                 0.7489
-DOSAGE              36.8090        36.8090                38.4811
-DOSAGEQ           1475.2901      1475.2901              1595.4856
+
+\begin{tabular}[t]{lrrr}
+\toprule
+  & Black & Non-Black - EB & Non-Black - Unbalanced\\
+\midrule
+CRIMETYPEDUI & 0.127 & 0.127 & 0.279\\
+CRIMETYPEOTHER & 0.163 & 0.163 & 0.108\\
+CRIMETYPEPERSONS & 0.184 & 0.184 & 0.146\\
+CRIMETYPEPROPERTY & 0.244 & 0.244 & 0.259\\
+OGS & 4.060 & 4.060 & 3.183\\
+\addlinespace
+OGSQ & 24.726 & 24.726 & 15.321\\
+RECMINYes & 0.530 & 0.530 & 0.720\\
+TRIALYes & 0.959 & 0.959 & 0.986\\
+PRS4/5 & 0.272 & 0.272 & 0.152\\
+PRSNone & 0.386 & 0.386 & 0.515\\
+\addlinespace
+PRSREVOC/RFEL & 0.051 & 0.051 & 0.023\\
+MALEMale & 0.827 & 0.827 & 0.754\\
+DOSAGE & 32.909 & 32.909 & 34.787\\
+DOSAGEQ & 1212.969 & 1212.969 & 1341.995\\
+\bottomrule
+\end{tabular}
 \end{verbatim}
 
 \begin{Shaded}
@@ -843,9 +1039,9 @@ DOSAGEQ           1475.2901      1475.2901              1595.4856
 
 \begin{verbatim}
        Min.     1st Qu.      Median        Mean     3rd Qu.        Max. 
- 0.08111835  0.17454630  0.26378869  0.35167721  0.43921475 11.91469178 
+ 0.07608166  0.18827935  0.29694217  0.36704165  0.45845299 16.66036196 
    Std. Dev 
- 0.28622420 
+ 0.28137440 
 \end{verbatim}
 
 \begin{Shaded}
@@ -896,8 +1092,8 @@ Warning in eval(family$initialize): non-integer #successes in a binomial glm!
 \end{Shaded}
 
 \begin{verbatim}
-     Estimate    Std. Error       z value      Pr(>|z|) 
- 2.088674e-01  7.604425e-03  2.746657e+01 4.405814e-166 
+    Estimate   Std. Error      z value     Pr(>|z|) 
+3.259340e-01 5.390277e-02 6.046702e+00 1.478410e-09 
 \end{verbatim}
 
 \begin{Shaded}
@@ -917,9 +1113,141 @@ Warning in eval(family$initialize): non-integer #successes in a binomial glm!
 \end{Shaded}
 
 \begin{verbatim}
-     Estimate    Std. Error       z value      Pr(>|z|) 
- 2.432750e-01  1.084716e-02  2.242754e+01 2.120633e-111 
+    Estimate   Std. Error      z value     Pr(>|z|) 
+3.640781e-01 8.093915e-02 4.498171e+00 6.854065e-06 
 \end{verbatim}
+
+\hypertarget{implemented-by-the-psweight-package}{%
+\section{Implemented by the PSweight
+Package}\label{implemented-by-the-psweight-package}}
+
+Following the
+\href{https://cran.r-project.org/web/packages/PSweight/vignettes/vignette.pdf}{vignette}
+from the PSweight package, I will implement the estimation of the ATE,
+ATO, and ATT by using overlap weights (OW) and entropy balancing (EB).
+The vignette includes formulae for how to calculate causal estimands
+like the ATE, ATO, ATT, ATEN and how those estimands relate to the
+choice of weights. They also note that the entropy balancing has no
+theoretical foundation is not as frequently used as inverse propensity
+weighting (IPW) or OW.
+
+Following the steps in this framework, I will obtain causal estimands
+and be able to demonstrate that these inferences are also subject to the
+influence of missingness.
+
+\hypertarget{binary-treatment}{%
+\subsection{Binary Treatment}\label{binary-treatment}}
+
+As an initial step, I'll reduce the comparison to just White and Black
+defendants being Black set to be the ``treatment''. Later I will
+consider the same analysis with multiple treatment levels where White is
+the control and Black, Latino, and Other are treatments.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# library(PSweight)}
+\CommentTok{\# }
+\CommentTok{\# pcs.cc \%\textgreater{}\% }
+\CommentTok{\#     filter(OFF\_RACER \%in\% c("WHITE", "BLACK")) \%\textgreater{}\% }
+\CommentTok{\#     mutate(BLACK = ifelse(OFF\_RACER == "BLACK", 1, 0)) \%\textgreater{}\% }
+\CommentTok{\#     select({-}c("OFF\_RACER")) {-}\textgreater{} pcs.bw}
+\CommentTok{\# }
+\CommentTok{\# ps.any \textless{}{-} BLACK \textasciitilde{} OGS + OGSQ + as.factor(CRIMETYPE) + as.factor(RECMIN) + as.factor(TRIAL) + as.factor(PRS) + as.factor(MALE) + DOSAGE + DOSAGEQ}
+\CommentTok{\# }
+\CommentTok{\# bal.any \textless{}{-} SumStat(ps.formula = ps.any, data = pcs.bw,}
+\CommentTok{\#                    weight = c("IPW", "overlap", "treated", "entropy"))}
+\CommentTok{\# bal.any}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# plot(bal.any, type = "density")}
+\CommentTok{\# plot(bal.any, type = "balance", metric = "PSD")}
+\end{Highlighting}
+\end{Shaded}
+
+Now we continue to the analysis step, first without including
+confounders.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# ate.any \textless{}{-} PSweight(ps.formula = ps.any, }
+\CommentTok{\#                     yname = "INCAR", }
+\CommentTok{\#                     data = pcs.bw,}
+\CommentTok{\#                     weight = "IPW",}
+\CommentTok{\#                     family = "binomial")}
+\CommentTok{\# }
+\CommentTok{\# att.any \textless{}{-} PSweight(ps.formula = ps.any, }
+\CommentTok{\#                     yname = "INCAR", }
+\CommentTok{\#                     data = pcs.bw,}
+\CommentTok{\#                     weight = "treated",}
+\CommentTok{\#                     family = "binomial")}
+\CommentTok{\# }
+\CommentTok{\# ato.any \textless{}{-} PSweight(ps.formula = ps.any, }
+\CommentTok{\#                     yname = "INCAR", }
+\CommentTok{\#                     data = pcs.bw,}
+\CommentTok{\#                     weight = "overlap",}
+\CommentTok{\#                     family = "binomial")}
+\CommentTok{\# }
+\CommentTok{\# aten.any \textless{}{-} PSweight(ps.formula = ps.any, }
+\CommentTok{\#                     yname = "INCAR", }
+\CommentTok{\#                     data = pcs.bw,}
+\CommentTok{\#                     weight = "entropy",}
+\CommentTok{\#                     family = "binomial")}
+\CommentTok{\# }
+\CommentTok{\# summary(ate.any, type = "OR")}
+\CommentTok{\# summary(att.any, type = "OR")}
+\CommentTok{\# summary(ato.any, type = "OR")}
+\CommentTok{\# summary(aten.any, type = "OR")}
+\end{Highlighting}
+\end{Shaded}
+
+And including confounders.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# out.incar \textless{}{-} INCAR \textasciitilde{} as.factor(CRIMETYPE) + OGS + OGSQ + as.factor(RECMIN) + as.factor(TRIAL) + as.factor(PRS) + as.factor(MALE) + DOSAGE + DOSAGEQ + as.factor(YEAR) + as.factor(COUNTY)}
+\CommentTok{\# }
+\CommentTok{\# ate.any.aug \textless{}{-} PSweight(ps.formula = ps.any, }
+\CommentTok{\#                         out.formula = out.incar,}
+\CommentTok{\#                         augmentation = TRUE,}
+\CommentTok{\#                         yname = "INCAR", }
+\CommentTok{\#                         data = pcs.sub,}
+\CommentTok{\#                         weight = "IPW",}
+\CommentTok{\#                         family = "binomial")}
+\CommentTok{\# }
+\CommentTok{\# summary(ate.any.aug, type = "OR")}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# ato.any.aug \textless{}{-} PSweight(ps.formula = ps.any, }
+\CommentTok{\#                         out.formula = out.incar,}
+\CommentTok{\#                         augmentation = TRUE,}
+\CommentTok{\#                         yname = "INCAR", }
+\CommentTok{\#                         data = pcs.bw[s,],}
+\CommentTok{\#                         weight = "overlap",}
+\CommentTok{\#                         family = "binomial")}
+\CommentTok{\# }
+\CommentTok{\# summary(ato.any.aug, type = "OR")}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# aten.any.aug \textless{}{-} PSweight(ps.formula = ps.any, }
+\CommentTok{\#                         out.formula = out.incar,}
+\CommentTok{\#                         augmentation = TRUE,}
+\CommentTok{\#                         yname = "INCAR", }
+\CommentTok{\#                         data = pcs.bw[s,],}
+\CommentTok{\#                         weight = "entropy",}
+\CommentTok{\#                         family = "binomial")}
+\CommentTok{\# }
+\CommentTok{\# summary(aten.any.aug, type = "OR")}
+\end{Highlighting}
+\end{Shaded}
 
 \hypertarget{references}{%
 \section*{References}\label{references}}
@@ -927,11 +1255,15 @@ Warning in eval(family$initialize): non-integer #successes in a binomial glm!
 
 \hypertarget{refs}{}
 \begin{CSLReferences}{1}{0}
-\leavevmode\vadjust pre{\hypertarget{ref-hainmueller2012}{}}%
-Hainmueller J (2012)
-\href{https://www.jstor.org/stable/41403737}{Entropy balancing for
-causal effects: A multivariate reweighting method to produce balanced
-samples in observational studies}. Political Analysis 20:25--46
+\leavevmode\vadjust pre{\hypertarget{ref-berkWhatYouCan2010}{}}%
+Berk R (2010) What {You Can} and {Can}'t {Properly Do} with
+{Regression}. Journal of Quantitative Criminology 26:481--487.
+\url{https://doi.org/10.1007/s10940-010-9116-4}
+
+\leavevmode\vadjust pre{\hypertarget{ref-macdonaldEvaluatingRoleRace2019}{}}%
+MacDonald JM, Donnelly EA (2019) Evaluating the {Role} of {Race} in
+{Sentencing}: {An Entropy Weighting Analysis}. Justice Quarterly
+36:656--681. \url{https://doi.org/10.1080/07418825.2017.1415368}
 
 \end{CSLReferences}
 

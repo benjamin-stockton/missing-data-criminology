@@ -134,7 +134,11 @@ c3 <- apply(X[!treatment,], 2, mean)
 
 X.means <- bind_rows(c1, c2, c3) %>% as.data.frame()
 rownames(X.means) <- c("Black", "Non-Black - EB", "Non-Black - Unbalanced")
-round(t(X.means), 4)
+round(t(X.means), 4) |> 
+    kableExtra::kbl(format = "latex",
+                    booktabs = TRUE,
+                    digits = 3) |> 
+    print()
 ```
 
 The means are essentially the same between the covariates before balancing, so it won't have any effect on the actual analysis. This is a key point regarding use of the modal approach in the simulations.
@@ -158,14 +162,17 @@ for (i in 1:nrow(dat)) {
     }
 }
 
-fit_sim_unweighted <- summary(glm(INCAR ~ ., 
-                          data = dat, 
-                          family = binomial(link = "logit")))
-
-fit_sim_weighted <- summary(glm(INCAR ~ ., 
-                          data = dat, 
-                          weights = weights,
-                          family = binomial(link = "logit")))
+ptime <- system.time({
+    fit_sim_unweighted <- summary(glm(INCAR ~ ., 
+                              data = dat, 
+                              family = binomial(link = "logit")))
+    
+    fit_sim_weighted <- summary(glm(INCAR ~ ., 
+                              data = dat, 
+                              weights = weights,
+                              family = binomial(link = "logit")))
+})[3]
+print(ptime)
 
 print("Unweighted Race Effect Estimate:")
 fit_sim_unweighted$coefficients["OFF_RACERBLACK",]
@@ -183,7 +190,7 @@ pcs <- read.csv("../Data/most_serious_sentence_2010-2019_slim.csv")
 set.seed(7822)
 pcs %>%
     group_by(COUNTY) %>%
-    sample_n(size = 300) %>%
+    # sample_n(size = 300) %>%
     ungroup() %>%
     mutate(
         YEAR = as.factor(YEAR),
@@ -220,7 +227,11 @@ c3 <- apply(X[!treatment,], 2, mean)
 
 X.means <- bind_rows(c1, c2, c3) %>% as.data.frame()
 rownames(X.means) <- c("Black", "Non-Black - EB", "Non-Black - Unbalanced")
-round(t(X.means), 4)
+round(t(X.means), 4) |> 
+    kableExtra::kbl(format = "latex",
+                    booktabs = TRUE,
+                    digits = 3) |> 
+    print()
 c(summary(eb.pcs$w), "Std. Dev" = sd(eb.pcs$w))
 ```
 
@@ -265,7 +276,7 @@ p <- 1 - (1 + exp(-(-9 + .5 * pcs.cc$DOSAGE + .5 * pcs.cc$OGS)))^-1
 boxplot(p)
 
 set.seed(12948)
-mis <- sample(nrow(pcs.cc), size = ceiling(0.25 * nrow(pcs.cc)), prob = p)
+mis <- sample(nrow(pcs.cc), size = ceiling(0.01 * nrow(pcs.cc)), prob = p)
 str(mis)
 ```
 
@@ -299,7 +310,11 @@ c3 <- apply(X[!treatment,], 2, mean)
 
 X.means <- bind_rows(c1, c2, c3) %>% as.data.frame()
 rownames(X.means) <- c("Black", "Non-Black - EB", "Non-Black - Unbalanced")
-round(t(X.means), 4)
+round(t(X.means), 4) |> 
+    kableExtra::kbl(format = "latex",
+                    booktabs = TRUE,
+                    digits = 3) |> 
+    print()
 c(summary(eb.pcs2$w), "Std. Dev" = sd(eb.pcs2$w))
 ```
 
@@ -348,9 +363,9 @@ As an initial step, I'll reduce the comparison to just White and Black defendant
 #| label: psweight-pcs-design
 library(PSweight)
 
-pcs.cc %>% 
-    filter(OFF_RACER %in% c("WHITE", "BLACK")) %>% 
-    mutate(BLACK = ifelse(OFF_RACER == "BLACK", 1, 0)) %>% 
+pcs.cc %>%
+    filter(OFF_RACER %in% c("WHITE", "BLACK")) %>%
+    mutate(BLACK = ifelse(OFF_RACER == "BLACK", 1, 0)) %>%
     select(-c("OFF_RACER")) -> pcs.bw
 
 ps.any <- BLACK ~ OGS + OGSQ + as.factor(CRIMETYPE) + as.factor(RECMIN) + as.factor(TRIAL) + as.factor(PRS) + as.factor(MALE) + DOSAGE + DOSAGEQ
@@ -371,26 +386,26 @@ Now we continue to the analysis step, first without including confounders.
 
 ```{r}
 #| label: psweight-pcs-analysis
-ate.any <- PSweight(ps.formula = ps.any, 
-                    yname = "INCAR", 
+ate.any <- PSweight(ps.formula = ps.any,
+                    yname = "INCAR",
                     data = pcs.bw,
                     weight = "IPW",
                     family = "binomial")
 
-att.any <- PSweight(ps.formula = ps.any, 
-                    yname = "INCAR", 
+att.any <- PSweight(ps.formula = ps.any,
+                    yname = "INCAR",
                     data = pcs.bw,
                     weight = "treated",
                     family = "binomial")
 
-ato.any <- PSweight(ps.formula = ps.any, 
-                    yname = "INCAR", 
+ato.any <- PSweight(ps.formula = ps.any,
+                    yname = "INCAR",
                     data = pcs.bw,
                     weight = "overlap",
                     family = "binomial")
 
-aten.any <- PSweight(ps.formula = ps.any, 
-                    yname = "INCAR", 
+aten.any <- PSweight(ps.formula = ps.any,
+                    yname = "INCAR",
                     data = pcs.bw,
                     weight = "entropy",
                     family = "binomial")
@@ -405,41 +420,41 @@ And including confounders.
 
 ```{r}
 #| label: psweight-pcs-aug-analysis
-out.incar <- INCAR ~ as.factor(CRIMETYPE) + OGS + OGSQ + as.factor(RECMIN) + as.factor(TRIAL) + as.factor(PRS) + as.factor(MALE) + DOSAGE + DOSAGEQ + as.factor(YEAR) + as.factor(COUNTY)
-
-ate.any.aug <- PSweight(ps.formula = ps.any, 
-                        out.formula = out.incar,
-                        augmentation = TRUE,
-                        yname = "INCAR", 
-                        data = pcs.sub,
-                        weight = "IPW",
-                        family = "binomial")
-
-summary(ate.any.aug, type = "OR")
+# out.incar <- INCAR ~ as.factor(CRIMETYPE) + OGS + OGSQ + as.factor(RECMIN) + as.factor(TRIAL) + as.factor(PRS) + as.factor(MALE) + DOSAGE + DOSAGEQ + as.factor(YEAR) + as.factor(COUNTY)
+# 
+# ate.any.aug <- PSweight(ps.formula = ps.any, 
+#                         out.formula = out.incar,
+#                         augmentation = TRUE,
+#                         yname = "INCAR", 
+#                         data = pcs.sub,
+#                         weight = "IPW",
+#                         family = "binomial")
+# 
+# summary(ate.any.aug, type = "OR")
 ```
 
 ```{r}
-ato.any.aug <- PSweight(ps.formula = ps.any, 
-                        out.formula = out.incar,
-                        augmentation = TRUE,
-                        yname = "INCAR", 
-                        data = pcs.bw[s,],
-                        weight = "overlap",
-                        family = "binomial")
-
-summary(ato.any.aug, type = "OR")
+# ato.any.aug <- PSweight(ps.formula = ps.any, 
+#                         out.formula = out.incar,
+#                         augmentation = TRUE,
+#                         yname = "INCAR", 
+#                         data = pcs.bw[s,],
+#                         weight = "overlap",
+#                         family = "binomial")
+# 
+# summary(ato.any.aug, type = "OR")
 ```
 
 ```{r}
-aten.any.aug <- PSweight(ps.formula = ps.any, 
-                        out.formula = out.incar,
-                        augmentation = TRUE,
-                        yname = "INCAR", 
-                        data = pcs.bw[s,],
-                        weight = "entropy",
-                        family = "binomial")
-
-summary(aten.any.aug, type = "OR")
+# aten.any.aug <- PSweight(ps.formula = ps.any, 
+#                         out.formula = out.incar,
+#                         augmentation = TRUE,
+#                         yname = "INCAR", 
+#                         data = pcs.bw[s,],
+#                         weight = "entropy",
+#                         family = "binomial")
+# 
+# summary(aten.any.aug, type = "OR")
 ```
 
 ## References

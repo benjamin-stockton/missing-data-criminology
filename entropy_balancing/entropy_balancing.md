@@ -75,26 +75,94 @@ Issues 2 and 3 are also relevant to most pre-processing that involves balancing 
 
 ### Entropy Balancing in Sentencing Research
 
-## Implementation by ebal
+These notes are largely based on and quotions from [@macdonaldEvaluatingRoleRace2019]. The authors note that a cetnral goal of contemporary criminal justice reform is to "reduce racial disparities in prisons" in part by building an "understanding of the sources of these inequalities." Regression has been the primary tool used to estimate the race effect (note that the authors make causal claims without specifying the use of causal methods). MacDonald and Donnelly motivate entropy balancing by noting that
+
+> "\[M\]ultivariate regression approaches to estimating the effect of race on sentencing may produce biased estimates if there are important subgroup differences across covariates that are not adequately removed through mean adjustment."
+
+Given that is the extent of the motivation and the lack of theoretical basis for entropy balancing beyond making the covariate distributions identical on the moments, this doesn't seem to be the best path forward for causal methods in criminology or other social sciences. MacDonald and Donnelly engage with propensity score matching and weighting, but dismiss it for not producing well-balanced covariate data sets in every case. The balancing seems to me to be a side-effect of constructing suitable counterfactuals, and not the direct goal of propensity score methods. In other words, propensity scores (and resulting weights) have the theoretical meaning of being the likelihood of belonging to the treatment group given other characterisitcs. Entropy weights have no such meaning because they work backward from the assumption that the moments are matched.
+
+The authors also claim entropy balancing as doubly robust, while other papers have called the doubly robust claims into question [@freedman2008] (notably the co-author, Berk, is a criminology/statistics professor who has been critical of the way statistical methods have been used in criminology in other papers as well [@berkWhatYouCan2010]). MacDonald and Donnelly seem to define doubly robust estimation as "assum\[ing\] consistent measurement of treatment effects if either the weights from the **balancing approaches** or **regression model** are correctly specified [@bang2005]." [@macdonaldEvaluatingRoleRace2019, p. 662].[^1] This does not seem to be the correct definition.
+
+[^1]: When actually checking Bang and Robins' @bang2005 definition they say "In a missing data model, an estimator is DR if it remains consistent when either (but not necessarily both) a model for the missingness mechanism or a model for the distribution of the complete data is correctly specified." which is consistent with Funk et al's definition @funk2011 . These are markedly different definitions in that Bang and Robins are discussing the model specification as being the source of biasedness while MacDonald and Donnelly seem to be paraphrasing the definition as caring only about whether the estimates are biased regardless of the cause.
+
+The central claim by the authors is that
+
+> "Although the coefficients produced from the linear regression and the other approaches are not statistically different from each other (e.g. all coefficients are within 1 standard deviation of each other), the change in the size of the estimated mean sentence length difference between Blacks and Whites suggests that the regression model is downwardly biased. Specifically, race coefficients have similar precision, but the parameter estimated from the linear regression is one-half the size of the coefficients estimated from entropy or propensity score weighting." [@macdonaldEvaluatingRoleRace2019, p. 675]
+
+But there's no justification for any of these claims. No engagement with the uncertainty measures; in fact saying they're all within one standard error of each other should be the end of the conversation. That means there are no real distinctions between results so trying to draw any is pointless.
+
+A central issue with entropy weights is the lack of a clear causal estimand resulting from the weighting. IPW results in ATE (total population), "treated" results in ATT (target population is only the treated individuals), and "overlap" weights result in ATO (overlap of treatment and control in population) [@zhou2022]. Generally, entropy weighting will also make comparisons on the portion of the total population where there's significant overlap between the treatment and control groups, but without theoretical optimality properties.
+
+## Implemented by the ebal Package
 
 ### Simulated Data
 
 First, we'll demonstrate entropy balancing in a logistic regression setting to estimate the race effect on the simulated data. This data contains the same number of observations as the PCS data on the same variables which have been simulated independently, so a priori we should expect the marginal means of the variables to be the same for "Black" and "Non-Black" simulated defendants. The simulated data set is complete.
 
 
-::: {.cell hash='entropy_balancing_cache/pdf/unnamed-chunk-1_169f333dca97614f92442d3be76b7d1a'}
+::: {.cell hash='entropy_balancing_cache/pdf/set-up_1f1507fabc9f179afc7e26b46f1ad572'}
 
 ```{.r .cell-code}
 library(ebal)
-library(dplyr)
+```
 
+::: {.cell-output .cell-output-stderr}
+```
+##
+## ebal Package: Implements Entropy Balancing.
+```
+:::
+
+::: {.cell-output .cell-output-stderr}
+```
+## See http://www.stanford.edu/~jhain/ for additional information.
+```
+:::
+
+```{.r .cell-code}
+library(dplyr)
+```
+
+::: {.cell-output .cell-output-stderr}
+```
+
+Attaching package: 'dplyr'
+```
+:::
+
+::: {.cell-output .cell-output-stderr}
+```
+The following objects are masked from 'package:stats':
+
+    filter, lag
+```
+:::
+
+::: {.cell-output .cell-output-stderr}
+```
+The following objects are masked from 'package:base':
+
+    intersect, setdiff, setequal, union
+```
+:::
+
+```{.r .cell-code}
 dat <- read.csv("../Data/simulated_data.csv")
 
 dat$YEAR <- factor(dat$YEAR)
 dat$COUNTY <- factor(dat$COUNTY)
 
 dat$OFF_RACER <- factor(dat$OFF_RACER, levels = c("WHITE", "BLACK", "LATINO", "OTHER"))
+```
+:::
 
+
+Entropy balancing seems to be performed very quickly. Next we check the marginal means for each of the covariates.
+
+
+::: {.cell hash='entropy_balancing_cache/pdf/ebal-sim_045d105dbdd87cfe893b42ad2a5ba4c6'}
+
+```{.r .cell-code}
 dat %>%
     select(-c(INCAR, YEAR, COUNTY, OFF_RACER)) -> X
 X <- model.matrix(~., data = X)[,-1]
@@ -113,13 +181,6 @@ Converged within tolerance
 Converged within tolerance 
 ```
 :::
-:::
-
-
-Entropy balancing seems to be performed very quickly. Next we check the marginal means for each of the covariates
-
-
-::: {.cell hash='entropy_balancing_cache/pdf/unnamed-chunk-2_19e250440965f62c87baf1c7ef919db7'}
 
 ```{.r .cell-code}
 c1 <- apply(X[treatment,], 2, mean)
@@ -132,26 +193,38 @@ c3 <- apply(X[!treatment,], 2, mean)
 
 X.means <- bind_rows(c1, c2, c3) %>% as.data.frame()
 rownames(X.means) <- c("Black", "Non-Black - EB", "Non-Black - Unbalanced")
-round(t(X.means), 4)
+round(t(X.means), 4) |> 
+    kableExtra::kbl(format = "latex",
+                    booktabs = TRUE,
+                    digits = 3) |> 
+    print()
 ```
 
 ::: {.cell-output .cell-output-stdout}
 ```
-                      Black Non-Black - EB Non-Black - Unbalanced
-CRIMETYPEDUI         0.2367         0.2367                 0.2379
-CRIMETYPEOTHER       0.1241         0.1241                 0.1230
-CRIMETYPEPERSONS     0.1560         0.1560                 0.1568
-CRIMETYPEPROPERTY    0.2556         0.2556                 0.2548
-OGS                  3.4283         3.4283                 3.4184
-TRIALYes             0.9782         0.9782                 0.9786
-MALEMale             0.7731         0.7731                 0.7739
-PRS4/5               0.1813         0.1813                 0.1820
-PRSNone              0.4856         0.4856                 0.4859
-PRSREVOC/RFEL        0.0300         0.0300                 0.0300
-DOSAGE              34.2666        34.2666                34.2765
-RECMINYes            0.6701         0.6701                 0.6707
-OGSQ                17.9444        17.9444                17.8505
-DOSAGEQ           1306.2898      1306.2898              1307.1996
+
+\begin{tabular}[t]{lrrr}
+\toprule
+  & Black & Non-Black - EB & Non-Black - Unbalanced\\
+\midrule
+CRIMETYPEDUI & 0.237 & 0.237 & 0.238\\
+CRIMETYPEOTHER & 0.124 & 0.124 & 0.123\\
+CRIMETYPEPERSONS & 0.156 & 0.156 & 0.157\\
+CRIMETYPEPROPERTY & 0.256 & 0.256 & 0.255\\
+OGS & 3.428 & 3.428 & 3.418\\
+\addlinespace
+TRIALYes & 0.978 & 0.978 & 0.979\\
+MALEMale & 0.773 & 0.773 & 0.774\\
+PRS4/5 & 0.181 & 0.181 & 0.182\\
+PRSNone & 0.486 & 0.486 & 0.486\\
+PRSREVOC/RFEL & 0.030 & 0.030 & 0.030\\
+\addlinespace
+DOSAGE & 34.267 & 34.267 & 34.276\\
+RECMINYes & 0.670 & 0.670 & 0.671\\
+OGSQ & 17.944 & 17.944 & 17.850\\
+DOSAGEQ & 1306.290 & 1306.290 & 1307.200\\
+\bottomrule
+\end{tabular}
 ```
 :::
 :::
@@ -160,7 +233,7 @@ DOSAGEQ           1306.2898      1306.2898              1307.1996
 The means are essentially the same between the covariates before balancing, so it won't have any effect on the actual analysis. This is a key point regarding use of the modal approach in the simulations.
 
 
-::: {.cell hash='entropy_balancing_cache/pdf/unnamed-chunk-3_08c7aaa514f673837809b09d7cc42741'}
+::: {.cell hash='entropy_balancing_cache/pdf/ebal-sim-weights_860ab475ef8cf0b1be29cf82c3d5f59b'}
 
 ```{.r .cell-code}
 c(summary(eb.out$w), "Std. Dev" = sd(eb.out$w))
@@ -180,7 +253,7 @@ c(summary(eb.out$w), "Std. Dev" = sd(eb.out$w))
 The weights are essentially uniform still indicating little needs to be done to balance the covariates.
 
 
-::: {.cell hash='entropy_balancing_cache/pdf/unnamed-chunk-4_b4adc9563c757f1e33e09d287981d799'}
+::: {.cell hash='entropy_balancing_cache/pdf/ebal-sim-analysis_7b7047ba5bf0d753141834485763f29b'}
 
 ```{.r .cell-code}
 weights <- numeric(nrow(dat))
@@ -193,19 +266,32 @@ for (i in 1:nrow(dat)) {
     }
 }
 
-fit_sim_unweighted <- summary(glm(INCAR ~ ., 
-                          data = dat, 
-                          family = binomial(link = "logit")))
-
-fit_sim_weighted <- summary(glm(INCAR ~ ., 
-                          data = dat, 
-                          weights = weights,
-                          family = binomial(link = "logit")))
+ptime <- system.time({
+    fit_sim_unweighted <- summary(glm(INCAR ~ ., 
+                              data = dat, 
+                              family = binomial(link = "logit")))
+    
+    fit_sim_weighted <- summary(glm(INCAR ~ ., 
+                              data = dat, 
+                              weights = weights,
+                              family = binomial(link = "logit")))
+})[3]
 ```
 
 ::: {.cell-output .cell-output-stderr}
 ```
 Warning in eval(family$initialize): non-integer #successes in a binomial glm!
+```
+:::
+
+```{.r .cell-code}
+print(ptime)
+```
+
+::: {.cell-output .cell-output-stdout}
+```
+elapsed 
+ 41.589 
 ```
 :::
 
@@ -256,20 +342,27 @@ fit_sim_weighted$coefficients["OFF_RACERBLACK",]
 ### Real PCS Data
 
 
-::: {.cell hash='entropy_balancing_cache/pdf/unnamed-chunk-5_d130609669e5cb1951f8288534548ad8'}
+::: {.cell hash='entropy_balancing_cache/pdf/PCS-set-up_533865441e535412de83cb1f80e8dcd5'}
 
 ```{.r .cell-code}
 pcs <- read.csv("../Data/most_serious_sentence_2010-2019_slim.csv")
 
-pcs$YEAR <- factor(pcs$YEAR)
-pcs$COUNTY <- factor(pcs$COUNTY)
-pcs$OFF_RACER <- factor(pcs$OFF_RACER, levels = c("WHITE", "BLACK", "LATINO", "OTHER"))
+set.seed(7822)
+pcs %>%
+    group_by(COUNTY) %>%
+    # sample_n(size = 300) %>%
+    ungroup() %>%
+    mutate(
+        YEAR = as.factor(YEAR),
+        COUNTY = as.factor(COUNTY),
+        OFF_RACER = factor(OFF_RACER, levels = c("WHITE", "BLACK", "LATINO", "OTHER"))
+        ) -> pcs.sub
 
-mice::md.pattern(pcs, rotate.names = T)
+mice::md.pattern(pcs.sub, rotate.names = T)
 ```
 
 ::: {.cell-output-display}
-![](entropy_balancing_files/figure-pdf/unnamed-chunk-5-1.pdf){fig-pos='H'}
+![](entropy_balancing_files/figure-pdf/PCS-set-up-1.pdf){fig-pos='H'}
 :::
 
 ::: {.cell-output .cell-output-stdout}
@@ -296,10 +389,10 @@ mice::md.pattern(pcs, rotate.names = T)
 :::
 :::
 
-::: {.cell hash='entropy_balancing_cache/pdf/unnamed-chunk-6_c5fe6aaa78eb161eddf7f28eec89cc53'}
+::: {.cell hash='entropy_balancing_cache/pdf/pcs-ebal_16a99a0ec641e44e703561d5402df6b3'}
 
 ```{.r .cell-code}
-pcs %>% 
+pcs.sub %>% 
     filter(!is.na(OFF_RACER),
            !is.na(DOSAGE),
            !is.na(RECMIN),
@@ -339,26 +432,38 @@ c3 <- apply(X[!treatment,], 2, mean)
 
 X.means <- bind_rows(c1, c2, c3) %>% as.data.frame()
 rownames(X.means) <- c("Black", "Non-Black - EB", "Non-Black - Unbalanced")
-round(t(X.means), 4)
+round(t(X.means), 4) |> 
+    kableExtra::kbl(format = "latex",
+                    booktabs = TRUE,
+                    digits = 3) |> 
+    print()
 ```
 
 ::: {.cell-output .cell-output-stdout}
 ```
-                      Black Non-Black - EB Non-Black - Unbalanced
-CRIMETYPEDUI         0.1274         0.1274                 0.2790
-CRIMETYPEOTHER       0.1632         0.1632                 0.1084
-CRIMETYPEPERSONS     0.1838         0.1838                 0.1458
-CRIMETYPEPROPERTY    0.2445         0.2445                 0.2588
-OGS                  4.0601         4.0601                 3.1826
-OGSQ                24.7268        24.7268                15.3210
-RECMINYes            0.5303         0.5303                 0.7202
-TRIALYes             0.9591         0.9591                 0.9858
-PRS4/5               0.2720         0.2720                 0.1517
-PRSNone              0.3863         0.3863                 0.5152
-PRSREVOC/RFEL        0.0506         0.0506                 0.0228
-MALEMale             0.8272         0.8272                 0.7545
-DOSAGE              32.9122        32.9122                34.7886
-DOSAGEQ           1213.2078      1213.2078              1342.1189
+
+\begin{tabular}[t]{lrrr}
+\toprule
+  & Black & Non-Black - EB & Non-Black - Unbalanced\\
+\midrule
+CRIMETYPEDUI & 0.127 & 0.127 & 0.279\\
+CRIMETYPEOTHER & 0.163 & 0.163 & 0.108\\
+CRIMETYPEPERSONS & 0.184 & 0.184 & 0.146\\
+CRIMETYPEPROPERTY & 0.244 & 0.244 & 0.259\\
+OGS & 4.060 & 4.060 & 3.183\\
+\addlinespace
+OGSQ & 24.727 & 24.727 & 15.321\\
+RECMINYes & 0.530 & 0.530 & 0.720\\
+TRIALYes & 0.959 & 0.959 & 0.986\\
+PRS4/5 & 0.272 & 0.272 & 0.152\\
+PRSNone & 0.386 & 0.386 & 0.515\\
+\addlinespace
+PRSREVOC/RFEL & 0.051 & 0.051 & 0.023\\
+MALEMale & 0.827 & 0.827 & 0.754\\
+DOSAGE & 32.912 & 32.912 & 34.789\\
+DOSAGEQ & 1213.208 & 1213.208 & 1342.119\\
+\bottomrule
+\end{tabular}
 ```
 :::
 
@@ -376,7 +481,7 @@ c(summary(eb.pcs$w), "Std. Dev" = sd(eb.pcs$w))
 :::
 :::
 
-::: {.cell hash='entropy_balancing_cache/pdf/unnamed-chunk-7_d960e7f744dc6bba311b1a3eed34296e'}
+::: {.cell hash='entropy_balancing_cache/pdf/pcs-ebal-analysis_741366f401823cb44fed2bed6ef1fdf1'}
 
 ```{.r .cell-code}
 weights <- numeric(nrow(pcs.cc))
@@ -385,12 +490,12 @@ for (i in 1:nrow(pcs.cc)) {
         weights[i] <- 1
     }
     else {
-        weights[i] <- eb.out$w[i]
+        weights[i] <- eb.pcs$w[i]
     }
 }
 
 fit_pcs_unweighted <- summary(glm(INCAR ~ ., 
-                          data = pcs, 
+                          data = pcs.cc, 
                           family = binomial(link = "logit"),
                           model = FALSE, 
                           y = FALSE))
@@ -425,8 +530,8 @@ fit_pcs_unweighted$coefficients["OFF_RACERBLACK",]
 
 ::: {.cell-output .cell-output-stdout}
 ```
-     Estimate    Std. Error       z value      Pr(>|z|) 
- 2.268135e-01  6.511253e-03  3.483408e+01 7.418640e-266 
+    Estimate   Std. Error      z value     Pr(>|z|) 
+3.332389e-01 5.358802e-02 6.218533e+00 5.018254e-10 
 ```
 :::
 
@@ -446,19 +551,19 @@ fit_pcs_weighted$coefficients["OFF_RACERBLACK",]
 
 ::: {.cell-output .cell-output-stdout}
 ```
-     Estimate    Std. Error       z value      Pr(>|z|) 
- 2.578608e-01  9.128484e-03  2.824794e+01 1.508926e-175 
+    Estimate   Std. Error      z value     Pr(>|z|) 
+0.3464378239 0.0799957463 4.3307030664 0.0000148634 
 ```
 :::
 :::
 
 
-## Incomplete Data
+### Incomplete Data
 
 The impact of incomplete data is the next topic to tackle. We know that CCA can be biased under several (untestable) assumptions for the missingness mechanisms for logistic regression. Need to show that missingness also has an impact on weights doubly impacting the inferential results.
 
 
-::: {.cell hash='entropy_balancing_cache/pdf/unnamed-chunk-8_5637070ba21c43bf9fa7db5f0cb9b05a'}
+::: {.cell hash='entropy_balancing_cache/pdf/missing-model_23f3b0d7245fb82c778a787cb4a52eac'}
 
 ```{.r .cell-code}
 p <- 1 - (1 + exp(-(-9 + .5 * pcs.cc$DOSAGE + .5 * pcs.cc$OGS)))^-1
@@ -466,22 +571,23 @@ boxplot(p)
 ```
 
 ::: {.cell-output-display}
-![](entropy_balancing_files/figure-pdf/unnamed-chunk-8-1.pdf){fig-pos='H'}
+![](entropy_balancing_files/figure-pdf/missing-model-1.pdf){fig-pos='H'}
 :::
 
 ```{.r .cell-code}
-mis <- sample(nrow(pcs.cc), size = ceiling(0.25 * nrow(pcs.cc)), prob = p)
+set.seed(12948)
+mis <- sample(nrow(pcs.cc), size = ceiling(0.01 * nrow(pcs.cc)), prob = p)
 str(mis)
 ```
 
 ::: {.cell-output .cell-output-stdout}
 ```
- int [1:208637] 238658 215529 148383 356638 752797 68920 88571 434253 722658 330656 ...
+ int [1:194] 11771 6050 2603 15054 2490 11909 13617 2250 14735 12330 ...
 ```
 :::
 :::
 
-::: {.cell hash='entropy_balancing_cache/pdf/unnamed-chunk-9_285d3d5426e3ab350e1930bf0d8886e7'}
+::: {.cell hash='entropy_balancing_cache/pdf/pcs-inc-ebal_9b92200edb3bbd04250308ddf5593a7f'}
 
 ```{.r .cell-code}
 pcs.inc <- pcs.cc
@@ -505,14 +611,13 @@ eb.pcs2 <- ebalance(Treatment = treatment,
 
 ::: {.cell-output .cell-output-stdout}
 ```
-Iteration 1 maximum deviation is = 19573597 
-Iteration 2 maximum deviation is = 18358262 
-Iteration 3 maximum deviation is = 16777100 
-Iteration 4 maximum deviation is = 14647799 
-Iteration 5 maximum deviation is = 11521672 
-Iteration 6 maximum deviation is = 5521037 
-Iteration 7 maximum deviation is = 108551 
-Iteration 8 maximum deviation is = 84.07 
+Iteration 1 maximum deviation is = 28904124 
+Iteration 2 maximum deviation is = 26520140 
+Iteration 3 maximum deviation is = 23186669 
+Iteration 4 maximum deviation is = 18189093 
+Iteration 5 maximum deviation is = 8411645 
+Iteration 6 maximum deviation is = 221142 
+Iteration 7 maximum deviation is = 310.9 
 Converged within tolerance 
 Converged within tolerance 
 ```
@@ -529,26 +634,38 @@ c3 <- apply(X[!treatment,], 2, mean)
 
 X.means <- bind_rows(c1, c2, c3) %>% as.data.frame()
 rownames(X.means) <- c("Black", "Non-Black - EB", "Non-Black - Unbalanced")
-round(t(X.means), 4)
+round(t(X.means), 4) |> 
+    kableExtra::kbl(format = "latex",
+                    booktabs = TRUE,
+                    digits = 3) |> 
+    print()
 ```
 
 ::: {.cell-output .cell-output-stdout}
 ```
-                      Black Non-Black - EB Non-Black - Unbalanced
-CRIMETYPEDUI         0.1341         0.1341                 0.2904
-CRIMETYPEOTHER       0.1618         0.1618                 0.1096
-CRIMETYPEPERSONS     0.1933         0.1933                 0.1531
-CRIMETYPEPROPERTY    0.2357         0.2357                 0.2541
-OGS                  4.4561         4.4561                 3.4369
-OGSQ                28.9857        28.9857                17.5288
-RECMINYes            0.4369         0.4369                 0.6647
-TRIALYes             0.9513         0.9513                 0.9834
-PRS4/5               0.3346         0.3346                 0.1822
-PRSNone              0.3054         0.3054                 0.4560
-PRSREVOC/RFEL        0.0654         0.0654                 0.0279
-MALEMale             0.8267         0.8267                 0.7489
-DOSAGE              36.8090        36.8090                38.4811
-DOSAGEQ           1475.2901      1475.2901              1595.4856
+
+\begin{tabular}[t]{lrrr}
+\toprule
+  & Black & Non-Black - EB & Non-Black - Unbalanced\\
+\midrule
+CRIMETYPEDUI & 0.127 & 0.127 & 0.279\\
+CRIMETYPEOTHER & 0.163 & 0.163 & 0.108\\
+CRIMETYPEPERSONS & 0.184 & 0.184 & 0.146\\
+CRIMETYPEPROPERTY & 0.244 & 0.244 & 0.259\\
+OGS & 4.060 & 4.060 & 3.183\\
+\addlinespace
+OGSQ & 24.726 & 24.726 & 15.321\\
+RECMINYes & 0.530 & 0.530 & 0.720\\
+TRIALYes & 0.959 & 0.959 & 0.986\\
+PRS4/5 & 0.272 & 0.272 & 0.152\\
+PRSNone & 0.386 & 0.386 & 0.515\\
+\addlinespace
+PRSREVOC/RFEL & 0.051 & 0.051 & 0.023\\
+MALEMale & 0.827 & 0.827 & 0.754\\
+DOSAGE & 32.909 & 32.909 & 34.787\\
+DOSAGEQ & 1212.969 & 1212.969 & 1341.995\\
+\bottomrule
+\end{tabular}
 ```
 :::
 
@@ -559,14 +676,14 @@ c(summary(eb.pcs2$w), "Std. Dev" = sd(eb.pcs2$w))
 ::: {.cell-output .cell-output-stdout}
 ```
        Min.     1st Qu.      Median        Mean     3rd Qu.        Max. 
- 0.08111835  0.17454630  0.26378869  0.35167721  0.43921475 11.91469178 
+ 0.07608166  0.18827935  0.29694217  0.36704165  0.45845299 16.66036196 
    Std. Dev 
- 0.28622420 
+ 0.28137440 
 ```
 :::
 :::
 
-::: {.cell hash='entropy_balancing_cache/pdf/unnamed-chunk-10_259ec7e9c7e2211d7f8a280559e2b91d'}
+::: {.cell hash='entropy_balancing_cache/pdf/pcs-inc-analysis_3fa790fb1d281fd0ff3318f3579afae6'}
 
 ```{.r .cell-code}
 weights2 <- numeric(nrow(pcs.cc2))
@@ -615,8 +732,8 @@ fit_pcs_unweighted2$coefficients["OFF_RACERBLACK",]
 
 ::: {.cell-output .cell-output-stdout}
 ```
-     Estimate    Std. Error       z value      Pr(>|z|) 
- 2.088674e-01  7.604425e-03  2.746657e+01 4.405814e-166 
+    Estimate   Std. Error      z value     Pr(>|z|) 
+3.259340e-01 5.390277e-02 6.046702e+00 1.478410e-09 
 ```
 :::
 
@@ -636,10 +753,137 @@ fit_pcs_weighted2$coefficients["OFF_RACERBLACK",]
 
 ::: {.cell-output .cell-output-stdout}
 ```
-     Estimate    Std. Error       z value      Pr(>|z|) 
- 2.432750e-01  1.084716e-02  2.242754e+01 2.120633e-111 
+    Estimate   Std. Error      z value     Pr(>|z|) 
+3.640781e-01 8.093915e-02 4.498171e+00 6.854065e-06 
 ```
 :::
+:::
+
+
+## Implemented by the PSweight Package
+
+Following the [vignette](https://cran.r-project.org/web/packages/PSweight/vignettes/vignette.pdf) from the PSweight package, I will implement the estimation of the ATE, ATO, and ATT by using overlap weights (OW) and entropy balancing (EB). The vignette includes formulae for how to calculate causal estimands like the ATE, ATO, ATT, ATEN and how those estimands relate to the choice of weights. They also note that the entropy balancing has no theoretical foundation is not as frequently used as inverse propensity weighting (IPW) or OW.
+
+Following the steps in this framework, I will obtain causal estimands and be able to demonstrate that these inferences are also subject to the influence of missingness.
+
+### Binary Treatment
+
+As an initial step, I'll reduce the comparison to just White and Black defendants being Black set to be the "treatment". Later I will consider the same analysis with multiple treatment levels where White is the control and Black, Latino, and Other are treatments.
+
+
+::: {.cell hash='entropy_balancing_cache/pdf/psweight-pcs-design_881c3fcd8498ea556869645819b6d0f2'}
+
+```{.r .cell-code}
+# library(PSweight)
+# 
+# pcs.cc %>% 
+#     filter(OFF_RACER %in% c("WHITE", "BLACK")) %>% 
+#     mutate(BLACK = ifelse(OFF_RACER == "BLACK", 1, 0)) %>% 
+#     select(-c("OFF_RACER")) -> pcs.bw
+# 
+# ps.any <- BLACK ~ OGS + OGSQ + as.factor(CRIMETYPE) + as.factor(RECMIN) + as.factor(TRIAL) + as.factor(PRS) + as.factor(MALE) + DOSAGE + DOSAGEQ
+# 
+# bal.any <- SumStat(ps.formula = ps.any, data = pcs.bw,
+#                    weight = c("IPW", "overlap", "treated", "entropy"))
+# bal.any
+```
+:::
+
+::: {.cell hash='entropy_balancing_cache/pdf/psweight-pcs-design-plots_58b7f38ed86856b4ff8338d6397eb4ea'}
+
+```{.r .cell-code}
+# plot(bal.any, type = "density")
+# plot(bal.any, type = "balance", metric = "PSD")
+```
+:::
+
+
+Now we continue to the analysis step, first without including confounders.
+
+
+::: {.cell hash='entropy_balancing_cache/pdf/psweight-pcs-analysis_47214e627675abe309384b883fa10c14'}
+
+```{.r .cell-code}
+# ate.any <- PSweight(ps.formula = ps.any, 
+#                     yname = "INCAR", 
+#                     data = pcs.bw,
+#                     weight = "IPW",
+#                     family = "binomial")
+# 
+# att.any <- PSweight(ps.formula = ps.any, 
+#                     yname = "INCAR", 
+#                     data = pcs.bw,
+#                     weight = "treated",
+#                     family = "binomial")
+# 
+# ato.any <- PSweight(ps.formula = ps.any, 
+#                     yname = "INCAR", 
+#                     data = pcs.bw,
+#                     weight = "overlap",
+#                     family = "binomial")
+# 
+# aten.any <- PSweight(ps.formula = ps.any, 
+#                     yname = "INCAR", 
+#                     data = pcs.bw,
+#                     weight = "entropy",
+#                     family = "binomial")
+# 
+# summary(ate.any, type = "OR")
+# summary(att.any, type = "OR")
+# summary(ato.any, type = "OR")
+# summary(aten.any, type = "OR")
+```
+:::
+
+
+And including confounders.
+
+
+::: {.cell hash='entropy_balancing_cache/pdf/psweight-pcs-aug-analysis_d34f1b2ee4d4e69b357149d53000f0e5'}
+
+```{.r .cell-code}
+# out.incar <- INCAR ~ as.factor(CRIMETYPE) + OGS + OGSQ + as.factor(RECMIN) + as.factor(TRIAL) + as.factor(PRS) + as.factor(MALE) + DOSAGE + DOSAGEQ + as.factor(YEAR) + as.factor(COUNTY)
+# 
+# ate.any.aug <- PSweight(ps.formula = ps.any, 
+#                         out.formula = out.incar,
+#                         augmentation = TRUE,
+#                         yname = "INCAR", 
+#                         data = pcs.sub,
+#                         weight = "IPW",
+#                         family = "binomial")
+# 
+# summary(ate.any.aug, type = "OR")
+```
+:::
+
+::: {.cell hash='entropy_balancing_cache/pdf/unnamed-chunk-15_77e0d23421b47393698f2b982723e821'}
+
+```{.r .cell-code}
+# ato.any.aug <- PSweight(ps.formula = ps.any, 
+#                         out.formula = out.incar,
+#                         augmentation = TRUE,
+#                         yname = "INCAR", 
+#                         data = pcs.bw[s,],
+#                         weight = "overlap",
+#                         family = "binomial")
+# 
+# summary(ato.any.aug, type = "OR")
+```
+:::
+
+::: {.cell hash='entropy_balancing_cache/pdf/unnamed-chunk-16_481c7d5062476e967dfc701c5c441cd6'}
+
+```{.r .cell-code}
+# aten.any.aug <- PSweight(ps.formula = ps.any, 
+#                         out.formula = out.incar,
+#                         augmentation = TRUE,
+#                         yname = "INCAR", 
+#                         data = pcs.bw[s,],
+#                         weight = "entropy",
+#                         family = "binomial")
+# 
+# summary(aten.any.aug, type = "OR")
+```
 :::
 
 
