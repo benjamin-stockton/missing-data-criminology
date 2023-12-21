@@ -37,7 +37,8 @@ editor: visual
 library(dplyr, warn.conflicts = FALSE, quietly = TRUE)
 library(ggplot2, warn.conflicts = FALSE, quietly = TRUE)
 library(mice, warn.conflicts = FALSE, quietly = TRUE)
-
+library(broom.mixed)
+library(VIM)
 ```
 
 ## Methods
@@ -48,6 +49,47 @@ library(mice, warn.conflicts = FALSE, quietly = TRUE)
 #| label: load-data
 df <- readr::read_csv("../Data/PCS-most-serious-sentence-2010-2019-pmm.csv",
                       show_col_types = FALSE)
+
+df <- df |> mutate(
+        YEAR = as.factor(YEAR),
+        INCAR = case_when(
+            JP_MIN == 0 ~ 0,
+            JP_MIN > 0 ~ 1,
+            TRUE ~ NA
+        ),
+        SEX = case_when(
+            MALE == 1 ~ "Male",
+            MALE == 0 ~ "Female",
+            TRUE ~ NA
+        ),
+        OFF_RACE = case_when(
+            OFF_RACER == 1 ~ "WHITE",
+            OFF_RACER == 2 ~ "BLACK",
+            OFF_RACER == 3 ~ "LATINO",
+            OFF_RACER == 4 ~ "OTHER",
+            TRUE ~ NA
+        ),
+        PRVREC = case_when(
+            PRSR == 0 ~ "0",
+            PRSR == 1 ~ "1/2/3",
+            PRSR == 2 ~ "4/5",
+            PRSR == 3 ~ "REVOC/RFEL",
+            TRUE ~ NA
+        ),
+        CRIME = case_when(
+            CRIMETYPE == 1 ~ "Persons",
+            CRIMETYPE == 2 ~ "Property",
+            CRIMETYPE == 3 ~ "Drug",
+            CRIMETYPE == 4 ~ "DUI",
+            CRIMETYPE == 5 ~ "Other",
+            TRUE ~ NA
+        )
+    ) |>
+    select(
+        -c(OFF_RACER, PRSR, MALE, CRIMETYPE)
+    )
+
+df$OFF_RACE <- factor(df$OFF_RACE, levels = c("WHITE", "BLACK", "LATINO", "OTHER"))
 ```
 
 ```{r}
@@ -63,7 +105,8 @@ df |>
         sd_JP_MIN_MON = sd(JP_MIN_MON, na.rm = TRUE),
         min_JP_MIN_MON = min(JP_MIN_MON, na.rm = TRUE),
         median_JP_MIN_MON = median(JP_MIN_MON, na.rm = TRUE),
-        max_JP_MIN_MON = max(JP_MIN_MON, na.rm = TRUE)
+        max_JP_MIN_MON = max(JP_MIN_MON, na.rm = TRUE),
+        p_INCAR = mean(INCAR, na.rm = TRUE)
     )
 
 df |>
@@ -79,17 +122,116 @@ df |>
 ```
 
 ```{r}
-ggplot(df, aes(as.factor(CRIMETYPE), JP_MIN_MON)) +
+ggplot(df, aes(CRIME, JP_MIN_MON)) +
     geom_violin(draw_quantiles = c(0.025, 0.25, 0.5, 0.75, 0.975)) +
     geom_point(size = 0.5)
 ```
 
 ```{r}
-ggplot(df, aes(as.factor(OFF_RACER), JP_MIN_MON)) +
+ggplot(df, aes(OFF_RACE, JP_MIN_MON)) +
     geom_violin(draw_quantiles = c(0.025, 0.25, 0.5, 0.75, 0.975)) +
     geom_point(size = 0.5)
 ```
 
 ```{r}
+ggplot(df, aes(INCAR, fill = CRIME)) +
+    geom_bar(position = "dodge")
+```
 
+```{r}
+fluxplot(df)
+```
+
+```{r}
+df |> 
+    select(
+        JP_MIN_MON, OFF_RACE, DOSAGE, RECMIN, PRVREC, CRIME, TRIAL, SEX
+    ) |> 
+    aggr(sortby = "JP_MIN_MON", plot = FALSE) |>
+    plot(numbers = TRUE, prop = FALSE)
+```
+
+I'll prepare the data for analysis next. First, I'll center and scale the numeric predictors which are Offense Gravity Score (OGS), defendant age, and the square of each. Then I'll use MICE to multiply impute the incomplete variables with predictive mean matching. For now I'll use $M = 10$ since less than 5% of all observations are missing (mainly in defendant race).
+
+```{r}
+#| label: mice
+df[,c("OGS", "OGSQ", "DOSAGE", "DOSAGEQ")] <- scale(df[,c("OGS", "OGSQ", "DOSAGE", "DOSAGEQ")], center = TRUE, scale = TRUE)
+
+imps0 <- mice(df, m = 1, method = "pmm", maxit = 0)
+
+mthd <- imps0$method
+mthd["JP_MIN_MON"] <-  "~I(JP_MIN / 30)"
+# mthd[c("RECMIN", "INCAR", "OFF_RACE", "PRVREC")] <- "cart"
+mthd
+
+pred_mat <- imps0$predictorMatrix
+pred_mat[,"JPR_ID"] <- 0
+pred_mat
+
+imps <- mice(df, m = 10, method = mthd, predictorMatrix = pred_mat, maxit = 10)
+
+plot(imps)
+```
+
+### Logistic Regression on Incarceration
+
+I'll fit a logistic regression like before as a sanity check. The estimated odds ratio for increased odds of incarceration for a Black defendant over a White defendant should be roughly 1.25 as we saw in the complete case analysis in the previous paper.
+
+```{r}
+#| label: mice-glm
+fit_incar <- with(imps, glm(INCAR ~ DOSAGE + DOSAGEQ + SEX + OFF_RACE + OGS + OGSQ +
+                     PRVREC + RECMIN + CRIME + TRIAL +
+                     as.factor(YEAR) + as.factor(COUNTY),
+                 family = binomial(link = "logit"),
+                 x = FALSE, y = FALSE,
+                 model = FALSE))
+```
+
+```{r}
+#| label: tbl-glm-summary
+smry <- summary(pool(fit_incar))
+
+smry[1:18,] #|>
+    # kableExtra::kable(format = "latex", booktabs = TRUE,
+    #                 digits = 3) |>
+    # print()
+```
+
+### Hurdle Models
+
+A hurdle model models data with a high number of zeros (compared to standard distributions). The model places a probability point mass $P(Y = 0) = \theta$ at $Y = 0$ and uses a truncated (at zero) probability distribution for the non-zero sample space $P(Y \neq 0) = p_{y \neq 0}(y)$. This differs from a zero-inflated model which is a mixture of two distributions (includes the non-zero distribution's zero probability) as the hurdle model truncates the non-zero distribution.
+
+```{r}
+sent_non0 <- df$JP_MIN_MON[which(df$INCAR == 1)]
+s <- sample(length(sent_non0), size = 10000, replace = FALSE)
+
+qqnorm(sent_non0[s])
+qqline(sent_non0[s])
+
+qqnorm(log(sent_non0[s]))
+qqline(log(sent_non0[s]))
+```
+
+I'll create a GLM with brms and the log normal hurdle distribution.
+
+```{r}
+#| label: brms-hurdle-model
+
+library(brms)
+fit_brm <- brm(JP_MIN_MON ~ DOSAGE + DOSAGEQ + SEX + OFF_RACE + OGS + OGSQ +
+                     PRVREC + RECMIN + CRIME + TRIAL +
+                     (1 | YEAR) + (1 + CRIME |COUNTY),
+               data = df[s,],
+               family = hurdle_lognormal(link = "identity", link_sigma = "log", link_hu = "logit"),
+               chains = 2, cores = 2, iter = 2000)
+```
+
+```{r}
+summary(fit_brm)
+
+plot(fit_brm, ask = FALSE, nrow = 3)
+```
+
+```{r}
+plot(conditional_effects(fit_brm, effects = "OFF_RACE:SEX"), ask = FALSE)
 ```
