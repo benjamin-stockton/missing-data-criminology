@@ -9,6 +9,10 @@
   numbers=noendperiod]{scrartcl}
 
 \usepackage{amsmath,amssymb}
+<<<<<<< Updated upstream
+=======
+\usepackage{lmodern}
+>>>>>>> Stashed changes
 \usepackage{iftex}
 \ifPDFTeX
   \usepackage[T1]{fontenc}
@@ -19,10 +23,13 @@
   \defaultfontfeatures{Scale=MatchLowercase}
   \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
 \fi
+<<<<<<< Updated upstream
 \usepackage{lmodern}
 \ifPDFTeX\else  
     % xetex/luatex font selection
 \fi
+=======
+>>>>>>> Stashed changes
 % Use upquote if available, for straight quotes in verbatim environments
 \IfFileExists{upquote.sty}{\usepackage{upquote}}{}
 \IfFileExists{microtype.sty}{% use microtype if available
@@ -53,6 +60,49 @@
   \renewcommand{\subparagraph}[1]{\oldsubparagraph{#1}\mbox{}}
 \fi
 
+<<<<<<< Updated upstream
+=======
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{241,243,245}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.68,0.00,0.00}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.37,0.37,0.37}{#1}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.40,0.45,0.13}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.68,0.00,0.00}{#1}}
+\newcommand{\BuiltInTok}[1]{\textcolor[rgb]{0.00,0.23,0.31}{#1}}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.13,0.47,0.30}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.37,0.37,0.37}{#1}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.37,0.37,0.37}{\textit{#1}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.00,0.23,0.31}{#1}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.68,0.00,0.00}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.68,0.00,0.00}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.37,0.37,0.37}{\textit{#1}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.68,0.00,0.00}{#1}}
+\newcommand{\ExtensionTok}[1]{\textcolor[rgb]{0.00,0.23,0.31}{#1}}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.68,0.00,0.00}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.28,0.35,0.67}{#1}}
+\newcommand{\ImportTok}[1]{\textcolor[rgb]{0.00,0.46,0.62}{#1}}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.37,0.37,0.37}{#1}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.00,0.23,0.31}{#1}}
+\newcommand{\NormalTok}[1]{\textcolor[rgb]{0.00,0.23,0.31}{#1}}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.37,0.37,0.37}{#1}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.00,0.23,0.31}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.68,0.00,0.00}{#1}}
+\newcommand{\RegionMarkerTok}[1]{\textcolor[rgb]{0.00,0.23,0.31}{#1}}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.37,0.37,0.37}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.13,0.47,0.30}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.13,0.47,0.30}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.07,0.07,0.07}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.13,0.47,0.30}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.37,0.37,0.37}{\textit{#1}}}
+>>>>>>> Stashed changes
 
 \providecommand{\tightlist}{%
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}\usepackage{longtable,booktabs,array}
@@ -138,15 +188,22 @@
 \@ifpackageloaded{subcaption}{}{\usepackage{subcaption}}
 \makeatother
 \makeatletter
+<<<<<<< Updated upstream
 \@ifpackageloaded{tcolorbox}{}{\usepackage[skins,breakable]{tcolorbox}}
+=======
+\@ifpackageloaded{tcolorbox}{}{\usepackage[many]{tcolorbox}}
+>>>>>>> Stashed changes
 \makeatother
 \makeatletter
 \@ifundefined{shadecolor}{\definecolor{shadecolor}{rgb}{.97, .97, .97}}
 \makeatother
 \makeatletter
 \makeatother
+<<<<<<< Updated upstream
 \makeatletter
 \makeatother
+=======
+>>>>>>> Stashed changes
 \ifLuaTeX
   \usepackage{selnolig}  % disable illegal ligatures
 \fi
@@ -169,7 +226,11 @@
 
 \begin{document}
 \maketitle
+<<<<<<< Updated upstream
 \ifdefined\Shaded\renewenvironment{Shaded}{\begin{tcolorbox}[frame hidden, enhanced, boxrule=0pt, breakable, interior hidden, sharp corners, borderline west={3pt}{0pt}{shadecolor}]}{\end{tcolorbox}}\fi
+=======
+\ifdefined\Shaded\renewenvironment{Shaded}{\begin{tcolorbox}[sharp corners, interior hidden, boxrule=0pt, borderline west={3pt}{0pt}{shadecolor}, breakable, enhanced, frame hidden]}{\end{tcolorbox}}\fi
+>>>>>>> Stashed changes
 
 \renewcommand*\contentsname{Table of contents}
 {
@@ -184,12 +245,19 @@ I ran the simulations under a variety of settings, each for 1000
 iterations.
 
 \begin{longtable}[]{@{}ll@{}}
+<<<<<<< Updated upstream
 \toprule\noalign{}
 Sample Size (\(n\)) & Number of Imputations (\(M\)) \\
 \midrule\noalign{}
 \endhead
 \bottomrule\noalign{}
 \endlastfoot
+=======
+\toprule()
+Sample Size (\(n\)) & Number of Imputations (\(M\)) \\
+\midrule()
+\endhead
+>>>>>>> Stashed changes
 500 & 3 \\
 500 & 5 \\
 500 & 8 \\
@@ -199,6 +267,10 @@ Sample Size (\(n\)) & Number of Imputations (\(M\)) \\
 2500 & 3 \\
 2500 & 5 \\
 2500 & 8 \\
+<<<<<<< Updated upstream
+=======
+\bottomrule()
+>>>>>>> Stashed changes
 \end{longtable}
 
 From the estimated rate of missing information, I determined that there
@@ -248,35 +320,44 @@ Num of Imp & Miss Type & Direction & Analysis & OR Difference & 0.025 Quantile &
 3 imps & MAR & UNDR & MI & 0.002 & -0.065 & 0.073\\
 3 imps & MAR & No Missing Data & COMP & 0.000 & 0.000 & 0.000\\
 \addlinespace
+<<<<<<< Updated upstream
 3 imps & MNAR & OVER & CCA & 0.034 & -0.019 & 0.132\\
 3 imps & MNAR & OVER & MI & 0.035 & -0.027 & 0.136\\
 3 imps & MNAR & UNDR & CCA & -0.051 & -0.157 & 0.037\\
 3 imps & MNAR & UNDR & MI & -0.050 & -0.179 & 0.047\\
 3 imps & MNAR & No Missing Data & COMP & 0.000 & 0.000 & 0.000\\
 \addlinespace
+=======
+>>>>>>> Stashed changes
 5 imps & MAR & OVER & CCA & 0.014 & -0.074 & 0.108\\
 5 imps & MAR & OVER & MI & 0.001 & -0.080 & 0.073\\
 5 imps & MAR & UNDR & CCA & -0.043 & -0.147 & 0.036\\
 5 imps & MAR & UNDR & MI & 0.001 & -0.059 & 0.075\\
 5 imps & MAR & No Missing Data & COMP & 0.000 & 0.000 & 0.000\\
 \addlinespace
+<<<<<<< Updated upstream
 5 imps & MNAR & OVER & CCA & 0.037 & -0.019 & 0.126\\
 5 imps & MNAR & OVER & MI & 0.037 & -0.022 & 0.134\\
 5 imps & MNAR & UNDR & CCA & -0.051 & -0.159 & 0.041\\
 5 imps & MNAR & UNDR & MI & -0.050 & -0.169 & 0.047\\
 5 imps & MNAR & No Missing Data & COMP & 0.000 & 0.000 & 0.000\\
 \addlinespace
+=======
+>>>>>>> Stashed changes
 8 imps & MAR & OVER & CCA & 0.015 & -0.067 & 0.111\\
 8 imps & MAR & OVER & MI & 0.000 & -0.076 & 0.076\\
 8 imps & MAR & UNDR & CCA & -0.043 & -0.150 & 0.036\\
 8 imps & MAR & UNDR & MI & 0.002 & -0.060 & 0.073\\
 8 imps & MAR & No Missing Data & COMP & 0.000 & 0.000 & 0.000\\
+<<<<<<< Updated upstream
 \addlinespace
 8 imps & MNAR & OVER & CCA & 0.038 & -0.020 & 0.138\\
 8 imps & MNAR & OVER & MI & 0.038 & -0.017 & 0.132\\
 8 imps & MNAR & UNDR & CCA & -0.053 & -0.175 & 0.043\\
 8 imps & MNAR & UNDR & MI & -0.051 & -0.180 & 0.043\\
 8 imps & MNAR & No Missing Data & COMP & 0.000 & 0.000 & 0.000\\
+=======
+>>>>>>> Stashed changes
 \bottomrule
 \end{tabular}
 
@@ -286,8 +367,11 @@ Miss Type & Direction & Prop. of Inc. Cases & 0.025 Quantile & 0.975 Quantile\\
 \midrule
 MAR & OVER & 0.007 & 0.006 & 0.008\\
 MAR & UNDR & 0.008 & 0.008 & 0.008\\
+<<<<<<< Updated upstream
 MNAR & OVER & 0.008 & 0.008 & 0.008\\
 MNAR & UNDR & 0.008 & 0.008 & 0.008\\
+=======
+>>>>>>> Stashed changes
 \bottomrule
 \end{tabular}
 
@@ -303,35 +387,44 @@ Num of Imp & Miss Type & Direction & Analysis & Bias & 0.025 Quantile & 0.975 Qu
 3 imps & MAR & UNDR & MI & 0.142 & -0.564 & 1.153\\
 3 imps & MAR & No Missing Data & COMP & 0.140 & -0.568 & 1.125\\
 \addlinespace
+<<<<<<< Updated upstream
 3 imps & MNAR & OVER & CCA & 0.140 & -0.501 & 1.146\\
 3 imps & MNAR & OVER & MI & 0.141 & -0.491 & 1.145\\
 3 imps & MNAR & UNDR & CCA & 0.055 & -0.554 & 1.016\\
 3 imps & MNAR & UNDR & MI & 0.056 & -0.557 & 1.005\\
 3 imps & MNAR & No Missing Data & COMP & 0.106 & -0.514 & 1.058\\
 \addlinespace
+=======
+>>>>>>> Stashed changes
 5 imps & MAR & OVER & CCA & 0.147 & -0.522 & 1.225\\
 5 imps & MAR & OVER & MI & 0.133 & -0.524 & 1.177\\
 5 imps & MAR & UNDR & CCA & 0.089 & -0.544 & 1.082\\
 5 imps & MAR & UNDR & MI & 0.134 & -0.528 & 1.182\\
 5 imps & MAR & No Missing Data & COMP & 0.133 & -0.524 & 1.177\\
 \addlinespace
+<<<<<<< Updated upstream
 5 imps & MNAR & OVER & CCA & 0.153 & -0.525 & 1.192\\
 5 imps & MNAR & OVER & MI & 0.152 & -0.515 & 1.195\\
 5 imps & MNAR & UNDR & CCA & 0.065 & -0.581 & 1.029\\
 5 imps & MNAR & UNDR & MI & 0.065 & -0.584 & 1.034\\
 5 imps & MNAR & No Missing Data & COMP & 0.116 & -0.541 & 1.086\\
 \addlinespace
+=======
+>>>>>>> Stashed changes
 8 imps & MAR & OVER & CCA & 0.133 & -0.562 & 1.225\\
 8 imps & MAR & OVER & MI & 0.118 & -0.565 & 1.189\\
 8 imps & MAR & UNDR & CCA & 0.074 & -0.591 & 1.078\\
 8 imps & MAR & UNDR & MI & 0.120 & -0.558 & 1.183\\
 8 imps & MAR & No Missing Data & COMP & 0.118 & -0.559 & 1.163\\
+<<<<<<< Updated upstream
 \addlinespace
 8 imps & MNAR & OVER & CCA & 0.180 & -0.511 & 1.350\\
 8 imps & MNAR & OVER & MI & 0.180 & -0.513 & 1.350\\
 8 imps & MNAR & UNDR & CCA & 0.089 & -0.564 & 1.218\\
 8 imps & MNAR & UNDR & MI & 0.091 & -0.562 & 1.216\\
 8 imps & MNAR & No Missing Data & COMP & 0.142 & -0.526 & 1.291\\
+=======
+>>>>>>> Stashed changes
 \bottomrule
 \end{tabular}
 
@@ -539,6 +632,348 @@ Num of Imp & Miss Type & Direction & Analysis & Bias & 0.025 Quantile & 0.975 Qu
 \bottomrule
 \end{tabular}
 
+<<<<<<< Updated upstream
+=======
+\hypertarget{mar-overall-results-table}{%
+\section{MAR Overall Results Table}\label{mar-overall-results-table}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{sim\_settings }\OtherTok{\textless{}{-}}\NormalTok{ readr}\SpecialCharTok{::}\FunctionTok{read\_csv}\NormalTok{(}\StringTok{"../sim\_settings.csv"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+Rows: 36 Columns: 3
+-- Column specification --------------------------------------------------------
+Delimiter: ","
+dbl (3): n, M, simQ
+
+i Use `spec()` to retrieve the full column specification for this data.
+i Specify the column types or set `show_col_types = FALSE` to quiet this message.
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{sim\_settings[sim\_settings}\SpecialCharTok{$}\NormalTok{n }\SpecialCharTok{\textless{}} \DecValTok{5000}\NormalTok{, }\StringTok{"simQ"}\NormalTok{] }\OtherTok{\textless{}{-}} \DecValTok{1000}
+
+\NormalTok{sim\_settings }\OtherTok{\textless{}{-}}\NormalTok{ sim\_settings[}\SpecialCharTok{{-}}\FunctionTok{c}\NormalTok{(}\DecValTok{22}\NormalTok{, }\DecValTok{23}\NormalTok{, }\DecValTok{24}\NormalTok{, }\DecValTok{35}\NormalTok{, }\DecValTok{36}\NormalTok{),]}
+
+\NormalTok{sim\_res\_list }\OtherTok{\textless{}{-}} \FunctionTok{list}\NormalTok{()}
+
+\ControlFlowTok{for}\NormalTok{ (i }\ControlFlowTok{in} \DecValTok{1}\SpecialCharTok{:}\FunctionTok{nrow}\NormalTok{(sim\_settings)) \{}
+\NormalTok{    Q }\OtherTok{\textless{}{-}}\NormalTok{ sim\_settings[i, }\StringTok{"simQ"}\NormalTok{]}
+\NormalTok{    n }\OtherTok{\textless{}{-}}\NormalTok{ sim\_settings[i, }\StringTok{"n"}\NormalTok{]}
+\NormalTok{    m }\OtherTok{\textless{}{-}}\NormalTok{ sim\_settings[i, }\StringTok{"M"}\NormalTok{]}
+\NormalTok{    fname }\OtherTok{\textless{}{-}} \FunctionTok{paste0}\NormalTok{(}\StringTok{"../simulation\_results\_Q"}\NormalTok{, Q, }\StringTok{"\_n\_"}\NormalTok{, n, }\StringTok{"\_m\_"}\NormalTok{, m, }\StringTok{"\_p\_miss\_0.01.csv"}\NormalTok{)}
+\NormalTok{    tmp }\OtherTok{\textless{}{-}} \FunctionTok{read.csv}\NormalTok{(fname, }\AttributeTok{header =}\NormalTok{ T)}
+\NormalTok{    tmp}\SpecialCharTok{$}\NormalTok{IMPUTATION }\OtherTok{\textless{}{-}} \FunctionTok{paste0}\NormalTok{(m, }\StringTok{" imps"}\NormalTok{)}
+\NormalTok{    tmp}\SpecialCharTok{$}\NormalTok{N }\OtherTok{\textless{}{-}} \FunctionTok{as.numeric}\NormalTok{(n)}
+\NormalTok{    sim\_res\_list[[i]] }\OtherTok{\textless{}{-}}\NormalTok{ tmp}
+    
+\NormalTok{\}}
+
+\NormalTok{sim\_res\_list }\SpecialCharTok{\%\textgreater{}\%}\NormalTok{ purrr}\SpecialCharTok{::}\FunctionTok{reduce}\NormalTok{(bind\_rows) }\OtherTok{{-}\textgreater{}}\NormalTok{ sim\_res}
+
+\NormalTok{sim\_res[}\FunctionTok{which}\NormalTok{(sim\_res}\SpecialCharTok{$}\NormalTok{DIRECTION }\SpecialCharTok{==} \StringTok{"COMP"}\NormalTok{), }\StringTok{"ANALYSIS"}\NormalTok{] }\OtherTok{\textless{}{-}} \StringTok{"COMP"}
+\NormalTok{sim\_res[}\FunctionTok{which}\NormalTok{(sim\_res}\SpecialCharTok{$}\NormalTok{DIRECTION }\SpecialCharTok{==} \StringTok{"COMP"}\NormalTok{), }\StringTok{"DIRECTION"}\NormalTok{] }\OtherTok{\textless{}{-}} \StringTok{"No Missing Data"}
+\NormalTok{sim\_res}\SpecialCharTok{$}\NormalTok{DIRECTION }\SpecialCharTok{\%\textless{}\textgreater{}\%} \FunctionTok{fct\_relevel}\NormalTok{(}\FunctionTok{c}\NormalTok{(}\StringTok{"OVER"}\NormalTok{, }\StringTok{"UNDR"}\NormalTok{, }\StringTok{"No Missing Data"}\NormalTok{))}
+\NormalTok{sim\_res}\SpecialCharTok{$}\NormalTok{ANALYSIS }\SpecialCharTok{\%\textless{}\textgreater{}\%} \FunctionTok{fct\_relevel}\NormalTok{(}\FunctionTok{c}\NormalTok{(}\StringTok{"CCA"}\NormalTok{, }\StringTok{"COMP"}\NormalTok{, }\StringTok{"MI"}\NormalTok{))}
+\NormalTok{sim\_res}\SpecialCharTok{$}\NormalTok{IMPUTATION }\SpecialCharTok{\%\textless{}\textgreater{}\%} \FunctionTok{fct\_relevel}\NormalTok{(}\FunctionTok{paste0}\NormalTok{(}\FunctionTok{c}\NormalTok{(}\DecValTok{3}\NormalTok{, }\DecValTok{5}\NormalTok{, }\DecValTok{8}\NormalTok{, }\DecValTok{25}\NormalTok{, }\DecValTok{50}\NormalTok{, }\DecValTok{100}\NormalTok{), }\StringTok{" imps"}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{options}\NormalTok{(}\AttributeTok{dplyr.summarise.inform =} \ConstantTok{FALSE}\NormalTok{)}
+\NormalTok{sim\_res }\SpecialCharTok{|\textgreater{}} 
+  \FunctionTok{filter}\NormalTok{(IMPUTATION }\SpecialCharTok{==} \StringTok{"3 imps"}\NormalTok{, }
+\NormalTok{         MISS\_TYPE }\SpecialCharTok{==} \StringTok{"MAR"}\NormalTok{) }\SpecialCharTok{|\textgreater{}}
+  \FunctionTok{group\_by}\NormalTok{(N, DIRECTION, ANALYSIS) }\SpecialCharTok{|\textgreater{}}
+  \FunctionTok{summarize}\NormalTok{(}
+    \AttributeTok{OR\_DIFF =} \FunctionTok{mean}\NormalTok{(OR\_DIFF),}
+    \AttributeTok{OR\_BIAS =} \FunctionTok{mean}\NormalTok{(OR\_BIAS),}
+    \AttributeTok{PROP\_MISS =} \FunctionTok{mean}\NormalTok{(PROP\_MISS)}
+\NormalTok{  ) }\SpecialCharTok{|\textgreater{}} 
+\NormalTok{  kableExtra}\SpecialCharTok{::}\FunctionTok{kbl}\NormalTok{(}\AttributeTok{format =} \StringTok{"latex"}\NormalTok{, }
+                  \AttributeTok{digits =} \DecValTok{3}\NormalTok{, }
+                  \AttributeTok{booktabs =} \ConstantTok{TRUE}\NormalTok{,}
+                  \AttributeTok{caption =} \StringTok{"MAR simulation results with 3 imputations for MI."}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{table}
+
+\caption{MAR simulation results with 3 imputations for MI.}
+\centering
+\begin{tabular}[t]{rllrrr}
+\toprule
+N & DIRECTION & ANALYSIS & OR\_DIFF & OR\_BIAS & PROP\_MISS\\
+\midrule
+500 & OVER & CCA & 0.015 & 0.155 & 0.007\\
+500 & OVER & MI & 0.000 & 0.140 & 0.007\\
+500 & UNDR & CCA & -0.045 & 0.095 & 0.008\\
+500 & UNDR & MI & 0.002 & 0.142 & 0.008\\
+500 & No Missing Data & COMP & 0.000 & 0.140 & 0.000\\
+\addlinespace
+1000 & OVER & CCA & 0.014 & 0.057 & 0.008\\
+1000 & OVER & MI & -0.001 & 0.043 & 0.008\\
+1000 & UNDR & CCA & -0.049 & -0.006 & 0.009\\
+1000 & UNDR & MI & 0.001 & 0.045 & 0.009\\
+1000 & No Missing Data & COMP & 0.000 & 0.044 & 0.000\\
+\addlinespace
+2500 & OVER & CCA & 0.014 & 0.027 & 0.009\\
+2500 & OVER & MI & -0.002 & 0.011 & 0.009\\
+2500 & UNDR & CCA & -0.044 & -0.031 & 0.009\\
+2500 & UNDR & MI & 0.002 & 0.015 & 0.009\\
+2500 & No Missing Data & COMP & 0.000 & 0.013 & 0.000\\
+\addlinespace
+5000 & OVER & CCA & 0.014 & 0.035 & 0.010\\
+5000 & OVER & MI & -0.002 & 0.019 & 0.010\\
+5000 & UNDR & CCA & -0.046 & -0.025 & 0.010\\
+5000 & UNDR & MI & 0.001 & 0.022 & 0.010\\
+5000 & No Missing Data & COMP & 0.000 & 0.021 & 0.000\\
+\addlinespace
+10000 & OVER & CCA & 0.015 & 0.013 & 0.010\\
+10000 & OVER & MI & -0.001 & -0.003 & 0.010\\
+10000 & UNDR & CCA & -0.047 & -0.048 & 0.010\\
+10000 & UNDR & MI & 0.002 & 0.000 & 0.010\\
+10000 & No Missing Data & COMP & 0.000 & -0.002 & 0.000\\
+\addlinespace
+25000 & OVER & CCA & 0.015 & 0.019 & 0.010\\
+25000 & OVER & MI & -0.001 & 0.003 & 0.010\\
+25000 & UNDR & CCA & -0.047 & -0.043 & 0.010\\
+25000 & UNDR & MI & 0.002 & 0.006 & 0.010\\
+25000 & No Missing Data & COMP & 0.000 & 0.004 & 0.000\\
+\addlinespace
+50000 & OVER & CCA & 0.014 & 0.014 & 0.010\\
+50000 & OVER & MI & -0.002 & -0.002 & 0.010\\
+50000 & UNDR & CCA & -0.046 & -0.046 & 0.010\\
+50000 & UNDR & MI & 0.002 & 0.002 & 0.010\\
+50000 & No Missing Data & COMP & 0.000 & 0.000 & 0.000\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{sim\_res }\SpecialCharTok{|\textgreater{}} 
+  \FunctionTok{filter}\NormalTok{(IMPUTATION }\SpecialCharTok{==} \StringTok{"5 imps"}\NormalTok{, }
+\NormalTok{         MISS\_TYPE }\SpecialCharTok{==} \StringTok{"MAR"}\NormalTok{) }\SpecialCharTok{|\textgreater{}}
+  \FunctionTok{group\_by}\NormalTok{(N, DIRECTION, ANALYSIS) }\SpecialCharTok{|\textgreater{}}
+  \FunctionTok{summarize}\NormalTok{(}
+    \AttributeTok{OR\_DIFF =} \FunctionTok{mean}\NormalTok{(OR\_DIFF),}
+    \AttributeTok{OR\_BIAS =} \FunctionTok{mean}\NormalTok{(OR\_BIAS),}
+    \AttributeTok{PROP\_MISS =} \FunctionTok{mean}\NormalTok{(PROP\_MISS)}
+\NormalTok{  ) }\SpecialCharTok{|\textgreater{}} 
+\NormalTok{  kableExtra}\SpecialCharTok{::}\FunctionTok{kbl}\NormalTok{(}\AttributeTok{format =} \StringTok{"latex"}\NormalTok{, }
+                  \AttributeTok{digits =} \DecValTok{3}\NormalTok{, }
+                  \AttributeTok{booktabs =} \ConstantTok{TRUE}\NormalTok{,}
+                  \AttributeTok{caption =} \StringTok{"MAR simulation results with 5 imputations for MI."}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{table}
+
+\caption{MAR simulation results with 5 imputations for MI.}
+\centering
+\begin{tabular}[t]{rllrrr}
+\toprule
+N & DIRECTION & ANALYSIS & OR\_DIFF & OR\_BIAS & PROP\_MISS\\
+\midrule
+500 & OVER & CCA & 0.014 & 0.147 & 0.007\\
+500 & OVER & MI & 0.001 & 0.133 & 0.007\\
+500 & UNDR & CCA & -0.043 & 0.089 & 0.008\\
+500 & UNDR & MI & 0.001 & 0.134 & 0.008\\
+500 & No Missing Data & COMP & 0.000 & 0.133 & 0.000\\
+\addlinespace
+1000 & OVER & CCA & 0.014 & 0.066 & 0.008\\
+1000 & OVER & MI & -0.001 & 0.052 & 0.008\\
+1000 & UNDR & CCA & -0.049 & 0.003 & 0.009\\
+1000 & UNDR & MI & 0.001 & 0.054 & 0.009\\
+1000 & No Missing Data & COMP & 0.000 & 0.053 & 0.000\\
+\addlinespace
+2500 & OVER & CCA & 0.014 & 0.024 & 0.009\\
+2500 & OVER & MI & -0.001 & 0.009 & 0.009\\
+2500 & UNDR & CCA & -0.044 & -0.034 & 0.009\\
+2500 & UNDR & MI & 0.001 & 0.012 & 0.009\\
+2500 & No Missing Data & COMP & 0.000 & 0.010 & 0.000\\
+\addlinespace
+5000 & OVER & CCA & 0.014 & 0.021 & 0.010\\
+5000 & OVER & MI & -0.002 & 0.005 & 0.010\\
+5000 & UNDR & CCA & -0.047 & -0.040 & 0.010\\
+5000 & UNDR & MI & 0.001 & 0.008 & 0.010\\
+5000 & No Missing Data & COMP & 0.000 & 0.007 & 0.000\\
+\addlinespace
+10000 & OVER & CCA & 0.014 & 0.023 & 0.010\\
+10000 & OVER & MI & -0.002 & 0.007 & 0.010\\
+10000 & UNDR & CCA & -0.046 & -0.037 & 0.010\\
+10000 & UNDR & MI & 0.002 & 0.011 & 0.010\\
+10000 & No Missing Data & COMP & 0.000 & 0.009 & 0.000\\
+\addlinespace
+25000 & OVER & CCA & 0.014 & 0.013 & 0.010\\
+25000 & OVER & MI & -0.002 & -0.003 & 0.010\\
+25000 & UNDR & CCA & -0.047 & -0.048 & 0.010\\
+25000 & UNDR & MI & 0.001 & 0.000 & 0.010\\
+25000 & No Missing Data & COMP & 0.000 & -0.001 & 0.000\\
+\addlinespace
+50000 & OVER & CCA & 0.014 & 0.017 & 0.010\\
+50000 & OVER & MI & -0.002 & 0.002 & 0.010\\
+50000 & UNDR & CCA & -0.047 & -0.044 & 0.010\\
+50000 & UNDR & MI & 0.001 & 0.005 & 0.010\\
+50000 & No Missing Data & COMP & 0.000 & 0.003 & 0.000\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{sim\_res }\SpecialCharTok{|\textgreater{}} 
+  \FunctionTok{filter}\NormalTok{(IMPUTATION }\SpecialCharTok{==} \StringTok{"8 imps"}\NormalTok{, }
+\NormalTok{         MISS\_TYPE }\SpecialCharTok{==} \StringTok{"MAR"}\NormalTok{) }\SpecialCharTok{|\textgreater{}}
+  \FunctionTok{group\_by}\NormalTok{(N, DIRECTION, ANALYSIS) }\SpecialCharTok{|\textgreater{}}
+  \FunctionTok{summarize}\NormalTok{(}
+    \AttributeTok{OR\_DIFF =} \FunctionTok{mean}\NormalTok{(OR\_DIFF),}
+    \AttributeTok{OR\_BIAS =} \FunctionTok{mean}\NormalTok{(OR\_BIAS),}
+    \AttributeTok{PROP\_MISS =} \FunctionTok{mean}\NormalTok{(PROP\_MISS)}
+\NormalTok{  ) }\SpecialCharTok{|\textgreater{}} 
+\NormalTok{  kableExtra}\SpecialCharTok{::}\FunctionTok{kbl}\NormalTok{(}\AttributeTok{format =} \StringTok{"latex"}\NormalTok{, }
+                  \AttributeTok{digits =} \DecValTok{3}\NormalTok{, }
+                  \AttributeTok{booktabs =} \ConstantTok{TRUE}\NormalTok{,}
+                  \AttributeTok{caption =} \StringTok{"MAR simulation results with 8 imputations for MI."}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{table}
+
+\caption{MAR simulation results with 8 imputations for MI.}
+\centering
+\begin{tabular}[t]{rllrrr}
+\toprule
+N & DIRECTION & ANALYSIS & OR\_DIFF & OR\_BIAS & PROP\_MISS\\
+\midrule
+500 & OVER & CCA & 0.015 & 0.133 & 0.007\\
+500 & OVER & MI & 0.000 & 0.118 & 0.007\\
+500 & UNDR & CCA & -0.043 & 0.074 & 0.008\\
+500 & UNDR & MI & 0.002 & 0.120 & 0.008\\
+500 & No Missing Data & COMP & 0.000 & 0.118 & 0.000\\
+\addlinespace
+1000 & OVER & CCA & 0.013 & 0.057 & 0.008\\
+1000 & OVER & MI & -0.001 & 0.042 & 0.008\\
+1000 & UNDR & CCA & -0.049 & -0.005 & 0.009\\
+1000 & UNDR & MI & 0.002 & 0.046 & 0.009\\
+1000 & No Missing Data & COMP & 0.000 & 0.044 & 0.000\\
+\addlinespace
+2500 & OVER & CCA & 0.014 & 0.022 & 0.009\\
+2500 & OVER & MI & -0.002 & 0.006 & 0.009\\
+2500 & UNDR & CCA & -0.045 & -0.037 & 0.009\\
+2500 & UNDR & MI & 0.001 & 0.008 & 0.009\\
+2500 & No Missing Data & COMP & 0.000 & 0.007 & 0.000\\
+\addlinespace
+5000 & OVER & CCA & 0.014 & 0.023 & 0.010\\
+5000 & OVER & MI & -0.002 & 0.008 & 0.010\\
+5000 & UNDR & CCA & -0.046 & -0.037 & 0.010\\
+5000 & UNDR & MI & 0.001 & 0.011 & 0.010\\
+5000 & No Missing Data & COMP & 0.000 & 0.010 & 0.000\\
+\addlinespace
+10000 & OVER & CCA & 0.013 & 0.010 & 0.010\\
+10000 & OVER & MI & -0.003 & -0.006 & 0.010\\
+10000 & UNDR & CCA & -0.046 & -0.049 & 0.010\\
+10000 & UNDR & MI & 0.002 & -0.001 & 0.010\\
+10000 & No Missing Data & COMP & 0.000 & -0.003 & 0.000\\
+\addlinespace
+25000 & OVER & CCA & 0.014 & 0.013 & 0.010\\
+25000 & OVER & MI & -0.002 & -0.003 & 0.010\\
+25000 & UNDR & CCA & -0.047 & -0.048 & 0.010\\
+25000 & UNDR & MI & 0.001 & 0.000 & 0.010\\
+25000 & No Missing Data & COMP & 0.000 & -0.001 & 0.000\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{sim\_res }\SpecialCharTok{|\textgreater{}} 
+  \FunctionTok{filter}\NormalTok{(MISS\_TYPE }\SpecialCharTok{==} \StringTok{"MAR"}\NormalTok{,}
+\NormalTok{         ANALYSIS }\SpecialCharTok{!=} \StringTok{"COMP"}\NormalTok{) }\SpecialCharTok{|\textgreater{}}
+  \FunctionTok{mutate}\NormalTok{(}
+    \AttributeTok{ANALYSIS =} \FunctionTok{case\_when}\NormalTok{(}
+\NormalTok{      ANALYSIS }\SpecialCharTok{==} \StringTok{"MI"} \SpecialCharTok{\textasciitilde{}} \FunctionTok{paste0}\NormalTok{(}\StringTok{"MI "}\NormalTok{, IMPUTATION),}
+\NormalTok{      ANALYSIS }\SpecialCharTok{==} \StringTok{"CCA"} \SpecialCharTok{\textasciitilde{}} \StringTok{"CCA"}
+\NormalTok{    )}
+\NormalTok{  ) }\OtherTok{{-}\textgreater{}}\NormalTok{ sim\_res\_sum}
+\NormalTok{sim\_res\_sum}\SpecialCharTok{$}\NormalTok{ANALYSIS }\SpecialCharTok{\%\textless{}\textgreater{}\%} \FunctionTok{fct\_relevel}\NormalTok{(}\FunctionTok{c}\NormalTok{(}\StringTok{"CCA"}\NormalTok{, }\FunctionTok{paste0}\NormalTok{(}\StringTok{"MI "}\NormalTok{, }\FunctionTok{c}\NormalTok{(}\DecValTok{3}\NormalTok{, }\DecValTok{5}\NormalTok{, }\DecValTok{8}\NormalTok{, }\DecValTok{25}\NormalTok{, }\DecValTok{50}\NormalTok{, }\DecValTok{100}\NormalTok{), }\StringTok{" imps"}\NormalTok{)))}
+\NormalTok{sim\_res\_sum }\SpecialCharTok{|\textgreater{}}
+  \FunctionTok{ggplot}\NormalTok{(}\FunctionTok{aes}\NormalTok{(DIRECTION, OR\_DIFF, }\AttributeTok{color =} \FunctionTok{as.factor}\NormalTok{(N))) }\SpecialCharTok{+}
+        \FunctionTok{geom\_hline}\NormalTok{(}\AttributeTok{yintercept =} \DecValTok{0}\NormalTok{, }\AttributeTok{color =} \StringTok{"gray"}\NormalTok{) }\SpecialCharTok{+}
+        \FunctionTok{geom\_boxplot}\NormalTok{(}\AttributeTok{fill =} \StringTok{"white"}\NormalTok{, }\AttributeTok{alpha =}\NormalTok{ .}\DecValTok{75}\NormalTok{, }\AttributeTok{outlier.shape =} \DecValTok{1}\NormalTok{) }\SpecialCharTok{+}
+        \FunctionTok{facet\_wrap}\NormalTok{(ANALYSIS }\SpecialCharTok{\textasciitilde{}}\NormalTok{ .) }\SpecialCharTok{+}
+        \FunctionTok{theme\_bw}\NormalTok{() }\SpecialCharTok{+}
+\NormalTok{        ggthemes}\SpecialCharTok{::}\FunctionTok{scale\_fill\_colorblind}\NormalTok{() }\SpecialCharTok{+}
+\NormalTok{        ggthemes}\SpecialCharTok{::}\FunctionTok{scale\_color\_colorblind}\NormalTok{(}\AttributeTok{name =} \StringTok{\textquotesingle{}Sample Size\textquotesingle{}}\NormalTok{) }\SpecialCharTok{+}
+        \FunctionTok{theme}\NormalTok{(}\AttributeTok{legend.position =} \StringTok{"right"}\NormalTok{) }\SpecialCharTok{+}
+        \FunctionTok{labs}\NormalTok{(}\AttributeTok{title =} \StringTok{"Difference in Race Effect Estimates }\SpecialCharTok{\textbackslash{}n}\StringTok{ from CCA/MI to the Complete Data Estimate"}\NormalTok{,}
+             \AttributeTok{x =} \StringTok{"Intended Direction of Bias due to Missing Data"}\NormalTok{,}
+             \AttributeTok{y =} \StringTok{"Difference in the OR"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{figure}[H]
+
+{\centering \includegraphics{simualtion_results_files/figure-pdf/fig-mar-diff-pmiss-001-1.pdf}
+
+}
+
+\caption{\label{fig-mar-diff-pmiss-001}Distributions of the difference
+between the complete data estimate and the incomplete data estimates
+under complete case analysis (CCA), or multiple imputation (MI) with 3,
+5, 8, 25, 50, and 100 imputations (imps) from simulations at sample
+sizes from N = 500 to N = 50000.}
+
+\end{figure}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{sim\_res }\SpecialCharTok{|\textgreater{}} 
+  \FunctionTok{filter}\NormalTok{(MISS\_TYPE }\SpecialCharTok{==} \StringTok{"MAR"}\NormalTok{) }\SpecialCharTok{|\textgreater{}}
+  \FunctionTok{mutate}\NormalTok{(}
+    \AttributeTok{ANALYSIS =} \FunctionTok{case\_when}\NormalTok{(}
+\NormalTok{      ANALYSIS }\SpecialCharTok{==} \StringTok{"MI"} \SpecialCharTok{\textasciitilde{}} \FunctionTok{paste0}\NormalTok{(}\StringTok{"MI "}\NormalTok{, IMPUTATION),}
+\NormalTok{      ANALYSIS }\SpecialCharTok{==} \StringTok{"CCA"} \SpecialCharTok{\textasciitilde{}} \StringTok{"CCA"}\NormalTok{,}
+\NormalTok{      ANALYSIS }\SpecialCharTok{==} \StringTok{"COMP"} \SpecialCharTok{\textasciitilde{}} \StringTok{"COMP"}
+\NormalTok{    )}
+\NormalTok{  ) }\OtherTok{{-}\textgreater{}}\NormalTok{ sim\_res\_sum}
+\NormalTok{sim\_res\_sum}\SpecialCharTok{$}\NormalTok{ANALYSIS }\SpecialCharTok{\%\textless{}\textgreater{}\%} \FunctionTok{fct\_relevel}\NormalTok{(}\FunctionTok{c}\NormalTok{(}\StringTok{"COMP"}\NormalTok{, }\StringTok{"CCA"}\NormalTok{, }\FunctionTok{paste0}\NormalTok{(}\StringTok{"MI "}\NormalTok{, }\FunctionTok{c}\NormalTok{(}\DecValTok{3}\NormalTok{, }\DecValTok{5}\NormalTok{, }\DecValTok{8}\NormalTok{, }\DecValTok{25}\NormalTok{, }\DecValTok{50}\NormalTok{, }\DecValTok{100}\NormalTok{), }\StringTok{" imps"}\NormalTok{)))}
+\NormalTok{sim\_res\_sum }\SpecialCharTok{|\textgreater{}}
+  \FunctionTok{ggplot}\NormalTok{(}\FunctionTok{aes}\NormalTok{(DIRECTION, OR\_BIAS, }\AttributeTok{color =} \FunctionTok{as.factor}\NormalTok{(N))) }\SpecialCharTok{+}
+        \FunctionTok{geom\_hline}\NormalTok{(}\AttributeTok{yintercept =} \DecValTok{0}\NormalTok{, }\AttributeTok{color =} \StringTok{"gray"}\NormalTok{) }\SpecialCharTok{+}
+        \FunctionTok{geom\_boxplot}\NormalTok{(}\AttributeTok{fill =} \StringTok{"white"}\NormalTok{, }\AttributeTok{alpha =}\NormalTok{ .}\DecValTok{75}\NormalTok{, }\AttributeTok{outlier.shape =} \DecValTok{1}\NormalTok{) }\SpecialCharTok{+}
+        \FunctionTok{facet\_wrap}\NormalTok{(. }\SpecialCharTok{\textasciitilde{}}\NormalTok{ ANALYSIS, }\AttributeTok{scales =} \StringTok{"free\_x"}\NormalTok{) }\SpecialCharTok{+}
+        \FunctionTok{theme\_bw}\NormalTok{() }\SpecialCharTok{+}
+\NormalTok{        ggthemes}\SpecialCharTok{::}\FunctionTok{scale\_fill\_colorblind}\NormalTok{() }\SpecialCharTok{+}
+\NormalTok{        ggthemes}\SpecialCharTok{::}\FunctionTok{scale\_color\_colorblind}\NormalTok{(}\AttributeTok{name =} \StringTok{\textquotesingle{}Sample Size\textquotesingle{}}\NormalTok{) }\SpecialCharTok{+}
+        \FunctionTok{theme}\NormalTok{(}\AttributeTok{legend.position =} \StringTok{"right"}\NormalTok{) }\SpecialCharTok{+}
+        \FunctionTok{labs}\NormalTok{(}\AttributeTok{title =} \StringTok{"Statistical Bias of the Race Effect Estimates"}\NormalTok{, }
+             \AttributeTok{x =} \StringTok{"Intended Direction of Bias due to Missing Data"}\NormalTok{,}
+             \AttributeTok{y =} \StringTok{"Statistical Bias"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{figure}[H]
+
+{\centering \includegraphics{simualtion_results_files/figure-pdf/fig-mar-bias-pmiss-001-1.pdf}
+
+}
+
+\caption{\label{fig-mar-bias-pmiss-001}Distributions of the statistical
+bias between the true race effect parameter and the estimates from the
+complete data (COMP), complete case analysis (CCA) estimate, and
+multiple imputation (MI) with 3, 5, 8, 25, 50, and 100 imputations
+(imps) from simulations at sample sizes from N = 500 to N = 50000.}
+
+\end{figure}
+
+>>>>>>> Stashed changes
 
 
 \end{document}

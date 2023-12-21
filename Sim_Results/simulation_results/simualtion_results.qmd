@@ -20,6 +20,10 @@ fig-width: 7
 fig-height: 5
 fig-dpi: 300
 keep-tex: true
+<<<<<<< Updated upstream
+=======
+keep-md: true
+>>>>>>> Stashed changes
 execute: 
   cache: true
 bibliography: ../../Literature/Criminology.bib
@@ -27,7 +31,7 @@ bibliography: ../../Literature/Criminology.bib
 
 ```{r}
 #| include: false
-knitr::opts_chunk$set(echo = TRUE, results = 'hold')
+knitr::opts_chunk$set(echo = FALSE, results = 'hold')
 library(dplyr, warn.conflicts = FALSE)
 
 # Suppress summarise info
@@ -125,3 +129,135 @@ tbs$tables$PROP_MISS |> kableExtra::kbl(format = "latex", digits = 3, booktabs =
 print(plts$BIAS)
 tbs$tables$BIAS |> kableExtra::kbl(format = "latex", digits = 3, booktabs = TRUE)
 ```
+
+## MAR Overall Results Table
+
+```{r}
+sim_settings <- readr::read_csv("../sim_settings.csv")
+sim_settings[sim_settings$n < 5000, "simQ"] <- 1000
+
+sim_settings <- sim_settings[-c(22, 23, 24, 35, 36),]
+
+sim_res_list <- list()
+
+for (i in 1:nrow(sim_settings)) {
+    Q <- sim_settings[i, "simQ"]
+    n <- sim_settings[i, "n"]
+    m <- sim_settings[i, "M"]
+    fname <- paste0("../simulation_results_Q", Q, "_n_", n, "_m_", m, "_p_miss_0.01.csv")
+    tmp <- read.csv(fname, header = T)
+    tmp$IMPUTATION <- paste0(m, " imps")
+    tmp$N <- as.numeric(n)
+    sim_res_list[[i]] <- tmp
+    
+}
+
+sim_res_list %>% purrr::reduce(bind_rows) -> sim_res
+
+sim_res[which(sim_res$DIRECTION == "COMP"), "ANALYSIS"] <- "COMP"
+sim_res[which(sim_res$DIRECTION == "COMP"), "DIRECTION"] <- "No Missing Data"
+sim_res$DIRECTION %<>% fct_relevel(c("OVER", "UNDR", "No Missing Data"))
+sim_res$ANALYSIS %<>% fct_relevel(c("CCA", "COMP", "MI"))
+sim_res$IMPUTATION %<>% fct_relevel(paste0(c(3, 5, 8, 25, 50, 100), " imps"))
+```
+
+```{r}
+options(dplyr.summarise.inform = FALSE)
+sim_res |> 
+  filter(IMPUTATION == "3 imps", 
+         MISS_TYPE == "MAR") |>
+  group_by(N, DIRECTION, ANALYSIS) |>
+  summarize(
+    OR_DIFF = mean(OR_DIFF),
+    OR_BIAS = mean(OR_BIAS),
+    PROP_MISS = mean(PROP_MISS)
+  ) |> 
+  kableExtra::kbl(format = "latex", 
+                  digits = 3, 
+                  booktabs = TRUE,
+                  caption = "MAR simulation results with 3 imputations for MI.")
+
+sim_res |> 
+  filter(IMPUTATION == "5 imps", 
+         MISS_TYPE == "MAR") |>
+  group_by(N, DIRECTION, ANALYSIS) |>
+  summarize(
+    OR_DIFF = mean(OR_DIFF),
+    OR_BIAS = mean(OR_BIAS),
+    PROP_MISS = mean(PROP_MISS)
+  ) |> 
+  kableExtra::kbl(format = "latex", 
+                  digits = 3, 
+                  booktabs = TRUE,
+                  caption = "MAR simulation results with 5 imputations for MI.")
+
+sim_res |> 
+  filter(IMPUTATION == "8 imps", 
+         MISS_TYPE == "MAR") |>
+  group_by(N, DIRECTION, ANALYSIS) |>
+  summarize(
+    OR_DIFF = mean(OR_DIFF),
+    OR_BIAS = mean(OR_BIAS),
+    PROP_MISS = mean(PROP_MISS)
+  ) |> 
+  kableExtra::kbl(format = "latex", 
+                  digits = 3, 
+                  booktabs = TRUE,
+                  caption = "MAR simulation results with 8 imputations for MI.")
+
+```
+
+```{r}
+#| label: fig-mar-diff-pmiss-001
+#| fig-cap: "Distributions of the difference between the complete data estimate and the incomplete data estimates under complete case analysis (CCA), or multiple imputation (MI) with 3, 5, 8, 25, 50, and 100 imputations (imps) from simulations at sample sizes from N = 500 to N = 50000."
+sim_res |> 
+  filter(MISS_TYPE == "MAR",
+         ANALYSIS != "COMP") |>
+  mutate(
+    ANALYSIS = case_when(
+      ANALYSIS == "MI" ~ paste0("MI ", IMPUTATION),
+      ANALYSIS == "CCA" ~ "CCA"
+    )
+  ) -> sim_res_sum
+sim_res_sum$ANALYSIS %<>% fct_relevel(c("CCA", paste0("MI ", c(3, 5, 8, 25, 50, 100), " imps")))
+sim_res_sum |>
+  ggplot(aes(DIRECTION, OR_DIFF, color = as.factor(N))) +
+        geom_hline(yintercept = 0, color = "gray") +
+        geom_boxplot(fill = "white", alpha = .75, outlier.shape = 1) +
+        facet_wrap(ANALYSIS ~ .) +
+        theme_bw() +
+        ggthemes::scale_fill_colorblind() +
+        ggthemes::scale_color_colorblind(name = 'Sample Size') +
+        theme(legend.position = "right") +
+        labs(title = "Difference in Race Effect Estimates \n from CCA/MI to the Complete Data Estimate",
+             x = "Intended Direction of Bias due to Missing Data",
+             y = "Difference in the OR")
+```
+
+```{r}
+#| label: fig-mar-bias-pmiss-001
+#| fig-cap: "Distributions of the statistical bias between the true race effect parameter and the estimates from the complete data (COMP), complete case analysis (CCA) estimate, and multiple imputation (MI) with 3, 5, 8, 25, 50, and 100 imputations (imps) from simulations at sample sizes from N = 500 to N = 50000."
+sim_res |> 
+  filter(MISS_TYPE == "MAR") |>
+  mutate(
+    ANALYSIS = case_when(
+      ANALYSIS == "MI" ~ paste0("MI ", IMPUTATION),
+      ANALYSIS == "CCA" ~ "CCA",
+      ANALYSIS == "COMP" ~ "COMP"
+    )
+  ) -> sim_res_sum
+sim_res_sum$ANALYSIS %<>% fct_relevel(c("COMP", "CCA", paste0("MI ", c(3, 5, 8, 25, 50, 100), " imps")))
+sim_res_sum |>
+  ggplot(aes(DIRECTION, OR_BIAS, color = as.factor(N))) +
+        geom_hline(yintercept = 0, color = "gray") +
+        geom_boxplot(fill = "white", alpha = .75, outlier.shape = 1) +
+        facet_wrap(. ~ ANALYSIS, scales = "free_x") +
+        theme_bw() +
+        ggthemes::scale_fill_colorblind() +
+        ggthemes::scale_color_colorblind(name = 'Sample Size') +
+        theme(legend.position = "right") +
+        labs(title = "Statistical Bias of the Race Effect Estimates", 
+             x = "Intended Direction of Bias due to Missing Data",
+             y = "Statistical Bias")
+```
+
