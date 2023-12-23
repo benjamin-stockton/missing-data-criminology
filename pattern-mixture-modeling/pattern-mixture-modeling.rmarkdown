@@ -41,9 +41,11 @@ library(broom.mixed)
 library(VIM)
 ```
 
+
 ## Methods
 
 ## Analysis
+
 
 ```{r}
 #| label: load-data
@@ -163,7 +165,9 @@ df |>
     plot(numbers = TRUE, prop = FALSE)
 ```
 
+
 I'll prepare the data for analysis next. First, I'll center and scale the numeric predictors which are Offense Gravity Score (OGS), defendant age, and the square of each. Then I'll use MICE to multiply impute the incomplete variables with predictive mean matching. For now I'll use $M = 10$ since less than 5% of all observations are missing (mainly in defendant race).
+
 
 ```{r}
 #| label: mice
@@ -185,9 +189,11 @@ imps <- mice(df[s,], m = 10, method = mthd, predictorMatrix = pred_mat, maxit = 
 plot(imps)
 ```
 
+
 ### Logistic Regression on Incarceration
 
 I'll fit a logistic regression like before as a sanity check. The estimated odds ratio for increased odds of incarceration for a Black defendant over a White defendant should be roughly 1.25 as we saw in the complete case analysis in the previous paper.
+
 
 ```{r}
 #| label: mice-glm
@@ -207,9 +213,11 @@ smry |>
     filter(stringr::str_sub(term, 1,3) != "as.")
 ```
 
+
 From the logistic regression fit with MI and $M = 10$ imputations done using predictive mean matching, we found that a Black defendant is `r round(exp(0.2225), 2)` (95% CI of (`r round(exp(0.2225 - 1.96 * 0.0064), 3)`, `r round(exp(0.2225 + 1.96 * 0.0064), 3)`)times more likely to be sentenced to incarceration than an otherwise similar White defendant.
 
 We re-analyze the data using a generalized linear mixed model and again taking the binary incarceration decision as the outcome and random effects for the Year and County with random slopes for the most serious Crime type by County.
+
 
 ```{r}
 #| label: mice-glmm
@@ -245,76 +253,39 @@ smry |>
     filter(stringr::str_sub(term, 1,3) %in% c("YEA", "COU"))
 ```
 
+
 ### Hurdle Models
 
 A hurdle model models data with a high number of zeros (compared to standard distributions). The model places a probability point mass $P(Y = 0) = \theta$ at $Y = 0$ and uses a truncated (at zero) probability distribution for the non-zero sample space $P(Y \neq 0) = p_{y \neq 0}(y)$. This differs from a zero-inflated model which is a mixture of two distributions (includes the non-zero distribution's zero probability) as the hurdle model truncates the non-zero distribution.
 
 I'll create a GLM with brms and the log normal hurdle distribution.
 
-The model is composed of two components: the hurdle for the zeros and the GLM for the non-zero part. Let $\pi_i$ be the probability that the $i$th observation is zero and $P(Y_i \neq 0) = f_{y\neq 0}(y-i)$ where $f_{y\neq 0}$ is a truncated probability mass/density function.
-
-#### Lognormal Hurdle GLM with Intercept-only Hurdle
-
-Under this first model, we will model the probability of $Y_i = 0$ as constant across the observations using an intercept-only model; the default for `brms` [@bürkner2017].
-
-$$
-\mathrm{logit}^{-1}(P(Y_i = 0)) = \pi_0
-$$ {#eq-hurdle-intercept}
-
-$$
-log(Y_i) = \mathbf{x}_i \boldsymbol{\beta} + \mathbf{z}_i \mathbf{u} + \epsilon_i
-$$ {#eq-hurdle-glm} where $\mathbf{u}$ is MVN with $E(\mathbf{U}) = 0$ and covariance matrix $Cov(\mathbf{U}) = G$, $\epsilon_i \overset{iid}{\sim} N(0, \sigma^2)$ and $\mathbf{u}$ and $\boldsymbol{\epsilon}$ are mutually independent. $\mathbf{x}_i$ and $\mathbf{z}_i$ are rows from two known design matrices for the population-level and group-level effects respectively.
-
-The model is specified as usual for a GLMM:
-
-```         
-brm(JP_MIN_MON ~ DOSAGE + DOSAGEQ + SEX*OFF_RACE + OGS + OGSQ +
-                     PRVREC + RECMIN + CRIME + TRIAL +
-                     (1 | YEAR) + (1 + CRIME |COUNTY),
-               data = data,
-               family = hurdle_lognormal(link = "identity",
-                           link_sigma = "log",
-                           link_hu = "logit"))
-```
-
-Here we include group-level effects for the year, the county, and the crime-type in the county in case the judicial system sentences the different crime-types differently relative to other counties. Each of the population-level regression coefficients are given a normal prior $\beta_j \sim N(0, 25).$ The group-level effects for the intercepts and effects for crime-type are given noncentral t-distributions $\gamma_k \sim t_{3; 0, 2.5}$ while the correlations between the county-level crime-type effects and county-level intercepts are given $\rho_{i.j} \sim lkj(1)$ priors. The hurdle parameter gets a $U(0,1)$ prior. The error term's variance also gets a noncentral t prior $\sigma \sim t_{3; 0, 2.5}.$
-
-```         
-student_t(3, 0, 2.5)
-```
-
-The quantity of interest is the regression coefficient for race.
 
 ```{r}
 #| label: brms-hurdle-model-prior
 
 library(brms)
 
-bprior <- get_prior(JP_MIN_MON ~ DOSAGE + DOSAGEQ + SEX*OFF_RACE + OGS + OGSQ +
+(bprior <- get_prior(JP_MIN_MON ~ DOSAGE + DOSAGEQ + SEX*OFF_RACE + OGS + OGSQ +
                      PRVREC + RECMIN + CRIME + TRIAL +
                      (1 | YEAR) + (1 + CRIME |COUNTY),
                data = df[s,],
-               family = hurdle_lognormal(link = "identity", link_sigma = "log", link_hu = "logit"))
+               family = hurdle_lognormal(link = "identity", link_sigma = "log", link_hu = "logit")))
 
-bprior$prior[1] <- "normal(0, 25)"
-bprior
+
 ```
 
 ```{r}
 #| label: brms-hurdle-model
-#| results: hide
-
-# library(future)
-# plan(multicore, workers = 10)
-fit_brm <- brm_multiple(JP_MIN_MON ~ DOSAGE + DOSAGEQ + SEX*OFF_RACE + OGS + OGSQ +
+fit_brm <- brm(JP_MIN_MON ~ DOSAGE + DOSAGEQ + SEX*OFF_RACE + OGS + OGSQ +
                      PRVREC + RECMIN + CRIME + TRIAL +
                      (1 | YEAR) + (1 + CRIME |COUNTY),
-               data = imps,
+               data = df[s,],
                family = hurdle_lognormal(link = "identity", link_sigma = "log", link_hu = "logit"),
                prior = bprior,
-               chains = 2, cores = 2, iter = 3500, refresh = 1500,
-               # file = "brms_fit/brms-hurlde-si.fit",
-               # file_refit = "on_change",
+               chains = 2, cores = 2, iter = 2000, refresh = 1000,
+               file = "brms_fit/brms-hurlde-si.fit",
+               file_refit = "on_change",
                save_model = "brms-hurdle-si.stan")
 ```
 
@@ -322,89 +293,14 @@ fit_brm <- brm_multiple(JP_MIN_MON ~ DOSAGE + DOSAGEQ + SEX*OFF_RACE + OGS + OGS
 #| label: brms-hurdle-model-summary
 summary(fit_brm)
 
-plot(fit_brm, ask = FALSE, N = 3)
+plot(fit_brm, ask = FALSE, nrow = 3)
 ```
 
+
 From the hurdle model, we find that Black defendants do not receive different sentence lengths compared to White defendants (95% CI of (-0.11, 0.03)). In terms of 95% CIs we also find that there doesn't seem to be a difference in sentence lengths between male and female defendants either between or within each racial group.
+
 
 ```{r}
 plot(conditional_effects(fit_brm, effects = "OFF_RACE:SEX"), ask = FALSE)
 ```
 
-#### Lognormal GLM Hurdle Model with Predictors on Hurdle Parameter
-
-Next, we modify the model from the previous section to include predictors in the logistic regression part of the hurdle model @eq-hurdle-intercept. The non-zero portion @eq-hurdle-glm of the hurdle model remains the same.
-
-$$
-\mathrm{logit}^{-1}(P(Y_i=0)) = \mathbf{x}_i \boldsymbol{\alpha}.
-$$
-
-The coefficients $\boldsymbol{\alpha}$ are given normal priors $\alpha_k \overset{iid}{\sim} N(0, 10).$ The priors for the other parameters remain the same.
-
-The new model is specified with the `bf()` function.
-
-```         
-bf(JP_MIN_MON ~ DOSAGE + DOSAGEQ + SEX*OFF_RACE + OGS + OGSQ +
-                     PRVREC + RECMIN + CRIME + TRIAL +
-                     (1 | YEAR) + (1 + CRIME |COUNTY),
-    hu ~ 1 + SEX * OFF_RACE + DOSAGE + DOSAGEQ + OGS + OGSQ + PRVREC + CRIME + TRIAL + (1 | COUNTY))
-```
-
-```{r}
-bf1 <- bf(JP_MIN_MON ~ DOSAGE + DOSAGEQ + SEX*OFF_RACE + OGS + OGSQ +
-                     PRVREC + RECMIN + CRIME + TRIAL +
-                     (1 | YEAR) + (1 + CRIME |COUNTY),
-          hu ~ SEX * OFF_RACE + DOSAGE + DOSAGEQ + OGS + OGSQ + PRVREC + CRIME + TRIAL + (1 | COUNTY))
-
-bprior2 <- get_prior(bf1,
-               data = df[s,],
-               family = hurdle_lognormal(link = "identity", link_sigma = "log", link_hu = "logit"))
-
-bprior2$prior[1] <- "normal(0, 25)"
-bprior2$prior
-bprior2
-```
-
-Next we fit the model.
-
-```{r}
-fit_brm2 <- brm(bf1,
-               data = df[s,],
-               family = hurdle_lognormal(link = "identity", link_sigma = "log", link_hu = "logit"),
-               prior = bprior2,
-               chains = 2, cores = 2, iter = 3500, refresh = 1500,
-               # file = "brms_fit/brms-hurlde-si.fit",
-               # file_refit = "on_change",
-               save_model = "brms-hurdle-si-2.stan")
-```
-
-```{r}
-#| label: brms-hurdle-model-summary-2
-summary(fit_brm2)
-
-plot(fit_brm2, ask = FALSE, N = 3)
-```
-
-```{r}
-plot(conditional_effects(fit_brm2, effects = "OFF_RACE:SEX"), ask = FALSE) 
-```
-
-```{r}
-tidy(fit_brm) |>
-    filter(term == "hu_Intercept") |>
-    pull(estimate) |>
-    plogis()
-
-tidy(fit_brm2) |>
-    filter(term == "hu_(Intercept)") |>
-    pull(estimate) |>
-    plogis()
-
-tidy(fit_brm) |>
-    filter(term == "OFF_RACEBLACK") |>
-    pull(estimate)
-
-tidy(fit_brm2) |>
-    filter(term == "OFF_RACEBLACK") |>
-    pull(estimate)
-```
