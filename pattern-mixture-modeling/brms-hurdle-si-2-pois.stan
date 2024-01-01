@@ -1,17 +1,5 @@
 // generated with brms 2.20.4
 functions {
- /* compute correlated group-level effects
-  * Args:
-  *   z: matrix of unscaled group-level effects
-  *   SD: vector of standard deviation parameters
-  *   L: cholesky factor correlation matrix
-  * Returns:
-  *   matrix of scaled group-level effects
-  */
-  matrix scale_r_cor(matrix z, vector SD, matrix L) {
-    // r is stored in another dimension order than z
-    return transpose(diag_pre_multiply(SD, L) * z);
-  }
   /* hurdle poisson log-PDF of a single response
    * Args:
    *   y: the response value
@@ -108,13 +96,6 @@ data {
   array[N] int<lower=1> J_1;  // grouping indicator per observation
   // group-level predictor values
   vector[N] Z_1_1;
-  vector[N] Z_1_2;
-  vector[N] Z_1_3;
-  vector[N] Z_1_4;
-  vector[N] Z_1_5;
-  vector[N] Z_1_6;
-  vector[N] Z_1_7;
-  int<lower=1> NC_1;  // number of group-level correlations
   // data for group-level effects of ID 2
   int<lower=1> N_2;  // number of grouping levels
   int<lower=1> M_2;  // number of coefficients per level
@@ -149,44 +130,26 @@ parameters {
   vector[Kc_hu] b_hu;  // regression coefficients
   real Intercept_hu;  // temporary intercept for centered predictors
   vector<lower=0>[M_1] sd_1;  // group-level standard deviations
-  matrix[M_1, N_1] z_1;  // standardized group-level effects
-  cholesky_factor_corr[M_1] L_1;  // cholesky factor of correlation matrix
+  array[M_1] vector[N_1] z_1;  // standardized group-level effects
   vector<lower=0>[M_2] sd_2;  // group-level standard deviations
   array[M_2] vector[N_2] z_2;  // standardized group-level effects
   vector<lower=0>[M_3] sd_3;  // group-level standard deviations
   array[M_3] vector[N_3] z_3;  // standardized group-level effects
 }
 transformed parameters {
-  matrix[N_1, M_1] r_1;  // actual group-level effects
-  // using vectors speeds up indexing in loops
-  vector[N_1] r_1_1;
-  vector[N_1] r_1_2;
-  vector[N_1] r_1_3;
-  vector[N_1] r_1_4;
-  vector[N_1] r_1_5;
-  vector[N_1] r_1_6;
-  vector[N_1] r_1_7;
+  vector[N_1] r_1_1;  // actual group-level effects
   vector[N_2] r_2_1;  // actual group-level effects
   vector[N_3] r_3_hu_1;  // actual group-level effects
   real lprior = 0;  // prior contributions to the log posterior
-  // compute actual group-level effects
-  r_1 = scale_r_cor(z_1, sd_1, L_1);
-  r_1_1 = r_1[, 1];
-  r_1_2 = r_1[, 2];
-  r_1_3 = r_1[, 3];
-  r_1_4 = r_1[, 4];
-  r_1_5 = r_1[, 5];
-  r_1_6 = r_1[, 6];
-  r_1_7 = r_1[, 7];
+  r_1_1 = (sd_1[1] * (z_1[1]));
   r_2_1 = (sd_2[1] * (z_2[1]));
   r_3_hu_1 = (sd_3[1] * (z_3[1]));
-  lprior += normal_lpdf(b | 0, 25);
-  lprior += student_t_lpdf(Intercept | 3, -2.3, 2.5);
-  lprior += normal_lpdf(b_hu | 0, 25);
+  lprior += normal_lpdf(b | 0, 100);
+  lprior += student_t_lpdf(Intercept | 3, 0, 2.5);
+  lprior += normal_lpdf(b_hu | 0, 100);
   lprior += logistic_lpdf(Intercept_hu | 0, 1);
   lprior += student_t_lpdf(sd_1 | 3, 0, 2.5)
-    - 7 * student_t_lccdf(0 | 3, 0, 2.5);
-  lprior += lkj_corr_cholesky_lpdf(L_1 | 1);
+    - 1 * student_t_lccdf(0 | 3, 0, 2.5);
   lprior += student_t_lpdf(sd_2 | 3, 0, 2.5)
     - 1 * student_t_lccdf(0 | 3, 0, 2.5);
   lprior += student_t_lpdf(sd_3 | 3, 0, 2.5)
@@ -203,7 +166,7 @@ model {
     hu += Intercept_hu + Xc_hu * b_hu;
     for (n in 1:N) {
       // add more terms to the linear predictor
-      mu[n] += r_1_1[J_1[n]] * Z_1_1[n] + r_1_2[J_1[n]] * Z_1_2[n] + r_1_3[J_1[n]] * Z_1_3[n] + r_1_4[J_1[n]] * Z_1_4[n] + r_1_5[J_1[n]] * Z_1_5[n] + r_1_6[J_1[n]] * Z_1_6[n] + r_1_7[J_1[n]] * Z_1_7[n] + r_2_1[J_2[n]] * Z_2_1[n];
+      mu[n] += r_1_1[J_1[n]] * Z_1_1[n] + r_2_1[J_2[n]] * Z_2_1[n];
     }
     for (n in 1:N) {
       // add more terms to the linear predictor
@@ -215,7 +178,7 @@ model {
   }
   // priors including constants
   target += lprior;
-  target += std_normal_lpdf(to_vector(z_1));
+  target += std_normal_lpdf(z_1[1]);
   target += std_normal_lpdf(z_2[1]);
   target += std_normal_lpdf(z_3[1]);
 }
@@ -224,13 +187,4 @@ generated quantities {
   real b_Intercept = Intercept - dot_product(means_X, b);
   // actual population-level intercept
   real b_hu_Intercept = Intercept_hu - dot_product(means_X_hu, b_hu);
-  // compute group-level correlations
-  corr_matrix[M_1] Cor_1 = multiply_lower_tri_self_transpose(L_1);
-  vector<lower=-1,upper=1>[NC_1] cor_1;
-  // extract upper diagonal of correlation matrix
-  for (k in 1:M_1) {
-    for (j in 1:(k - 1)) {
-      cor_1[choose(k - 1, 2) + j] = Cor_1[j, k];
-    }
-  }
 }

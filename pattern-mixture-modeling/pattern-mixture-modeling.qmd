@@ -38,7 +38,12 @@ library(dplyr, warn.conflicts = FALSE, quietly = TRUE)
 library(ggplot2, warn.conflicts = FALSE, quietly = TRUE)
 library(mice, warn.conflicts = FALSE, quietly = TRUE)
 library(broom.mixed)
+library(brms)
 library(VIM)
+library(bayesplot)
+
+theme_set(theme_bw())
+color_scheme_set("brightblue")
 ```
 
 ## Methods
@@ -192,7 +197,7 @@ I'll fit a logistic regression like before as a sanity check. The estimated odds
 ```{r}
 #| label: mice-glm
 fit_incar <- with(imps, glm(INCAR ~ DOSAGE + DOSAGEQ + SEX*OFF_RACE + OGS + OGSQ +
-                     PRVREC + RECMIN + CRIME + TRIAL +
+                      OGS * PRVREC + PRVREC + RECMIN + CRIME + TRIAL +
                      as.factor(YEAR) + as.factor(COUNTY),
                  family = binomial(link = "logit"),
                  x = FALSE, y = FALSE,
@@ -204,7 +209,12 @@ fit_incar <- with(imps, glm(INCAR ~ DOSAGE + DOSAGEQ + SEX*OFF_RACE + OGS + OGSQ
 smry <- summary(pool(fit_incar))
 
 smry |>
-    filter(stringr::str_sub(term, 1,3) != "as.")
+    filter(stringr::str_sub(term, 1,3) != "as.") |>
+    mutate(
+        lb95 = estimate - qt(0.975, df = df) * std.error,
+        ub95 = estimate + qt(0.975, df = df) * std.error
+    ) |>
+    select(term, estimate, std.error, lb95, ub95)
 ```
 
 From the logistic regression fit with MI and $M = 10$ imputations done using predictive mean matching, we found that a Black defendant is `r round(exp(0.2225), 2)` (95% CI of (`r round(exp(0.2225 - 1.96 * 0.0064), 3)`, `r round(exp(0.2225 + 1.96 * 0.0064), 3)`)times more likely to be sentenced to incarceration than an otherwise similar White defendant.
@@ -213,36 +223,47 @@ We re-analyze the data using a generalized linear mixed model and again taking t
 
 ```{r}
 #| label: mice-glmm
-# fit_incar_mm <- with(imps, lme4::glmer(INCAR ~ DOSAGE + DOSAGEQ + SEX*OFF_RACE + OGS + OGSQ +
-#                      PRVREC + RECMIN + CRIME + TRIAL +
-#                      (1 | YEAR) + (1 + CRIME | COUNTY),
-#                  family = binomial(link = "logit"),
-#                  verbose = 0))
+fit_incar_mm <- with(imps, lme4::glmer(INCAR ~ DOSAGE + DOSAGEQ + SEX*OFF_RACE + OGS + OGSQ +
+                     PRVREC + OGS * PRVREC + RECMIN + CRIME + TRIAL +
+                     (1 | YEAR) + (1 | COUNTY),
+                 family = binomial(link = "logit"),
+                 verbose = 0))
 
-c_dat <- complete(imps, "all")
-fit_list <- parallel::mclapply(c_dat, 
-                               mc.cores = 10,
-                               function(d1) {
-                 
-                 fit <- lme4::glmer(INCAR ~ DOSAGE + DOSAGEQ + SEX*OFF_RACE + OGS + OGSQ +
-                             PRVREC + RECMIN + CRIME + TRIAL +
-                             (1 | YEAR) + (1 + CRIME | COUNTY),
-                             data = d1,
-                             family = binomial(link = "logit"),
-                             verbose = 0)
-                 return(fit)
-              })
-
-fit_incar_mm <- as.mira(fit_list)
+# c_dat <- complete(imps, "all")
+# fit_list <- parallel::mclapply(c_dat, 
+#                                mc.cores = 10,
+#                                function(d1) {
+#                  
+#                  fit <- lme4::glmer(INCAR ~ DOSAGE + DOSAGEQ + SEX*OFF_RACE + OGS + OGSQ +
+#                              PRVREC + RECMIN + CRIME + TRIAL +
+#                              (1 | YEAR) + (1 + CRIME | COUNTY),
+#                              data = d1,
+#                              family = binomial(link = "logit"),
+#                              verbose = 0)
+#                  return(fit)
+#               })
+# 
+# fit_incar_mm <- as.mira(fit_list)
 ```
 
 ```{r}
 #| label: glmm-sum
 
 smry <- summary(pool(fit_incar_mm))
-
 smry |>
-    filter(stringr::str_sub(term, 1,3) %in% c("YEA", "COU"))
+    mutate(
+        se = std.error,
+        lb95 = estimate - qt(0.975, df = df) * se,
+        ub95 = estimate + qt(0.975, df = df) * se,
+        sig = case_when(
+            lb95 > 0 ~ "*",
+            ub95 < 0 ~ "*",
+            TRUE ~ ""
+        )
+    ) |>
+    select(
+        term, estimate, se, lb95, ub95, sig
+    )
 ```
 
 ### Hurdle Models
@@ -291,7 +312,7 @@ The quantity of interest is the regression coefficient for race.
 library(brms)
 
 bprior <- get_prior(JP_MIN_MON ~ DOSAGE + DOSAGEQ + SEX*OFF_RACE + OGS + OGSQ +
-                     PRVREC + RECMIN + CRIME + TRIAL +
+                     PRVREC + OGS * PRVREC + RECMIN + CRIME + TRIAL +
                      (1 | YEAR) + (1 + CRIME |COUNTY),
                data = df[s,],
                family = hurdle_lognormal(link = "identity", link_sigma = "log", link_hu = "logit"))
@@ -307,7 +328,7 @@ bprior
 # library(future)
 # plan(multicore, workers = 10)
 fit_brm <- brm_multiple(JP_MIN_MON ~ DOSAGE + DOSAGEQ + SEX*OFF_RACE + OGS + OGSQ +
-                     PRVREC + RECMIN + CRIME + TRIAL +
+                     PRVREC + OGS * PRVREC + RECMIN + CRIME + TRIAL +
                      (1 | YEAR) + (1 + CRIME |COUNTY),
                data = imps,
                family = hurdle_lognormal(link = "identity", link_sigma = "log", link_hu = "logit"),
@@ -351,17 +372,35 @@ bf(JP_MIN_MON ~ DOSAGE + DOSAGEQ + SEX*OFF_RACE + OGS + OGSQ +
 ```
 
 ```{r}
-bf1 <- bf(JP_MIN_MON ~ DOSAGE + DOSAGEQ + SEX*OFF_RACE + OGS + OGSQ +
-                     PRVREC + RECMIN + CRIME + TRIAL +
-                     (1 | YEAR) + (1 + CRIME |COUNTY),
-          hu ~ SEX * OFF_RACE + DOSAGE + DOSAGEQ + OGS + OGSQ + PRVREC + CRIME + TRIAL + (1 | COUNTY))
+inv_gamma_moments <- function(alpha, beta) {
+    exp_1 <- beta / (alpha - 1)
+    var_1 <- beta^2 / ((alpha - 1)^2 * (alpha - 2))
+    return(list(mean = exp_1, var = var_1))
+}
+
+inv_gamma_moments(2.001, 1.001)
+```
+
+```{r}
+bf1 <- bf(JP_MIN ~ DOSAGE + DOSAGEQ + SEX*OFF_RACE + OGS + OGSQ +
+                    OGS * PRVREC + PRVREC + RECMIN + CRIME + TRIAL +
+                     (1 | YEAR) + (1 |COUNTY),
+          hu ~ SEX * OFF_RACE + RECMIN + OGS + OGSQ + PRVREC + CRIME + TRIAL + (1 | COUNTY))
 
 bprior2 <- get_prior(bf1,
                data = df[s,],
-               family = hurdle_lognormal(link = "identity", link_sigma = "log", link_hu = "logit"))
+               family = hurdle_poisson(link = "log", link_hu = "logit"))
+bprior2$class
+bprior2 <- prior(normal(0, 100), class = "b") +
+    prior(normal(0, 100), class = "b", dpar = "hu") +
+    # prior(lkj(1), class = "cor") +
+    prior(student_t(3, 0, 2.5), class = "Intercept")
+    prior(inv_gamma(2.001, 1.001), class = "sd", group = "COUNTY", lb = 0) +
+    prior(inv_gamma(2.001, 1.001), class = "sd", group = "YEAR", lb = 0) +
+    prior(logistic(0, 1), class = "Intercept", dpar = "hu") +
+    prior(inv_gamma(2.001, 1.001), class = "sd", dpar = "hu", lb = 0)
 
-bprior2$prior[1] <- "normal(0, 25)"
-bprior2$prior
+# bprior2$prior[1] <- "normal(0, 25)"
 bprior2
 ```
 
@@ -370,19 +409,21 @@ Next we fit the model.
 ```{r}
 fit_brm2 <- brm(bf1,
                data = df[s,],
-               family = hurdle_lognormal(link = "identity", link_sigma = "log", link_hu = "logit"),
+               family = hurdle_poisson(link = "log", link_hu = "logit"),
                prior = bprior2,
-               chains = 2, cores = 2, iter = 3500, refresh = 1500,
+               chains = 2, cores = 8, iter = 3500, refresh = 100,
+               init = 0,
+               control = list(adapt_delta = 0.8, max_treedepth = 10),
                # file = "brms_fit/brms-hurlde-si.fit",
                # file_refit = "on_change",
-               save_model = "brms-hurdle-si-2.stan")
+               save_model = "brms-hurdle-si-2-pois.stan")
 ```
 
 ```{r}
 #| label: brms-hurdle-model-summary-2
 summary(fit_brm2)
 
-plot(fit_brm2, ask = FALSE, N = 3)
+# plot(fit_brm2, ask = FALSE, N = 3)
 ```
 
 ```{r}
@@ -391,7 +432,7 @@ plot(conditional_effects(fit_brm2, effects = "OFF_RACE:SEX"), ask = FALSE)
 
 ```{r}
 tidy(fit_brm) |>
-    filter(term == "hu_Intercept") |>
+    filter(term == "hu") |>
     pull(estimate) |>
     plogis()
 
@@ -408,3 +449,149 @@ tidy(fit_brm2) |>
     filter(term == "OFF_RACEBLACK") |>
     pull(estimate)
 ```
+
+```{r}
+# conditional_effects(fit_brm2, ask = FALSE)
+```
+
+```{r}
+
+# conditional_effects(fit_brm2, dpar = "hu", ask = FALSE)
+```
+
+```{r}
+ppred1 <- posterior_predict(fit_brm)
+pp_check(fit_brm, ndraws = 50) +
+    coord_cartesian(xlim = c(0, 60)) + 
+    labs(title = "Posterior predictive checks",
+                  subtitle = "Intercept-only Hurdle",
+         x = "Sentence Length (mon.)")
+
+bayesplot::ppc_dens_overlay(y = log(fit_brm$data$JP_MIN_MON),
+                            yrep = log(ppred1[1:50,])) + 
+    labs(title = "Posterior predictive checks",
+                  subtitle = "Intercept-only Hurdle",
+         x = "log(Sentence Length (mon.))")
+```
+
+```{r}
+
+ppred2 <- posterior_predict(fit_brm2)
+pp_check(fit_brm2, ndraws = 50) +
+    coord_cartesian(xlim = c(0, 60*30)) + 
+    labs(title = "Posterior predictive checks",
+                  subtitle = "Linear Predictor Hurdle",
+         x = "Sentence Length (mon)")
+
+bayesplot::ppc_dens_overlay(y = log1p(fit_brm2$data$JP_MIN),
+                            yrep = log1p(ppred2[1:50,])) + 
+    labs(title = "Posterior predictive checks",
+                  subtitle = "Linear Predictor Hurdle",
+         x = "log(Sentence Length (mon))")
+
+bayesplot::ppc_error_scatter_avg_vs_x(y = log1p(fit_brm2$data$JP_MIN),
+                            yrep = log1p(ppred2[1:50,]),
+                            x = fit_brm2$data$DOSAGE) + 
+    labs(title = "Posterior predictive checks",
+                  subtitle = "Linear Predictor Hurdle",
+         x = "log(Sentence Length (mon))")
+```
+
+```{r}
+conditional_effects(fit_brm2,
+                          effects = c("OFF_RACE:SEX"))
+
+conditional_effects(fit_brm2,
+                          effects = c("OFF_RACE:SEX"),
+                          dpar = "hu")
+
+```
+
+```{r}
+conditional_effects(fit_brm2,
+                          effects = c("DOSAGE:OFF_RACE"))
+
+conditional_effects(fit_brm2,
+                          effects = c("DOSAGE:OFF_RACE"),
+                          dpar = "hu")
+```
+
+```{r}
+conditional_effects(fit_brm2,
+                          effects = c("PRVREC:OFF_RACE"))
+
+conditional_effects(fit_brm2,
+                          effects = c("PRVREC:OFF_RACE"),
+                          dpar = "hu")
+```
+
+#### Poisson Hurdle Model
+
+```{r}
+bf3 <- bf(JP_MIN ~ DOSAGE + DOSAGEQ + SEX*OFF_RACE + OGS + OGSQ +
+                    OGS * PRVREC + PRVREC + RECMIN + CRIME + TRIAL +
+                     (1 | YEAR) + (1 |COUNTY),
+          hu ~ SEX * OFF_RACE + RECMIN + OGS + OGSQ + PRVREC + CRIME + TRIAL + (1 | COUNTY))
+
+bprior3 <- get_prior(bf3,
+               data = df[s,],
+               family = hurdle_poisson(link = "log", link_hu = "logit"))
+bprior3$class
+bprior3 <- prior(normal(0, 100), class = "b") +
+    prior(student_t(3, 0, 2.5), class = "Intercept")
+    prior(inv_gamma(2.001, 1.001), class = "sd", group = "COUNTY", lb = 0) +
+    prior(inv_gamma(2.001, 1.001), class = "sd", group = "YEAR", lb = 0) +
+    prior(logistic(0, 1), class = "Intercept", dpar = "hu") +
+    prior(normal(0, 100), class = "b", dpar = "hu") +
+    prior(inv_gamma(2.001, 1.001), class = "sd", dpar = "hu", lb = 0)
+
+# bprior2$prior[1] <- "normal(0, 25)"
+bprior3
+```
+
+```{r}
+fit_brm3 <- brm(bf3,
+               data = df[s,],
+               family = hurdle_poisson(link = "log", link_hu = "logit"),
+               prior = bprior3,
+               init = "0",
+               chains = 2, cores = 2, iter = 2000, refresh = 100,
+               # file = "brms_fit/brms-hurlde-si.fit",
+               # file_refit = "on_change",
+               control = list(max_treedepth = 10, adapt_delta = 0.8),
+               save_model = "brms-hurdle-si-pois.stan")
+```
+
+```{r}
+summary(fit_brm3)
+```
+
+```{r}
+plot(fit_brm3, ask = FALSE, N = 3)
+```
+
+```{r}
+ppred3 <- posterior_predict(fit_brm3)
+pp_check(fit_brm3, ndraws = 50) +
+    coord_cartesian(xlim = c(0, 60)) + 
+    labs(title = "Posterior predictive checks",
+                  subtitle = "Poisson Hurdle",
+         x = "Sentence Length (mon.)")
+
+bayesplot::ppc_dens_overlay(y = log1p(fit_brm3$data$JP_MIN),
+                            yrep = log1p(ppred3[1:50,])) + 
+    labs(title = "Posterior predictive checks",
+                  subtitle = "Poisson Hurdle",
+         x = "log(Sentence Length (mon.))")
+
+bayesplot::ppc_error_scatter_avg_vs_x(y = log1p(fit_brm3$data$JP_MIN),
+                            yrep = log1p(ppred3[1:50,]),
+                         x = fit_brm3$data$DOSAGE) + 
+    labs(title = "Posterior predictive checks",
+                  subtitle = "Poisson Hurdle",
+         y = "log(Sentence Length (mon.))")
+```
+
+## Sensitivity Analysis
+
+Evaluating the impacts of various nonignorable missingness mechanisms can be accomplished with pattern-mixture models. The values of the incomplete numeric data can be scaled or shifted
