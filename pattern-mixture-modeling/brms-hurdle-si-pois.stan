@@ -144,7 +144,7 @@ transformed parameters {
   r_1_1 = (sd_1[1] * (z_1[1]));
   r_2_1 = (sd_2[1] * (z_2[1]));
   r_3_hu_1 = (sd_3[1] * (z_3[1]));
-  lprior += normal_lpdf(b | 0, 100);
+  lprior += normal_lpdf(b | 0, 10);
   lprior += student_t_lpdf(Intercept | 3, 0, 2.5);
   lprior += logistic_lpdf(Intercept_hu | 0, 1);
   lprior += student_t_lpdf(sd_1 | 3, 0, 2.5)
