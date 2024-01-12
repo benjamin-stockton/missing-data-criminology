@@ -15,6 +15,14 @@ color_scheme_set("brightblue")
 df <- readr::read_csv("../Data/PCS-most-serious-sentence-2010-2019-pmm.csv",
                       show_col_types = FALSE)
 
+county_ogs <- df |>
+    group_by(COUNTY) |>
+    summarize(
+        COUNTY_OGS = mean(OGS, na.rm = TRUE),
+        NCASES = n()
+    )
+county_ogs
+
 df <- df |> mutate(
     YEAR = as.factor(YEAR),
     INCAR = case_when(
@@ -48,11 +56,17 @@ df <- df |> mutate(
         CRIMETYPE == 4 ~ "DUI",
         CRIMETYPE == 5 ~ "Other",
         TRUE ~ NA
+    ),
+    COUNTYTYPE = case_when(
+        COUNTY %in% c("Allegheny", "Philadelphia") ~ "Urban",
+        COUNTY %in% c("Chester", "Montgomery", "Berks", "Dauphin", "Bucks", "Lancaster", "York", "Delaware", "Northampton", "Luzerne", "Lackawanna", "Westmoreland", "Lehigh", "Erie") ~ "Medium",
+        TRUE ~ "Rural"
     )
 ) |>
     select(
         -c(OFF_RACER, PRSR, MALE, CRIMETYPE)
-    )
+    ) |>
+    left_join(county_ogs, by = "COUNTY")
 
 df$OFF_RACE <- factor(df$OFF_RACE, levels = c("WHITE", "BLACK", "LATINO", "OTHER"))
 
@@ -63,7 +77,7 @@ df |>
     aggr(sortby = "JP_MIN", plot = FALSE) |>
     plot(numbers = TRUE, prop = FALSE)
 
-df[,c("OGS", "OGSQ", "DOSAGE", "DOSAGEQ")] <- scale(df[,c("OGS", "OGSQ", "DOSAGE", "DOSAGEQ")], center = TRUE, scale = TRUE)
+df[,c("OGS", "DOSAGE")] <- scale(df[,c("OGS", "DOSAGE")], center = TRUE, scale = TRUE)
 
 df[,"DOSAGEQ"] <- df[,"DOSAGE"]^2
 df[,"OGSQ"] <- df[,"OGS"]^2
@@ -123,7 +137,7 @@ imps <- readRDS("fits/mice-rf-subsample.rds")
 imp_list <- complete(imps, "all", include = FALSE)
 
 bf_me_c <- bf(JP_MIN ~ DOSAGE + SEX + OFF_RACE + OGS + PRVREC + RECMIN + CRIME 
-              + TRIAL + (1 |COUNTY),
+              + TRIAL + (1 + COUNTYTYPE + COUNTY_OGS + NCASES || COUNTY),
           hu ~ DOSAGE + SEX + OFF_RACE + RECMIN + OGS + PRVREC + CRIME + TRIAL 
           + (1 | COUNTY))
 bf_me_yc <- bf(JP_MIN ~ DOSAGE + SEX + OFF_RACE + OGS + PRVREC + RECMIN + CRIME 
@@ -150,9 +164,9 @@ bf_int_yc3 <- bf(JP_MIN ~ DOSAGE + DOSAGEQ + SEX * OFF_RACE + OGS * PRVREC + OGS
                 + TRIAL + (1 | COUNTY))
 
 bf_int_yc4 <- bf(JP_MIN ~ DOSAGE + DOSAGEQ + SEX * OFF_RACE + OGS + OGSQ +  
-                     + RECMIN + PRVREC * CRIME + TRIAL + (1 | YEAR) + (1 |COUNTY),
+                     + RECMIN + PRVREC * CRIME + TRIAL + (1 + COUNTYTYPE + COUNTY_OGS + NCASES |COUNTY),
                  hu ~ DOSAGE + DOSAGEQ + SEX * OFF_RACE + RECMIN + OGS + OGSQ + PRVREC * CRIME 
-                 + TRIAL + (1 | COUNTY))
+                 + TRIAL + (1 + COUNTYTYPE + COUNTY_OGS + NCASES | COUNTY))
 bf_int_yc5 <- bf(JP_MIN ~ DOSAGE + DOSAGEQ + SEX + OFF_RACE + OGS + OGSQ +  
                      + RECMIN + PRVREC * CRIME + TRIAL + (1 | YEAR) + (1 |COUNTY),
                  hu ~ DOSAGE + DOSAGEQ + SEX + OFF_RACE + RECMIN + OGS + OGSQ + PRVREC * CRIME 
@@ -166,27 +180,29 @@ bf_int_ycs2 <- bf(JP_MIN ~ DOSAGE + DOSAGEQ + SEX + OFF_RACE + OGS + OGSQ +
                  hu ~ DOSAGEQ + SEX + OFF_RACE + RECMIN + OGS + OGSQ + PRVREC * CRIME 
                  + TRIAL + (1 | YEAR) + (1 | COUNTY))
 
-bprior2 <- get_prior(bf_sq_yc,
+bprior2 <- get_prior(bf_me_c,
                      data = df[s,],
                      family = hurdle_lognormal(link = "identity", link_sigma = "log", link_hu = "logit"))
 bprior2$class
 bprior2 <- prior(normal(0, 100), class = "b") +
     prior(normal(0, 100), class = "b", dpar = "hu") +
     # prior(lkj(1), class = "cor") +
-    prior(student_t(3, 0, 2.5), class = "Intercept")
-prior(inv_gamma(2.001, 1.001), class = "sd", group = "COUNTY", lb = 0) +
-    prior(inv_gamma(2.001, 1.001), class = "sd", group = "YEAR", lb = 0) +
+    prior(student_t(3, 0, 2.5), class = "Intercept") +
+    prior(student_t(3, 0, 2.5), class = "sd", group = "COUNTY", lb = 0) +
+    # prior(student_t(3, 0, 2.5), class = "sd", group = "YEAR", lb = 0) +
     prior(logistic(0, 1), class = "Intercept", dpar = "hu") +
-    prior(inv_gamma(2.001, 1.001), class = "sd", dpar = "hu", lb = 0)
+    prior(student_t(3, 0, 2.5), class = "sd", dpar = "hu", lb = 0) 
+    
 
 # bprior2$prior[1] <- "normal(0, 25)"
 bprior2
+
 
 fit_brm1 <- brm(bf_me_c,
              data = imp_list[[1]],
              family = hurdle_lognormal(link = "identity", link_sigma = "log", link_hu = "logit"),
              prior = bprior2,
-             chains = 2, cores = 15, iter = 2000, refresh = 200,
+             chains = 2, cores = 15, iter = 2000, refresh = 100,
              init = 0,
              control = list(adapt_delta = 0.82, max_treedepth = 10))
 
@@ -257,10 +273,10 @@ loo6 <- loo(fit_brm6)
 fit_brm7 <- brm(bf_int_yc4,
                 data = imp_list[[1]],
                 family = hurdle_lognormal(link = "identity", link_sigma = "log", link_hu = "logit"),
-                prior = bprior2,
-                chains = 2, cores = 15, iter = 3000, refresh = 200,
+                # prior = bprior2,
+                chains = 2, cores = 15, iter = 500, refresh = 100,
                 init = 0,
-                control = list(adapt_delta = 0.85, max_treedepth = 10))
+                control = list(adapt_delta = 0.85, max_treedepth = 12))
 loo7 <- loo(fit_brm7)
 fit_brm8 <- brm(bf_int_yc5,
                 data = imp_list[[1]],
@@ -296,10 +312,10 @@ loo_compare(w4, w7, w8)
 
 
 start <- Sys.time()
-fit_lnh <- mixed_model(JP_MIN ~ DOSAGE + DOSAGEQ + SEX * OFF_RACE + OGS + OGSQ + PRVREC * CRIME + RECMIN + TRIAL,
-                       random = ~ 1 || COUNTY,
-                       zi_fixed = ~ DOSAGE + DOSAGEQ + SEX * OFF_RACE + RECMIN + OGS + OGSQ + PRVREC * CRIME + TRIAL,
-                       # zi_random = ~ 1 | YEAR,
+fit_lnh <- mixed_model(JP_MIN ~ DOSAGE + DOSAGEQ + SEX + OFF_RACE + PRVREC * OGS + OGSQ + PRVREC * CRIME + RECMIN + TRIAL,
+                       random = ~ 1 + COUNTY_OGS + NCASES|| COUNTY,
+                       zi_fixed = ~ DOSAGE + DOSAGEQ + SEX + OFF_RACE + RECMIN + PRVREC * OGS + OGSQ + PRVREC * CRIME + TRIAL,
+                       # zi_random = ~ 1 + COUNTY_OGS + NCASES || COUNTY,
                        data = df,
                        family = hurdle.lognormal(),
                        penalized = TRUE,
@@ -307,11 +323,13 @@ fit_lnh <- mixed_model(JP_MIN ~ DOSAGE + DOSAGEQ + SEX * OFF_RACE + OGS + OGSQ +
 print(Sys.time() - start)
 
 saveRDS(fit_lnh, "fits/fulldata-glmmadapt-model.rds")
+AIC(fit_lnh)
+AIC(readRDS("fits/fulldata-glmmadapt-model.rds"))
 
 summary(fit_lnh)
 marginal_coefs(fit_lnh)
-confint(fit_lnh, "fixed-eff")
-confint(fit_lnh, "zero_part")
+confint(fit_lnh, "fixed-eff") |> round(3)
+confint(fit_lnh, "zero_part") |> round(3)
 
 par(mar = c(2.5, 2.5, 0, 0), mgp = c(1.1, 0.5, 0), cex.axis = 0.7, cex.lab = 0.8)
 y <- df$JP_MIN
@@ -329,35 +347,35 @@ legend("bottomright", c("log replicated data", "log observed data"), lty = 1,
        col = c("lightgrey", "black"), bty = "n", cex = 0.8)
 
 
-start <- Sys.time()
-fit_ph <- mixed_model(JP_MIN ~ DOSAGE + DOSAGEQ + SEX * OFF_RACE + OGS + OGSQ + PRVREC * CRIME + RECMIN + TRIAL,
-                       random = ~ 1 | YEAR,
-                       zi_fixed = ~ DOSAGE + DOSAGEQ + SEX * OFF_RACE + RECMIN + OGS + OGSQ + PRVREC * CRIME + TRIAL,
-                       # zi_random = ~ 1 | YEAR,
-                       data = df,
-                       family = hurdle.poisson(),
-                       penalized = TRUE,
-                       iter_EM = 0)
-print(Sys.time() - start)
-
-saveRDS(fit_ph, "fits/fulldata-glmmadapt-pois-model.rds")
-
-summary(fit_ph)
-marginal_coefs(fit_ph)
-confint(fit_ph, "fixed-eff")
-confint(fit_ph, "zero_part")
-
-par(mar = c(2.5, 2.5, 0, 0), mgp = c(1.1, 0.5, 0), cex.axis = 0.7, cex.lab = 0.8)
-y <- df$JP_MIN
-y <- y[which(!is.na(y))]
-y[y > 0] <- log(y[y > 0])
-x_vals <- seq(min(y)-1, max(y), length.out = 500)
-out <- simulate(fit_ph, nsim = 10, acount_MLEs_var = FALSE)
-ind <- out > sqrt(.Machine$double.eps)
-out[ind] <- log(out[ind])
-rep_y <- apply(out, 2, function (x, x_vals) ecdf(x)(x_vals), x_vals = x_vals)
-matplot(x_vals, rep_y, type = "l", lty = 1, col = "lightgrey", 
-        xlab = "Response Variable", ylab = "Empirical CDF")
-lines(x_vals, ecdf(y)(x_vals))
-legend("bottomright", c("log replicated data", "log observed data"), lty = 1, 
-       col = c("lightgrey", "black"), bty = "n", cex = 0.8)
+# start <- Sys.time()
+# fit_ph <- mixed_model(JP_MIN ~ DOSAGE + DOSAGEQ + SEX * OFF_RACE + OGS + OGSQ + PRVREC * CRIME + RECMIN + TRIAL,
+#                        random = ~ 1 + COUNTY_OGS || COUNTY,
+#                        zi_fixed = ~ DOSAGE + DOSAGEQ + SEX * OFF_RACE + RECMIN + OGS + OGSQ + PRVREC * CRIME + TRIAL,
+#                        # zi_random = ~ 1 | YEAR,
+#                        data = df[s,],
+#                        family = hurdle.poisson(),
+#                        penalized = TRUE,
+#                        iter_EM = 0)
+# print(Sys.time() - start)
+# 
+# saveRDS(fit_ph, "fits/fulldata-glmmadapt-pois-model.rds")
+# 
+# summary(fit_ph)
+# marginal_coefs(fit_ph)
+# confint(fit_ph, "fixed-eff")
+# confint(fit_ph, "zero_part")
+# 
+# par(mar = c(2.5, 2.5, 0, 0), mgp = c(1.1, 0.5, 0), cex.axis = 0.7, cex.lab = 0.8)
+# y <- df$JP_MIN
+# y <- y[which(!is.na(y))]
+# y[y > 0] <- log(y[y > 0])
+# x_vals <- seq(min(y)-1, max(y), length.out = 500)
+# out <- simulate(fit_ph, nsim = 10, acount_MLEs_var = FALSE)
+# ind <- out > sqrt(.Machine$double.eps)
+# out[ind] <- log(out[ind])
+# rep_y <- apply(out, 2, function (x, x_vals) ecdf(x)(x_vals), x_vals = x_vals)
+# matplot(x_vals, rep_y, type = "l", lty = 1, col = "lightgrey", 
+#         xlab = "Response Variable", ylab = "Empirical CDF")
+# lines(x_vals, ecdf(y)(x_vals))
+# legend("bottomright", c("log replicated data", "log observed data"), lty = 1, 
+#        col = c("lightgrey", "black"), bty = "n", cex = 0.8)
