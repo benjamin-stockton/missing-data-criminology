@@ -188,53 +188,108 @@
 
 \title{Sentencing Analysis with Pattern Mixture Modeling}
 \author{C. Clare Strange \and Benjamin Stockton \and Ofer Harel}
-\date{2024-01-08}
+\date{2024-01-15}
 
 \begin{document}
 \maketitle
-\ifdefined\Shaded\renewenvironment{Shaded}{\begin{tcolorbox}[interior hidden, sharp corners, borderline west={3pt}{0pt}{shadecolor}, frame hidden, boxrule=0pt, enhanced, breakable]}{\end{tcolorbox}}\fi
+\ifdefined\Shaded\renewenvironment{Shaded}{\begin{tcolorbox}[breakable, interior hidden, enhanced, sharp corners, boxrule=0pt, borderline west={3pt}{0pt}{shadecolor}, frame hidden]}{\end{tcolorbox}}\fi
+
+\textbf{Note: Results in this document are for example. All analyses
+were run on a subset of the full data.}
 
 \hypertarget{methods}{%
 \section{Methods}\label{methods}}
 
-We propose using a combination of multiple imputation and
-pattern-mixture models to perform sensitivity analyses for the race
-effect estimates from a lognormal hurdle model used to predict the
-sentence length as a response variable under incompleteness of the race
-variable. The lognormal hurdle model can be used to model complex data
-where the dependent variable is a combination of true zeros and a
-continuous distribution for non-zero observations. Sentence length is
-one such instance wherein this phenomena arises with offenders sentenced
-to a community sentence or parole receive a sentence of 0 days
-(\(Y^* = 0\) months) while offenders sentenced to jail or prison time
-receive a sentence of \(Y > 0\) days (\(Y^* = Y/30\) months).
+We propose using multiple imputation and pattern-mixture models to
+perform sensitivity analyses for the race effect estimates on the
+jail/prison sentence length under incompleteness of the race variable.
+Hurdle models with a lognormal generalized linear model for the non-zero
+sentence lengths was chosen as it can be used to model complex data
+where the dependent variable is a combination of true zeros
+(non-incarcerated offenders' zero day jail/prison sentences) and a
+continuous distribution for non-zero observations (incarcerated
+offenders' jail/prison sentences). Sentence length is one such instance
+wherein this phenomena arises with offenders sentenced to a community
+sentence receive a jail/prison sentence of 0 days (\(Y^* = 0\) months)
+while offenders sentenced to jail or prison time receive a sentence of
+\(Y > 0\) days (\(Y^* = Y/30\) months). Note the distinction between
+sentence length which would be inclusive of community and jail/prison
+sentence lengths which are in general not comparable and our dependent
+variable which is solely jail/prison sentence length. When we refer to
+sentence length in this manuscript, we are referring specifically to
+jail/prison sentence length.
 
 The class of hurdle models fits a logistic regression model to the zero
 part of the data and then fits a count or continuous generalized linear
 model to the non-zero part of the data. The coefficients from each part
 of the model can be interpreted independently or marginally. Predictions
-are made from the mixture of the zero and non-zero components.
+are made from the mixture of the zero and non-zero components. In other
+words, we can evaluate the race effect on sentence length either
+conditional on the offender being incarcerated, or as the combination of
+the probability of receiving a community sentence (zero-days in
+jail/prison) and the expected sentence length given the incarceration
+decision.
+
+We are defining the race effect measured by the hurdle model as the
+change in number of jail/prison days sentenced to between Black and
+White offenders. This effect considers the zeros corresponding to
+non-incarceration as true zeros, i.e.~the offenders are considered to
+have served zero days in jail/prison.
 
 The incomplete data analysis is performed in the multiple imputation
-framework (Rubin 1987). In this set-up the incomplete variables are
-imputed or filled in \(M\) times using draws from a predictive
-distribution using a regression model. The imputations are then used to
-create \(M\) completed data sets that are then analyzed separately using
-a standard complete data method, such as a hurdle regression model. The
-estimates from each of the \(M\) model fits are combined using Rubin's
-rules. In particular, we are going to use random forests
-(\textbf{wrightrangerAFastImplementation2017?}) to perform the
-imputations in the multiple imputation by chained equations framework
-(\textbf{buuren2010mice?}).
+framework (Rubin 1987). In this set-up the incomplete variables sentence
+length, race, age, recommended minimum, and previous record are imputed
+or filled in \(M\) times using draws from a predictive distribution
+using a regression model. See Figure~\ref{fig-miss-pattern} for further
+details on the patterns of missing data. Less than 5\% of observations
+are incomplete, with race being incomplete on 3\% of cases and the other
+variables incomplete on less than 0.5\% of cases each.
+
+The imputations are then used to create \(M\) completed data sets that
+are then analyzed separately using a standard complete data method, in
+this case a hurdle model. The estimates from each of the \(M\) model
+fits are combined using Rubin's rules. In particular, we are going to
+use random forests (Wright and Ziegler 2017) to perform the imputations
+in the multiple imputation by chained equations framework (Raghunathan
+et al. 2001; S. van Buuren and Groothuis-Oudshoorn 2010).
 
 Pattern-mixture models can be used in conjunction with multiple
 imputation to perform a sensitivity analysis for the model of interest
 to particular perturbations of the distribution from which the
-imputations are drawn. This allows us to investigate the impacts
-nonignorable missingness could potentially have on our analysis.
+imputations are drawn (S. van Buuren 2018, sec. 3.8). This allows us to
+investigate the impacts nonignorable missingness could potentially have
+on our analysis.
+
+The pattern-mixture model approach allows the analyst to specify the
+exact assumptions of the missingness model and assumptions of how the
+distribution varies over different patterns. In our analysis, the two
+patterns of interest are the offenders who have a reported race and
+those who do not. It is plausible that these two groups have different
+characteristics and that the latter group may not have a reported race
+because of their true racial/ethnic identity (Stockton, Strange, and
+Harel 2023). This is a form of what's known as non-ignorable
+missingness.
+
+To assess the impacts of the non-ignorable missingness on the race
+effects, we can use slight perturbations of the imputed race labels to
+get a broader view of the range of potential estimates under different
+distributional assumptions. Varying the distribution of imputations
+based on the missing data pattern is what allows us to bring
+pattern-mixture modeling into the fold.
 
 \hypertarget{analysis}{%
 \section{Analysis}\label{analysis}}
+
+To begin the analysis, I'll create several plots to provide a clearer
+context of the data. First, we'll take a look at the distribution of
+sentence lengths by year in Figure~\ref{fig-sen-len-yearly} and
+Table~\ref{tbl-yearly-summary} to see if and how they differ over time.
+Figure~\ref{fig-sen-len-yearly} shows very little difference in the
+distributions, displayed as violin plots over time; while
+Table~\ref{tbl-yearly-summary} mostly confirms this, there is a slight
+trend to shorter sentences and greater probability of community
+sentences over time. Maximum sentence lengths in particular also tend to
+decrease over time.
 
 \begin{figure}
 
@@ -243,7 +298,7 @@ nonignorable missingness could potentially have on our analysis.
 }
 
 \caption{\label{fig-miss-pattern}Missing data patterns for the full data
-set.}
+set. In the right panel, red cells indicate missingness.}
 
 \end{figure}
 
@@ -256,17 +311,17 @@ set.}
 \toprule
 Year & Mean & SD & Median & Min. & Max. & P(Incar)\\
 \midrule
-2010 & 171.74 & 992.32 & 0 & 0 & 230468 & 0.48\\
-2011 & 175.87 & 630.95 & 0 & 0 & 30681 & 0.48\\
-2012 & 169.65 & 664.13 & 0 & 0 & 38167 & 0.47\\
-2013 & 178.44 & 651.66 & 0 & 0 & 30865 & 0.48\\
-2014 & 168.79 & 679.93 & 0 & 0 & 73048 & 0.47\\
+2010 & 164.44 & 1284.39 & 0 & 2 & 230468 & 0.51\\
+2011 & 164.53 & 591.00 & 0 & 1 & 29220 & 0.50\\
+2012 & 161.57 & 669.73 & 0 & 0 & 38167 & 0.49\\
+2013 & 165.57 & 612.68 & 0 & 0 & 30865 & 0.49\\
+2014 & 160.26 & 689.77 & 0 & 0 & 73048 & 0.49\\
 \addlinespace
-2015 & 159.40 & 601.31 & 0 & 0 & 29951 & 0.46\\
-2016 & 149.20 & 635.62 & 0 & 0 & 32141 & 0.42\\
-2017 & 157.63 & 773.66 & 0 & 0 & 87658 & 0.44\\
-2018 & 150.23 & 585.03 & 0 & 0 & 25568 & 0.44\\
-2019 & 146.35 & 600.50 & 0 & 0 & 28579 & 0.43\\
+2015 & 147.45 & 553.58 & 0 & 0 & 29951 & 0.48\\
+2016 & 139.62 & 641.51 & 0 & 0 & 32141 & 0.43\\
+2017 & 146.53 & 694.47 & 0 & 0 & 87658 & 0.45\\
+2018 & 148.29 & 588.65 & 0 & 0 & 25568 & 0.45\\
+2019 & 145.81 & 587.12 & 0 & 0 & 18263 & 0.45\\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -282,6 +337,14 @@ Year & Mean & SD & Median & Min. & Max. & P(Incar)\\
 
 \end{figure}
 
+Evaluating the sentence length by most serious crime type in
+Figure~\ref{fig-sen-len-crime} shows that the most serious crime type
+also has a strong impact on the sentence length with DUIs and Other
+offenses resulting in relatively short and often community sentences.
+Persons offenses can result in very long offenses but otherwise are
+similar in distribution to Drug offenses as seen in the distribution of
+the log sentence lengths.
+
 \begin{figure}
 
 {\centering \includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-sen-len-crime-1.pdf}
@@ -294,6 +357,12 @@ serious crime type.}
 
 \end{figure}
 
+The comparison of sentence lengths by offender race in
+Figure~\ref{fig-sen-len-race} show that there is little visual
+difference in the centers of the distribution for each racial group.
+White offenders receive the longest sentences as the result of four
+outliers, but otherwise have similar distributions to Black offenders.
+
 \begin{figure}
 
 {\centering \includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-sen-len-race-1.pdf}
@@ -304,6 +373,499 @@ serious crime type.}
 Log of sentence length (plus one day)}
 
 \end{figure}
+
+\hypertarget{multiple-imputation}{%
+\subsection{Multiple Imputation}\label{multiple-imputation}}
+
+I'll prepare the data for analysis next. First, I'll center and scale
+the numeric predictors which are Offense Gravity Score (OGS), defendant
+age, and the square of each. Then I'll use MICE to multiply impute the
+incomplete variables with random forest. For now I'll use \(M = 5\)
+since less than 5\% of all observations are missing (mainly in defendant
+race). The number of imputations to use should be informed by the amount
+of missing information due to incompleteness for each variable (Harel
+2007). Imputations are made using random forests, a machine learning
+technique for modeling categorical and continuous outcomes.
+
+\hypertarget{logistic-regression-on-incarceration}{%
+\subsection{Logistic Regression on
+Incarceration}\label{logistic-regression-on-incarceration}}
+
+Before modeling the whole sentencing decision, I'll fit a logistic
+regression on the incarceration decision as a sanity check. The
+estimated odds ratio for increased odds of incarceration for a Black
+defendant over a White defendant should be roughly 1.25 as we saw in the
+complete case analysis in the previous paper.
+
+\begin{table}
+
+\end{table}
+
+We re-analyze the data using a generalized linear mixed model and again
+taking the binary incarceration decision as the outcome and random
+effects for the Year and County with random slopes for the most serious
+Crime type by County.
+
+\hypertarget{tbl-glmm-sum}{}
+\begin{table}
+\caption{\label{tbl-glmm-sum}Summary statistics for the fixed effects from the logistic regression
+and logistic regression mixed model. }\tabularnewline
+
+\centering
+\begin{tabular}{llrrrrl}
+\toprule
+Model & Term & Estimate & SE & LB 95\% CI & UB 95\% CI & Sig.\\
+\midrule
+GLM - Logistic & OFF\_RACEBLACK & 0.10 & 0.06 & -0.02 & 0.22 & \\
+GLM - Logistic & OFF\_RACELATINO & 0.56 & 0.27 & 0.03 & 1.09 & *\\
+GLM - Logistic & OFF\_RACEOTHER & 0.03 & 0.32 & -0.59 & 0.65 & \\
+GLMM - Logistic MM & OFF\_RACEBLACK & 0.09 & 0.06 & -0.03 & 0.21 & \\
+GLMM - Logistic MM & OFF\_RACELATINO & 0.59 & 0.27 & 0.06 & 1.12 & *\\
+\addlinespace
+GLMM - Logistic MM & OFF\_RACEOTHER & 0.02 & 0.31 & -0.59 & 0.64 & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Race effects for the incarceration decision are reported in
+Table~\ref{tbl-glmm-sum}. From the logistic regression fit with MI and
+\(M = 5\) imputations done using predictive mean matching, we found that
+a Black defendant is 1.28 (95\% CI of (1.133, 1.436) times more likely
+to be sentenced to incarceration than an otherwise similar White
+defendant. The mixed model reports similar estimated race effect of 1.26
+(95\% CI of (1.12, 1.418).
+
+\hypertarget{hurdle-models}{%
+\subsection{Hurdle Models}\label{hurdle-models}}
+
+A hurdle model models data with a high number of zeros (compared to
+standard distributions). The model is composed of two components: the
+hurdle for the zeros and the GLM for the non-zero part. Let
+\(\pi_i = P(Y_i = 0)\) be the probability that the \(i\)th observation
+is zero and \(P(Y_i \neq 0) = f_{y\neq 0}(y_i)\) where \(f_{y\neq 0}\)
+is a truncated probability density function (Cragg 1971). We are first
+presenting the analysis of the data with multiple imputations under the
+MAR assumption to demonstrate how the model fits the data and how to
+interpret the race effect estimates.
+
+\hypertarget{lognormal-glm-hurdle-model-with-predictors-on-hurdle-parameter}{%
+\subsubsection{Lognormal GLM Hurdle Model with Predictors on Hurdle
+Parameter}\label{lognormal-glm-hurdle-model-with-predictors-on-hurdle-parameter}}
+
+Under this first model, we will model the probability of \(Y_i = 0\) as
+a logistic regression on the independent and legally relevant variables
+with the R package \texttt{brms} (Bürkner 2017).
+
+\begin{equation}\protect\hypertarget{eq-hurdle-logistic}{}{
+\mathrm{logit}^{-1}(P(Y_i = 0)) = \mathbf{x}_i \boldsymbol{\alpha} + \mathbf{z}_i \mathbf{v}.
+}\label{eq-hurdle-logistic}\end{equation}
+
+\begin{equation}\protect\hypertarget{eq-hurdle-glm}{}{
+\log(Y_i) = \mathbf{x}_i \boldsymbol{\beta} + \mathbf{z}_i \mathbf{u} + \epsilon_i
+}\label{eq-hurdle-glm}\end{equation} where \(\mathbf{v}\) and
+\(\mathbf{u}\) are independent MVN with
+\(E(\mathbf{v}) = E(\mathbf{u}) = 0\) and covariance matrices
+\(Cov(\mathbf{v}) = G_v\) and \(Cov(\mathbf{u}) = G_u\),
+\(\epsilon_i \overset{iid}{\sim} N(0, \sigma^2)\) and
+\(\mathbf{v}, \mathbf{u}\) and \(\boldsymbol{\epsilon}\) are mutually
+independent. \(\mathbf{x}_i\) and \(\mathbf{z}_i\) are rows from two
+known design matrices for the population-level and group-level effects
+respectively.
+
+Here we include group-level effects for the year, the county, and the
+crime-type in the county in case the judicial system sentences the
+different crime-types differently relative to other counties. Each of
+the population-level regression coefficients are given a
+weakly-informative normal prior \(\beta_j \sim N(0, 100).\) The
+group-level effects for the intercepts and effects for crime-type are
+given noncentral t-distributions \(v_k \sim t_{3; 0, 2.5}\) and
+\(u_k \sim t_{3; 0, 2.5}\) while the correlations between the
+county-level slopes for proportion of cases and county-average OGS and
+county-level intercepts are given \(\rho_{i.j} \sim lkj(1)\) priors. The
+error term's variance also gets a noncentral t prior
+\(\sigma \sim t_{3; 0, 2.5}.\) The coefficients \(\boldsymbol{\alpha}\)
+are given normal priors \(\alpha_k \overset{iid}{\sim} N(0, 100).\)
+
+Under this model we are assuming the incomplete data are MAR and the
+missingness can be modeled entirely by the multiple imputation
+procedure.
+
+\textbf{Dependent Variable}
+
+The length of the jail/prison sentence modeled as a dependent variable
+by our hurdle models. The length is measured in days and is zero for
+offenders sentenced to a community sentence.
+
+\textbf{Independent Variables}
+
+The independent variables of interest are the offender's race and sex.
+Race is coded as White, Black, Latino or Other. Sex is coded as male or
+female.
+
+\textbf{Legally Relevant Variables}
+
+We also include legally relevant variables including the crime type,
+whether the minimum sentence was recommended, if there was a trial or
+plea, the offender's previous record, and the offense gravity score
+(OGS). Additionally, the offender's age is included in the model. OGS
+and age were centered and scaled before inclusion in the model.
+
+\textbf{County-level Variable}
+
+County-level random effects are included for both the lognormal model
+for non-zero lengths, and the logistic model for the incarceration
+decision. For each county, the average of the offense gravity score was
+included to provide context for the typical cases in the county as well
+as the proportion of cases that each county processes out of the total
+number of cases processed in the state of Pennsylvania.
+
+\hypertarget{tbl-brms-hurdle-model-summary-2-racesex}{}
+\begin{table}
+\caption{\label{tbl-brms-hurdle-model-summary-2-racesex}Fixed/population-level effects for the non-zero part of the full
+lognormal hurdle glm. }\tabularnewline
+
+\centering
+\begin{tabular}{lrrrr}
+\toprule
+Term & Estimate & SE & LB 95\% CI & UB 95\% CI\\
+\midrule
+OFF\_RACEBLACK & -0.10 & 0.10 & -0.29 & 0.09\\
+OFF\_RACELATINO & -0.86 & 0.60 & -2.03 & 0.32\\
+OFF\_RACEOTHER & -1.49 & 0.76 & -3.02 & -0.07\\
+SEXMale:OFF\_RACEBLACK & 0.06 & 0.10 & -0.14 & 0.27\\
+SEXMale:OFF\_RACELATINO & 1.14 & 0.62 & -0.08 & 2.35\\
+\addlinespace
+SEXMale:OFF\_RACEOTHER & 1.41 & 0.78 & -0.06 & 3.00\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\hypertarget{tbl-brms-hurdle-model-summary-2-zero-racesex}{}
+\begin{table}
+\caption{\label{tbl-brms-hurdle-model-summary-2-zero-racesex}Fixed/population-level effects for the zero part of the full lognormal
+hurdle glm. }\tabularnewline
+
+\centering
+\begin{tabular}{lrrrr}
+\toprule
+Term & Estimate & SE & LB 95\% CI & UB 95\% CI\\
+\midrule
+hu\_OFF\_RACEBLACK & -0.04 & 0.13 & -0.29 & 0.22\\
+hu\_OFF\_RACELATINO & 0.57 & 0.83 & -0.98 & 2.27\\
+hu\_OFF\_RACEOTHER & 1.15 & 0.92 & -0.42 & 3.18\\
+hu\_SEXMale:OFF\_RACEBLACK & -0.15 & 0.14 & -0.43 & 0.13\\
+hu\_SEXMale:OFF\_RACELATINO & -1.22 & 0.89 & -3.06 & 0.47\\
+\addlinespace
+hu\_SEXMale:OFF\_RACEOTHER & -1.28 & 1.00 & -3.44 & 0.48\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The standard deviation parameter \(\sigma\) of the lognormal
+distribution has a posterior mean of 1.04 (95\% CI: {[}1.01, 1.06{]}).
+
+The county-level random/group-level effects and year-level
+random/group-level effects are reported in Table~\ref{tbl-brms2-re}.
+
+\hypertarget{tbl-brms2-re}{}
+\begin{table}
+\caption{\label{tbl-brms2-re}Random/group-level effect standard deviation estimates for the full
+hurdle lognormal model. }\tabularnewline
+
+\centering
+\begin{tabular}{lrrrr}
+\toprule
+Term & Estimate & SE & LB 95\% CI & UB 95\% CI\\
+\midrule
+sd(Intercept) & 0.14 & 0.07 & 0.01 & 0.25\\
+sd(COUNTY\_OGS) & 0.04 & 0.02 & 0.00 & 0.08\\
+sd(PCASES) & 1.49 & 1.13 & 0.06 & 4.19\\
+sd(hu\_Intercept) & 0.39 & 0.19 & 0.03 & 0.69\\
+sd(hu\_COUNTY\_OGS) & 0.12 & 0.06 & 0.01 & 0.22\\
+\addlinespace
+sd(hu\_PCASES) & 3.52 & 2.85 & 0.14 & 10.58\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+In Figure~\ref{fig-cond-eff-brm2-racesex}, we can visualize the impacts
+of race and sex on the sentence length in aggregate (including
+zero-length sentences) (Figure~\ref{fig-cond-eff-brm2-racesex-1}) and on
+the incarceration decision (Figure~\ref{fig-cond-eff-brm2-racesex-2}).
+Numeric estimates are reported in Table~\ref{tbl-race-sex-effects}.
+Under this model and the MAR missingness assumption, we find that there
+is no significant difference in the sentence lengths between the
+different racial groups within each sex. There is overlap between all
+four credible intervals for both male offenders and female offenders.
+Between the sexes, we do see significant differences. Female offenders
+receive shorter sentences and are more likely to receive community
+sentences regardless of race. There is a large amount of uncertainty in
+the effect estimate for Latino offenders. The Other group also has a
+relatively high amount of uncertainty and the male Other race offenders'
+CI overlaps with all three other groups' CIs for both sexes, although
+the mean posterior estimate is lower for sentence length.
+
+\begin{figure}
+
+\begin{minipage}[t]{0.50\linewidth}
+
+{\centering 
+
+\raisebox{-\height}{
+
+\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-cond-eff-brm2-racesex-1.pdf}
+
+}
+
+}
+
+\subcaption{\label{fig-cond-eff-brm2-racesex-1}Estimates on marginal
+sentence length (includes zeros).}
+\end{minipage}%
+%
+\begin{minipage}[t]{0.50\linewidth}
+
+{\centering 
+
+\raisebox{-\height}{
+
+\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-cond-eff-brm2-racesex-2.pdf}
+
+}
+
+}
+
+\subcaption{\label{fig-cond-eff-brm2-racesex-2}Estimates on probability
+of incarceration from the logistic regression on the zero-part of the
+full hurdle lognormal model.}
+\end{minipage}%
+
+\caption{\label{fig-cond-eff-brm2-racesex}Posterior estimates of the
+interaction between race and sex effects on the sentence length in
+days.}
+
+\end{figure}
+
+Results for the other terms in the model are reported in the Appendix.
+
+\hypertarget{tbl-race-sex-effects}{}
+\begin{table}
+\caption{\label{tbl-race-sex-effects}Estimates for sentence length combining the non-zero and zero
+predictions for the eight combinations of race and sex. }\tabularnewline
+
+\centering
+\begin{tabular}{llrrrr}
+\toprule
+Sex & Race & Est & SE & LB 95\% CI & UB 95\% CI\\
+\midrule
+Female & WHITE & 15.97 & 1.79 & 12.76 & 19.83\\
+Female & BLACK & 14.82 & 2.32 & 10.78 & 20.07\\
+Female & LATINO & 4.23 & 3.52 & 0.59 & 22.09\\
+Female & OTHER & 1.42 & 1.45 & 0.10 & 10.53\\
+Male & WHITE & 24.96 & 2.40 & 20.57 & 30.12\\
+\addlinespace
+Male & BLACK & 27.21 & 2.84 & 22.10 & 33.15\\
+Male & LATINO & 49.46 & 12.19 & 29.97 & 78.34\\
+Male & OTHER & 25.01 & 8.14 & 12.90 & 45.92\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\hypertarget{sensitivity-analysis}{%
+\section{Sensitivity Analysis}\label{sensitivity-analysis}}
+
+Evaluating the impacts of various nonignorable missingness mechanisms
+can be accomplished with pattern-mixture models. The values of the
+incomplete numeric data can be scaled or shifted. The same cannot be
+done with categorical imputations, instead the proportion of each
+category can be varied within the imputations compared to the observed
+distribution or the MAR imputed distribution.
+
+While there are very few missing sentence lengths, I could also modify
+the imputed sentence lengths with a scale \(c\) or shift \(\delta\).
+Scaling maintains that offenders that are non-incarcerated will remain
+non-incarcerated while the sentences of incarcerated defenders would
+shift. A positive shift would make all offenders incarcerated while a
+negative shift would impose negative sentence lengths that would need to
+be corrected to use Poisson or lognormal hurdle glms.
+
+To perturb the imputations, we modify the vector of probabilities
+\(\mathbf{p} = (p_1, p_2, p_3, p_4)'\) of class membership for each
+racial/ethnic group under consideration (White, Black, Latino, or
+Other). A vector of scale parameters
+\(\mathbf{c} = (c_1, c_2, c_3, c_4)'\) is chosen such that the new
+racial/ethnic group label will be drawn from the normalized vector
+\(\mathbf{p}^* = \frac{1}{\sum_{j=1}^4 c_j p_j} (c_1 p_1, c_2 p_2, c_3 p_3, c_4 p_4)'\)
+so that the probability vectors remains the same if \(c_j = 1\) for each
+\(j = 1,\dots,4.\) For simplicity, we will focus on varying the
+probability of assigning a White label by changing only \(c_1\) while
+holding \(c_2 = c_3 = c_4 = 1.\)
+
+The vector of probabilities \(\mathbf{p}_i\) is obtained for each
+incomplete observation \(i\) by re-fitting the same random forest used
+in the initial mulitple imputation step. This vector is then scaled and
+normalized using the same scaling vector \(\mathbf{c}\) for all
+incomplete observations. The probability vectors \(\mathbf{p}^*\) are
+used to draw new imputed racial/ethnic group labels for the incomplete
+observations. This procedure is repeated, including the model fitting,
+across each of the \(M\) completed data sets resulting in a new set of
+\(M\) completed data sets with modified imputations. The new set of
+completed data sets is then analyzed as before using an lognormal hurdle
+model. Estimates from each variation of \(\mathbf{c}\) that is chosen
+are then compared graphically in Figure~\ref{fig-sens-analysis-res}.
+
+We choose to vary \(c_1\) along the sequence
+\(\{0.1, 0.33, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 2\}.\) When \(c_1 = 1\),
+the imputations correspond to the original imputation model under the
+MAR assumption. For \(c_1 < 1\), fewer observations are imputed with a
+White label than under the MAR assumption reflecting a more diverse
+population of offenders who have unknown or unreported race labels. The
+opposite is true for \(c_1 > 1\), reflecting a more White population of
+offenders. We include cases such as \(c_1 = 0.1\) and \(c_1 = 0.33\) as
+well as \(c_1 = 1.5\) and \(c_1 = 2\) as rather implausible extreme
+conditions to investigate what could happen in the most extreme
+circumstances.
+
+\begin{figure}
+
+\begin{minipage}[t]{0.50\linewidth}
+
+{\centering 
+
+\raisebox{-\height}{
+
+\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-sens-analysis-res-1.pdf}
+
+}
+
+}
+
+\subcaption{\label{fig-sens-analysis-res-1}White offenders}
+\end{minipage}%
+%
+\begin{minipage}[t]{0.50\linewidth}
+
+{\centering 
+
+\raisebox{-\height}{
+
+\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-sens-analysis-res-2.pdf}
+
+}
+
+}
+
+\subcaption{\label{fig-sens-analysis-res-2}Black offenders}
+\end{minipage}%
+\newline
+\begin{minipage}[t]{0.50\linewidth}
+
+{\centering 
+
+\raisebox{-\height}{
+
+\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-sens-analysis-res-3.pdf}
+
+}
+
+}
+
+\subcaption{\label{fig-sens-analysis-res-3}Latino offenders}
+\end{minipage}%
+%
+\begin{minipage}[t]{0.50\linewidth}
+
+{\centering 
+
+\raisebox{-\height}{
+
+\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-sens-analysis-res-4.pdf}
+
+}
+
+}
+
+\subcaption{\label{fig-sens-analysis-res-4}Other ethnicity offenders}
+\end{minipage}%
+
+\caption{\label{fig-sens-analysis-res}Coefficient estimates for the
+logistic regression model predicting incarceration.}
+
+\end{figure}
+
+Figure~\ref{fig-sens-analysis-res} displays the race effects on sentence
+length for the White, Black, Latino, and Other racial/ethnic groups. In
+general, we see that estimates tend to be very stable for White and
+Black offenders, while there's more variation in the estimates for
+Latino offenders and offenders with an Other race/ethnicity reported.
+
+\newpage
+
+\hypertarget{references}{%
+\section*{References}\label{references}}
+\addcontentsline{toc}{section}{References}
+
+\hypertarget{refs}{}
+\begin{CSLReferences}{1}{0}
+\leavevmode\vadjust pre{\hypertarget{ref-buxfcrkner2017}{}}%
+Bürkner, Paul-Christian. 2017. {``Brms: An R Package for Bayesian
+Multilevel Models Using Stan.''} \emph{Journal of Statistical Software}
+80 (August): 1--28. \url{https://doi.org/10.18637/jss.v080.i01}.
+
+\leavevmode\vadjust pre{\hypertarget{ref-buuren2010mice}{}}%
+Buuren, S van, and Karin Groothuis-Oudshoorn. 2010. {``Mice:
+Multivariate Imputation by Chained Equations in r.''} \emph{Journal of
+Statistical Software}, 168.
+
+\leavevmode\vadjust pre{\hypertarget{ref-vanbuuren2018}{}}%
+Buuren, Stef van. 2018. \emph{Flexible Imputation of Missing Data}. 2nd
+ed. Interdisciplinary Statistics Series. Chapman; Hall/CRC.
+\url{https://stefvanbuuren.name/fimd/}.
+
+\leavevmode\vadjust pre{\hypertarget{ref-craggStatisticalModelsLimited1971}{}}%
+Cragg, John G. 1971. {``Some {Statistical Models} for {Limited Dependent
+Variables} with {Application} to the {Demand} for {Durable Goods}.''}
+\emph{Econometrica} 39 (5): 829--44.
+\url{https://doi.org/10.2307/1909582}.
+
+\leavevmode\vadjust pre{\hypertarget{ref-harelInferencesMissingInformation2007}{}}%
+Harel, Ofer. 2007. {``Inferences on Missing Information Under Multiple
+Imputation and Two-Stage Multiple Imputation.''} \emph{Statistical
+Methodology} 4 (1): 75--89.
+\url{https://doi.org/10.1016/j.stamet.2006.03.002}.
+
+\leavevmode\vadjust pre{\hypertarget{ref-raghunathanMultivariateTechniqueMultiply2001}{}}%
+Raghunathan, Trivellore E, James M Lepkowski, John Van Hoewyk, and Peter
+Solenberger. 2001. {``A {Multivariate Technique} for {Multiply Imputing
+Missing Values Using} a {Sequence} of {Regression Models}.''}
+\emph{Statistics Canada} 27 (1): 85--95.
+
+\leavevmode\vadjust pre{\hypertarget{ref-rubinMultipleImputationNonresponse1987}{}}%
+Rubin, Donald B. 1987. \emph{{Multiple Imputation for Nonresponse in
+Surveys \textbar{} Wiley Series in Probability and Statistics}}. {Wiley
+series in probability and mathematical statistics : Applied probability
+and statistics}. {New York}: {Wiley}.
+
+\leavevmode\vadjust pre{\hypertarget{ref-stockton2023}{}}%
+Stockton, Benjamin, C. Clare Strange, and Ofer Harel. 2023. {``Now You
+See It, Now You Don{'}t: A Simulation and Illustration of the Importance
+of Treating Incomplete Data in Estimating Race Effects in Sentencing.''}
+\emph{Journal of Quantitative Criminology}, September.
+\url{https://doi.org/10.1007/s10940-023-09577-w}.
+
+\leavevmode\vadjust pre{\hypertarget{ref-wrightRangerFastImplementation2017}{}}%
+Wright, Marvin N., and Andreas Ziegler. 2017. {``Ranger: {A Fast
+Implementation} of {Random Forests} for {High Dimensional Data} in {C}++
+and {R}.''} \emph{Journal of Statistical Software} 77 (March): 1--17.
+\url{https://doi.org/10.18637/jss.v077.i01}.
+
+\end{CSLReferences}
+
+\newpage
+
+\hypertarget{appendix}{%
+\section*{Appendix}\label{appendix}}
+\addcontentsline{toc}{section}{Appendix}
 
 \begin{figure}
 
@@ -353,711 +915,6 @@ parole.}
 
 \end{figure}
 
-\begin{figure}
-
-{\centering \includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-scatter-pairs-1.pdf}
-
-}
-
-\caption{\label{fig-scatter-pairs}Scatter plot matrix of the numeric
-predictors and the log plus one of the sentence length (days).}
-
-\end{figure}
-
-\hypertarget{multiple-imputation}{%
-\subsection{Multiple Imputation}\label{multiple-imputation}}
-
-I'll prepare the data for analysis next. First, I'll center and scale
-the numeric predictors which are Offense Gravity Score (OGS), defendant
-age, and the square of each. Then I'll use MICE to multiply impute the
-incomplete variables with random forest. For now I'll use \(M = 10\)
-since less than 5\% of all observations are missing (mainly in defendant
-race). The number of imputations to use should be informed by the amount
-of missing information due to incompleteness for each variable (Harel
-2007).
-
-\hypertarget{logistic-regression-on-incarceration}{%
-\subsection{Logistic Regression on
-Incarceration}\label{logistic-regression-on-incarceration}}
-
-I'll fit a logistic regression like before as a sanity check. The
-estimated odds ratio for increased odds of incarceration for a Black
-defendant over a White defendant should be roughly 1.25 as we saw in the
-complete case analysis in the previous paper.
-
-\hypertarget{tbl-glm-summary}{}
-\begin{table}
-\caption{\label{tbl-glm-summary}Summary of the logistic regression fit for predicting sentencing
-decision (In/Out) excluding the year and county estimates for brevity. }\tabularnewline
-
-\centering
-\begin{tabular}{lrrrrl}
-\toprule
-Term & Estimate & SE & LB 95\% CI & UB 95\% CI & Sig.\\
-\midrule
-(Intercept) & -3.32 & 0.29 & -3.89 & -2.75 & *\\
-DOSAGE & -0.16 & 0.03 & -0.22 & -0.09 & *\\
-DOSAGEQ & -0.02 & 0.02 & -0.06 & 0.03 & \\
-SEXMale & 0.37 & 0.07 & 0.23 & 0.50 & *\\
-OFF\_RACEBLACK & 0.14 & 0.14 & -0.15 & 0.42 & \\
-\addlinespace
-OFF\_RACELATINO & 0.75 & 0.65 & -0.53 & 2.02 & \\
-OFF\_RACEOTHER & 0.59 & 0.66 & -0.70 & 1.88 & \\
-OGS & 0.26 & 0.05 & 0.16 & 0.36 & *\\
-OGSQ & 0.25 & 0.03 & 0.19 & 0.31 & *\\
-PRVREC1/2/3 & 0.49 & 0.06 & 0.37 & 0.61 & *\\
-\addlinespace
-PRVREC4/5 & 1.27 & 0.10 & 1.08 & 1.46 & *\\
-PRVRECREVOC/RFEL & 1.66 & 0.19 & 1.29 & 2.03 & *\\
-RECMIN & 0.94 & 0.10 & 0.75 & 1.13 & *\\
-CRIMEDUI & 1.79 & 0.08 & 1.64 & 1.95 & *\\
-CRIMEOther & 0.24 & 0.09 & 0.06 & 0.42 & *\\
-\addlinespace
-CRIMEPersons & 0.88 & 0.08 & 0.72 & 1.05 & *\\
-CRIMEProperty & 0.46 & 0.07 & 0.31 & 0.60 & *\\
-TRIAL & 0.64 & 0.20 & 0.25 & 1.03 & *\\
-SEXMale:OFF\_RACEBLACK & 0.16 & 0.16 & -0.15 & 0.48 & \\
-SEXMale:OFF\_RACELATINO & -0.11 & 0.69 & -1.47 & 1.25 & \\
-\addlinespace
-SEXMale:OFF\_RACEOTHER & -0.50 & 0.73 & -1.94 & 0.94 & \\
-OGS:PRVREC1/2/3 & 0.07 & 0.07 & -0.06 & 0.20 & \\
-OGS:PRVREC4/5 & 0.33 & 0.09 & 0.16 & 0.51 & *\\
-OGS:PRVRECREVOC/RFEL & 0.39 & 0.23 & -0.06 & 0.85 & \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-From the logistic regression fit with MI and \(M = 10\) imputations done
-using predictive mean matching, we found that a Black defendant is 1.25
-(95\% CI of (1.234, 1.265) times more likely to be sentenced to
-incarceration than an otherwise similar White defendant.
-
-We re-analyze the data using a generalized linear mixed model and again
-taking the binary incarceration decision as the outcome and random
-effects for the Year and County with random slopes for the most serious
-Crime type by County.
-
-\hypertarget{tbl-glmm-sum}{}
-\begin{table}
-\caption{\label{tbl-glmm-sum}Summary statistics for the fixed effects from the logistic regression
-mixed model. }\tabularnewline
-
-\centering
-\begin{tabular}{lrrrrl}
-\toprule
-Term & Estimate & SE & LB 95\% CI & UB 95\% CI & Sig.\\
-\midrule
-(Intercept) & -1.82 & 0.14 & -2.09 & -1.55 & *\\
-DOSAGE & -0.16 & 0.03 & -0.22 & -0.09 & *\\
-DOSAGEQ & -0.02 & 0.02 & -0.06 & 0.03 & \\
-SEXMale & 0.37 & 0.07 & 0.23 & 0.50 & *\\
-OFF\_RACEBLACK & 0.12 & 0.14 & -0.16 & 0.41 & \\
-\addlinespace
-OFF\_RACELATINO & 0.75 & 0.65 & -0.53 & 2.02 & \\
-OFF\_RACEOTHER & 0.58 & 0.66 & -0.70 & 1.87 & \\
-OGS & 0.25 & 0.05 & 0.15 & 0.35 & *\\
-OGSQ & 0.25 & 0.03 & 0.19 & 0.31 & *\\
-PRVREC1/2/3 & 0.49 & 0.06 & 0.37 & 0.61 & *\\
-\addlinespace
-PRVREC4/5 & 1.26 & 0.10 & 1.07 & 1.45 & *\\
-PRVRECREVOC/RFEL & 1.64 & 0.19 & 1.27 & 2.01 & *\\
-RECMIN & 0.94 & 0.10 & 0.75 & 1.13 & *\\
-CRIMEDUI & 1.79 & 0.08 & 1.63 & 1.94 & *\\
-CRIMEOther & 0.25 & 0.09 & 0.07 & 0.42 & *\\
-\addlinespace
-CRIMEPersons & 0.88 & 0.08 & 0.72 & 1.05 & *\\
-CRIMEProperty & 0.46 & 0.07 & 0.32 & 0.60 & *\\
-TRIAL & 0.62 & 0.20 & 0.24 & 1.01 & *\\
-SEXMale:OFF\_RACEBLACK & 0.16 & 0.16 & -0.15 & 0.48 & \\
-SEXMale:OFF\_RACELATINO & -0.10 & 0.69 & -1.46 & 1.27 & \\
-\addlinespace
-SEXMale:OFF\_RACEOTHER & -0.51 & 0.73 & -1.94 & 0.93 & \\
-OGS:PRVREC1/2/3 & 0.07 & 0.07 & -0.07 & 0.20 & \\
-OGS:PRVREC4/5 & 0.34 & 0.09 & 0.16 & 0.51 & *\\
-OGS:PRVRECREVOC/RFEL & 0.39 & 0.23 & -0.06 & 0.84 & \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\hypertarget{hurdle-models}{%
-\subsection{Hurdle Models}\label{hurdle-models}}
-
-A hurdle model models data with a high number of zeros (compared to
-standard distributions). The model places a probability point mass
-\(P(Y = 0) = \theta\) at \(Y = 0\) and uses a truncated (at zero)
-probability distribution for the non-zero sample space
-\(P(Y \neq 0) = p_{y \neq 0}(y)\). This differs from a zero-inflated
-model which is a mixture of two distributions (includes the non-zero
-distribution's zero probability) as the hurdle model truncates the
-non-zero distribution.
-
-I'll create a GLM with brms and the log normal hurdle distribution.
-
-The model is composed of two components: the hurdle for the zeros and
-the GLM for the non-zero part. Let \(\pi_i\) be the probability that the
-\(i\)th observation is zero and \(P(Y_i \neq 0) = f_{y\neq 0}(y-i)\)
-where \(f_{y\neq 0}\) is a truncated probability mass/density function.
-
-\hypertarget{lognormal-hurdle-glm-with-intercept-only-hurdle}{%
-\subsubsection{Lognormal Hurdle GLM with Intercept-only
-Hurdle}\label{lognormal-hurdle-glm-with-intercept-only-hurdle}}
-
-Under this first model, we will model the probability of \(Y_i = 0\) as
-constant across the observations using an intercept-only model; the
-default for \texttt{brms} (\textbf{bürkner2017?}).
-
-\begin{equation}\protect\hypertarget{eq-hurdle-intercept}{}{
-\mathrm{logit}^{-1}(P(Y_i = 0)) = \pi_0
-}\label{eq-hurdle-intercept}\end{equation}
-
-\begin{equation}\protect\hypertarget{eq-hurdle-glm}{}{
-\log(Y_i) = \mathbf{x}_i \boldsymbol{\beta} + \mathbf{z}_i \mathbf{u} + \epsilon_i
-}\label{eq-hurdle-glm}\end{equation} where \(\mathbf{u}\) is MVN with
-\(E(\mathbf{U}) = 0\) and covariance matrix \(Cov(\mathbf{U}) = G\),
-\(\epsilon_i \overset{iid}{\sim} N(0, \sigma^2)\) and \(\mathbf{u}\) and
-\(\boldsymbol{\epsilon}\) are mutually independent. \(\mathbf{x}_i\) and
-\(\mathbf{z}_i\) are rows from two known design matrices for the
-population-level and group-level effects respectively.
-
-The model is specified as usual for a GLMM:
-
-\begin{verbatim}
-brm(JP_MIN ~ DOSAGE + DOSAGEQ + SEX*OFF_RACE + OGS + OGSQ +
-                     PRVREC + RECMIN + CRIME + TRIAL +
-                     (1 | YEAR) + (1 + CRIME |COUNTY),
-               data = data,
-               family = hurdle_lognormal(link = "identity",
-                           link_sigma = "log",
-                           link_hu = "logit"))
-\end{verbatim}
-
-Here we include group-level effects for the year, the county, and the
-crime-type in the county in case the judicial system sentences the
-different crime-types differently relative to other counties. Each of
-the population-level regression coefficients are given a normal prior
-\(\beta_j \sim N(0, 25).\) The group-level effects for the intercepts
-and effects for crime-type are given noncentral t-distributions
-\(\gamma_k \sim t_{3; 0, 2.5}\) while the correlations between the
-county-level crime-type effects and county-level intercepts are given
-\(\rho_{i.j} \sim lkj(1)\) priors. The hurdle parameter gets a
-\(U(0,1)\) prior. The error term's variance also gets a noncentral t
-prior \(\sigma \sim t_{3; 0, 2.5}.\)
-
-The quantity of interest is the regression coefficient for race.
-
-\hypertarget{tbl-brms-hurdle-fe-int-only}{}
-\begin{table}
-\caption{\label{tbl-brms-hurdle-fe-int-only}Fixed/Population-level effects for the non-zero part of the lognormal
-hurdle model with intercept only for the zero-part. }\tabularnewline
-
-\centering
-\begin{tabular}{lrrrr}
-\toprule
-Term & Estimate & SE & LB 95\% CI & UB 95\% CI\\
-\midrule
-Intercept & 0.62 & 0.08 & 0.47 & 0.77\\
-DOSAGE & 0.06 & 0.02 & 0.02 & 0.10\\
-DOSAGEQ & -0.04 & 0.01 & -0.07 & -0.01\\
-SEXMale & 0.13 & 0.05 & 0.03 & 0.22\\
-OFF\_RACEBLACK & -0.15 & 0.10 & -0.35 & 0.04\\
-\addlinespace
-OFF\_RACELATINO & 0.09 & 0.40 & -0.69 & 0.88\\
-OFF\_RACEOTHER & -0.90 & 0.45 & -1.79 & -0.03\\
-OGS & 1.36 & 0.03 & 1.29 & 1.43\\
-OGSQ & -0.14 & 0.01 & -0.16 & -0.13\\
-PRVREC1D2D3 & 0.39 & 0.04 & 0.32 & 0.47\\
-\addlinespace
-PRVREC4D5 & 0.93 & 0.06 & 0.82 & 1.04\\
-PRVRECREVOCDRFEL & 1.44 & 0.09 & 1.26 & 1.63\\
-RECMIN & 0.05 & 0.06 & -0.06 & 0.16\\
-CRIMEDUI & -0.99 & 0.05 & -1.09 & -0.88\\
-CRIMEOther & -0.06 & 0.06 & -0.17 & 0.06\\
-\addlinespace
-CRIMEPersons & 0.13 & 0.05 & 0.04 & 0.23\\
-CRIMEProperty & 0.10 & 0.05 & 0.00 & 0.19\\
-TRIAL & 0.34 & 0.08 & 0.17 & 0.50\\
-SEXMale:OFF\_RACEBLACK & 0.10 & 0.11 & -0.10 & 0.31\\
-SEXMale:OFF\_RACELATINO & 0.19 & 0.41 & -0.62 & 0.98\\
-\addlinespace
-SEXMale:OFF\_RACEOTHER & 0.71 & 0.49 & -0.24 & 1.69\\
-OGS:PRVREC1D2D3 & -0.04 & 0.03 & -0.10 & 0.02\\
-OGS:PRVREC4D5 & -0.07 & 0.03 & -0.14 & 0.00\\
-OGS:PRVRECREVOCDRFEL & -0.19 & 0.07 & -0.32 & -0.06\\
-\bottomrule
-\end{tabular}
-\end{table}
-
-The standard deviation parameter \(\sigma\) of the lognormal
-distribution has a posterior mean of 1.02 (95\% CI: {[}1, 1.04 {]}). The
-hurdle parameter has a posterior mean of 0.52 (95\% CI: {[}0.51, 0.53
-{]}) which matches the probability of not being incarcerated in the
-overall population.
-
-\hypertarget{tbl-brms1-group-eff}{}
-\begin{table}
-\caption{\label{tbl-brms1-group-eff}Random/group-level effect standard deviation estimates for the
-intercept-only hurdle lognormal model. }\tabularnewline
-
-\centering
-\begin{tabular}{llrrr}
-\toprule
-Term & Estimate & SE & LB 95\% CI & UB 95\% CI\\
-\midrule
-County-level & sd(Intercept) & 0.18 & 0.13 & 0.24\\
-Year-level & sd(Intercept & 0.07 & 0.00 & 0.22\\
-\bottomrule
-\end{tabular}
-\end{table}
-
-From the hurdle model, we find that Black defendants do not receive
-different sentence lengths compared to White defendants (95\% CI of
-(-0.11, 0.03)). In terms of 95\% CIs we also find that there doesn't
-seem to be a difference in sentence lengths between male and female
-defendants either between or within each racial group.
-
-\begin{figure}
-
-\begin{minipage}[t]{0.33\linewidth}
-
-{\centering 
-
-\raisebox{-\height}{
-
-\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-cond-eff-brm-nonzero-1.pdf}
-
-}
-
-}
-
-\subcaption{\label{fig-cond-eff-brm-nonzero-1}Age}
-\end{minipage}%
-%
-\begin{minipage}[t]{0.33\linewidth}
-
-{\centering 
-
-\raisebox{-\height}{
-
-\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-cond-eff-brm-nonzero-2.pdf}
-
-}
-
-}
-
-\subcaption{\label{fig-cond-eff-brm-nonzero-2}Age Squared}
-\end{minipage}%
-%
-\begin{minipage}[t]{0.33\linewidth}
-
-{\centering 
-
-\raisebox{-\height}{
-
-\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-cond-eff-brm-nonzero-3.pdf}
-
-}
-
-}
-
-\subcaption{\label{fig-cond-eff-brm-nonzero-3}Sex}
-\end{minipage}%
-\newline
-\begin{minipage}[t]{0.33\linewidth}
-
-{\centering 
-
-\raisebox{-\height}{
-
-\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-cond-eff-brm-nonzero-4.pdf}
-
-}
-
-}
-
-\subcaption{\label{fig-cond-eff-brm-nonzero-4}Offender Race}
-\end{minipage}%
-%
-\begin{minipage}[t]{0.33\linewidth}
-
-{\centering 
-
-\raisebox{-\height}{
-
-\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-cond-eff-brm-nonzero-5.pdf}
-
-}
-
-}
-
-\subcaption{\label{fig-cond-eff-brm-nonzero-5}OGS}
-\end{minipage}%
-%
-\begin{minipage}[t]{0.33\linewidth}
-
-{\centering 
-
-\raisebox{-\height}{
-
-\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-cond-eff-brm-nonzero-6.pdf}
-
-}
-
-}
-
-\subcaption{\label{fig-cond-eff-brm-nonzero-6}OGS Squared}
-\end{minipage}%
-\newline
-\begin{minipage}[t]{0.33\linewidth}
-
-{\centering 
-
-\raisebox{-\height}{
-
-\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-cond-eff-brm-nonzero-7.pdf}
-
-}
-
-}
-
-\subcaption{\label{fig-cond-eff-brm-nonzero-7}Prev. Rec.}
-\end{minipage}%
-%
-\begin{minipage}[t]{0.33\linewidth}
-
-{\centering 
-
-\raisebox{-\height}{
-
-\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-cond-eff-brm-nonzero-8.pdf}
-
-}
-
-}
-
-\subcaption{\label{fig-cond-eff-brm-nonzero-8}Rec. Min.}
-\end{minipage}%
-%
-\begin{minipage}[t]{0.33\linewidth}
-
-{\centering 
-
-\raisebox{-\height}{
-
-\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-cond-eff-brm-nonzero-9.pdf}
-
-}
-
-}
-
-\subcaption{\label{fig-cond-eff-brm-nonzero-9}Crime Type}
-\end{minipage}%
-\newline
-\begin{minipage}[t]{0.33\linewidth}
-
-{\centering 
-
-\raisebox{-\height}{
-
-\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-cond-eff-brm-nonzero-10.pdf}
-
-}
-
-}
-
-\subcaption{\label{fig-cond-eff-brm-nonzero-10}Trial}
-\end{minipage}%
-%
-\begin{minipage}[t]{0.33\linewidth}
-
-{\centering 
-
-\raisebox{-\height}{
-
-\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-cond-eff-brm-nonzero-11.pdf}
-
-}
-
-}
-
-\subcaption{\label{fig-cond-eff-brm-nonzero-11}Race by Sex}
-\end{minipage}%
-%
-\begin{minipage}[t]{0.33\linewidth}
-
-{\centering 
-
-\raisebox{-\height}{
-
-\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-cond-eff-brm-nonzero-12.pdf}
-
-}
-
-}
-
-\subcaption{\label{fig-cond-eff-brm-nonzero-12}OGS by Prev. Rec.}
-\end{minipage}%
-
-\caption{\label{fig-cond-eff-brm-nonzero}Posterior estimates of the
-conditional effects for the lognormal glm for the non-zero-part of the
-intercept-only hurdle lognormal model.}
-
-\end{figure}
-
-\begin{figure}
-
-\begin{minipage}[t]{0.33\linewidth}
-
-{\centering 
-
-\raisebox{-\height}{
-
-\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-cond-eff-brm1-zero-1.pdf}
-
-}
-
-}
-
-\subcaption{\label{fig-cond-eff-brm1-zero-1}Age}
-\end{minipage}%
-%
-\begin{minipage}[t]{0.33\linewidth}
-
-{\centering 
-
-\raisebox{-\height}{
-
-\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-cond-eff-brm1-zero-2.pdf}
-
-}
-
-}
-
-\subcaption{\label{fig-cond-eff-brm1-zero-2}Age Squared}
-\end{minipage}%
-%
-\begin{minipage}[t]{0.33\linewidth}
-
-{\centering 
-
-\raisebox{-\height}{
-
-\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-cond-eff-brm1-zero-3.pdf}
-
-}
-
-}
-
-\subcaption{\label{fig-cond-eff-brm1-zero-3}Sex}
-\end{minipage}%
-\newline
-\begin{minipage}[t]{0.33\linewidth}
-
-{\centering 
-
-\raisebox{-\height}{
-
-\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-cond-eff-brm1-zero-4.pdf}
-
-}
-
-}
-
-\subcaption{\label{fig-cond-eff-brm1-zero-4}Offender Race}
-\end{minipage}%
-%
-\begin{minipage}[t]{0.33\linewidth}
-
-{\centering 
-
-\raisebox{-\height}{
-
-\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-cond-eff-brm1-zero-5.pdf}
-
-}
-
-}
-
-\subcaption{\label{fig-cond-eff-brm1-zero-5}OGS}
-\end{minipage}%
-%
-\begin{minipage}[t]{0.33\linewidth}
-
-{\centering 
-
-\raisebox{-\height}{
-
-\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-cond-eff-brm1-zero-6.pdf}
-
-}
-
-}
-
-\subcaption{\label{fig-cond-eff-brm1-zero-6}OGS Squared}
-\end{minipage}%
-\newline
-\begin{minipage}[t]{0.33\linewidth}
-
-{\centering 
-
-\raisebox{-\height}{
-
-\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-cond-eff-brm1-zero-7.pdf}
-
-}
-
-}
-
-\subcaption{\label{fig-cond-eff-brm1-zero-7}Prev. Rec.}
-\end{minipage}%
-%
-\begin{minipage}[t]{0.33\linewidth}
-
-{\centering 
-
-\raisebox{-\height}{
-
-\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-cond-eff-brm1-zero-8.pdf}
-
-}
-
-}
-
-\subcaption{\label{fig-cond-eff-brm1-zero-8}Rec. Min.}
-\end{minipage}%
-%
-\begin{minipage}[t]{0.33\linewidth}
-
-{\centering 
-
-\raisebox{-\height}{
-
-\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-cond-eff-brm1-zero-9.pdf}
-
-}
-
-}
-
-\subcaption{\label{fig-cond-eff-brm1-zero-9}Crime Type}
-\end{minipage}%
-\newline
-\begin{minipage}[t]{0.33\linewidth}
-
-{\centering 
-
-\raisebox{-\height}{
-
-\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-cond-eff-brm1-zero-10.pdf}
-
-}
-
-}
-
-\subcaption{\label{fig-cond-eff-brm1-zero-10}Trial}
-\end{minipage}%
-%
-\begin{minipage}[t]{0.33\linewidth}
-
-{\centering 
-
-\raisebox{-\height}{
-
-\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-cond-eff-brm1-zero-11.pdf}
-
-}
-
-}
-
-\subcaption{\label{fig-cond-eff-brm1-zero-11}Race by Sex}
-\end{minipage}%
-%
-\begin{minipage}[t]{0.33\linewidth}
-
-{\centering 
-
-\raisebox{-\height}{
-
-\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-cond-eff-brm1-zero-12.pdf}
-
-}
-
-}
-
-\subcaption{\label{fig-cond-eff-brm1-zero-12}OGS by Prev. Rec.}
-\end{minipage}%
-
-\caption{\label{fig-cond-eff-brm1-zero}Posterior estimates of the
-conditional effects for the logistic regression for the zero-part of the
-intercept-only hurdle lognormal model.}
-
-\end{figure}
-
-\begin{figure}
-
-\begin{minipage}[t]{0.50\linewidth}
-
-{\centering 
-
-\raisebox{-\height}{
-
-\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-ppc-brm1-1.pdf}
-
-}
-
-}
-
-\subcaption{\label{fig-ppc-brm1-1}Density for sentence length}
-\end{minipage}%
-%
-\begin{minipage}[t]{0.50\linewidth}
-
-{\centering 
-
-\raisebox{-\height}{
-
-\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-ppc-brm1-2.pdf}
-
-}
-
-}
-
-\subcaption{\label{fig-ppc-brm1-2}Density for log of sentence length
-plus one day}
-\end{minipage}%
-
-\caption{\label{fig-ppc-brm1}Posterior Predictive Checks for the
-intercept-only hurdle model.}
-
-\end{figure}
-
-\hypertarget{lognormal-glm-hurdle-model-with-predictors-on-hurdle-parameter}{%
-\subsubsection{Lognormal GLM Hurdle Model with Predictors on Hurdle
-Parameter}\label{lognormal-glm-hurdle-model-with-predictors-on-hurdle-parameter}}
-
-Next, we modify the model from the previous section to include
-predictors in the logistic regression part of the hurdle model
-Equation~\ref{eq-hurdle-intercept}. The non-zero portion
-Equation~\ref{eq-hurdle-glm} of the hurdle model remains the same.
-
-\[
-\mathrm{logit}^{-1}(P(Y_i=0)) = \mathbf{x}_i \boldsymbol{\alpha}.
-\]
-
-The coefficients \(\boldsymbol{\alpha}\) are given normal priors
-\(\alpha_k \overset{iid}{\sim} N(0, 10).\) The priors for the other
-parameters remain the same.
-
-The new model is specified with the \texttt{bf()} function.
-
-\begin{verbatim}
-bf(JP_MIN ~ DOSAGE + DOSAGEQ + SEX*OFF_RACE + OGS + OGSQ +
-                 PRVREC + RECMIN + CRIME + TRIAL +
-                 (1 | YEAR) + (1 + CRIME |COUNTY),
-    hu ~ 1 + DOSAGE + DOSAGEQ + SEX * OFF_RACE + OGS + OGSQ +
-            PRVREC + CRIME + TRIAL + (1 | COUNTY))
-\end{verbatim}
-
-Next we fit the model.
-
 \hypertarget{tbl-brms-hurdle-model-summary-2}{}
 \begin{table}
 \caption{\label{tbl-brms-hurdle-model-summary-2}Fixed/population-level effects for the non-zero part of the full
@@ -1068,34 +925,34 @@ lognormal hurdle glm. }\tabularnewline
 \toprule
 Term & Estimate & SE & LB 95\% CI & UB 95\% CI\\
 \midrule
-Intercept & 4.03 & 0.08 & 3.87 & 4.19\\
-DOSAGE & 0.06 & 0.02 & 0.02 & 0.09\\
-DOSAGEQ & -0.04 & 0.01 & -0.07 & -0.01\\
-SEXMale & 0.13 & 0.05 & 0.03 & 0.23\\
-OFF\_RACEBLACK & -0.16 & 0.10 & -0.35 & 0.04\\
+Intercept & 3.80 & 0.07 & 3.66 & 3.93\\
+DOSAGE & 0.03 & 0.02 & -0.01 & 0.07\\
+DOSAGEQ & -0.03 & 0.01 & -0.05 & 0.00\\
+SEXMale & 0.19 & 0.05 & 0.09 & 0.28\\
+OFF\_RACEBLACK & -0.10 & 0.10 & -0.29 & 0.09\\
 \addlinespace
-OFF\_RACELATINO & 0.09 & 0.39 & -0.68 & 0.86\\
-OFF\_RACEOTHER & -0.90 & 0.45 & -1.78 & 0.00\\
-OGS & 1.36 & 0.03 & 1.29 & 1.43\\
-OGSQ & -0.14 & 0.01 & -0.16 & -0.12\\
-PRVREC1D2D3 & 0.39 & 0.04 & 0.31 & 0.47\\
+OFF\_RACELATINO & -0.86 & 0.60 & -2.03 & 0.32\\
+OFF\_RACEOTHER & -1.49 & 0.76 & -3.02 & -0.07\\
+OGS & 1.31 & 0.04 & 1.24 & 1.38\\
+OGSQ & -0.13 & 0.01 & -0.15 & -0.11\\
+PRVREC1D2D3 & 0.32 & 0.04 & 0.24 & 0.39\\
 \addlinespace
-PRVREC4D5 & 0.93 & 0.05 & 0.83 & 1.04\\
-PRVRECREVOCDRFEL & 1.44 & 0.09 & 1.26 & 1.63\\
-RECMIN & 0.05 & 0.06 & -0.06 & 0.17\\
-CRIMEDUI & -0.99 & 0.05 & -1.09 & -0.88\\
-CRIMEOther & -0.05 & 0.06 & -0.17 & 0.06\\
+PRVREC4D5 & 0.78 & 0.06 & 0.67 & 0.89\\
+PRVRECREVOCDRFEL & 1.30 & 0.10 & 1.10 & 1.50\\
+RECMIN & 0.20 & 0.06 & 0.08 & 0.32\\
+CRIMEDUI & -0.88 & 0.05 & -0.99 & -0.78\\
+CRIMEOther & 0.11 & 0.06 & 0.00 & 0.23\\
 \addlinespace
-CRIMEPersons & 0.14 & 0.05 & 0.04 & 0.24\\
-CRIMEProperty & 0.10 & 0.05 & 0.00 & 0.19\\
-TRIAL & 0.34 & 0.09 & 0.17 & 0.50\\
-SEXMale:OFF\_RACEBLACK & 0.11 & 0.11 & -0.10 & 0.31\\
-SEXMale:OFF\_RACELATINO & 0.19 & 0.40 & -0.60 & 0.99\\
+CRIMEPersons & 0.15 & 0.05 & 0.05 & 0.26\\
+CRIMEProperty & 0.25 & 0.05 & 0.16 & 0.35\\
+TRIAL & 0.37 & 0.09 & 0.19 & 0.55\\
+SEXMale:OFF\_RACEBLACK & 0.06 & 0.10 & -0.14 & 0.27\\
+SEXMale:OFF\_RACELATINO & 1.14 & 0.62 & -0.08 & 2.35\\
 \addlinespace
-SEXMale:OFF\_RACEOTHER & 0.71 & 0.49 & -0.27 & 1.68\\
-OGS:PRVREC1D2D3 & -0.04 & 0.03 & -0.09 & 0.02\\
-OGS:PRVREC4D5 & -0.07 & 0.03 & -0.14 & -0.01\\
-OGS:PRVRECREVOCDRFEL & -0.19 & 0.07 & -0.32 & -0.06\\
+SEXMale:OFF\_RACEOTHER & 1.41 & 0.78 & -0.06 & 3.00\\
+OGS:PRVREC1D2D3 & 0.02 & 0.03 & -0.04 & 0.08\\
+OGS:PRVREC4D5 & 0.00 & 0.03 & -0.07 & 0.07\\
+OGS:PRVRECREVOCDRFEL & -0.18 & 0.06 & -0.30 & -0.05\\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1110,51 +967,31 @@ hurdle glm. }\tabularnewline
 \toprule
 Term & Estimate & SE & LB 95\% CI & UB 95\% CI\\
 \midrule
-hu\_Intercept & 1.77 & 0.14 & 1.50 & 2.04\\
-hu\_SEXMale & -0.38 & 0.07 & -0.52 & -0.24\\
-hu\_OFF\_RACEBLACK & -0.10 & 0.14 & -0.38 & 0.18\\
-hu\_OFF\_RACELATINO & -0.74 & 0.67 & -2.04 & 0.58\\
-hu\_OFF\_RACEOTHER & -0.61 & 0.68 & -1.89 & 0.76\\
+hu\_Intercept & 1.71 & 0.12 & 1.47 & 1.95\\
+hu\_DOSAGE & 0.13 & 0.03 & 0.06 & 0.19\\
+hu\_DOSAGEQ & 0.04 & 0.02 & 0.00 & 0.08\\
+hu\_SEXMale & -0.35 & 0.07 & -0.48 & -0.22\\
+hu\_OFF\_RACEBLACK & -0.04 & 0.13 & -0.29 & 0.22\\
 \addlinespace
-hu\_RECMIN & -0.95 & 0.09 & -1.13 & -0.76\\
-hu\_OGS & -0.32 & 0.05 & -0.41 & -0.23\\
-hu\_OGSQ & -0.26 & 0.03 & -0.31 & -0.20\\
-hu\_PRVREC1D2D3 & -0.44 & 0.06 & -0.55 & -0.33\\
-hu\_PRVREC4D5 & -1.11 & 0.09 & -1.29 & -0.94\\
+hu\_OFF\_RACELATINO & 0.57 & 0.83 & -0.98 & 2.27\\
+hu\_OFF\_RACEOTHER & 1.15 & 0.92 & -0.42 & 3.18\\
+hu\_RECMIN & -0.84 & 0.09 & -1.02 & -0.67\\
+hu\_OGS & -0.42 & 0.05 & -0.51 & -0.33\\
+hu\_OGSQ & -0.24 & 0.03 & -0.29 & -0.18\\
 \addlinespace
-hu\_PRVRECREVOCDRFEL & -1.43 & 0.18 & -1.78 & -1.08\\
-hu\_CRIMEDUI & -1.69 & 0.08 & -1.84 & -1.54\\
-hu\_CRIMEOther & -0.20 & 0.09 & -0.38 & -0.03\\
-hu\_CRIMEPersons & -0.83 & 0.08 & -0.99 & -0.66\\
-hu\_CRIMEProperty & -0.43 & 0.07 & -0.57 & -0.29\\
+hu\_PRVREC1D2D3 & -0.50 & 0.06 & -0.61 & -0.38\\
+hu\_PRVREC4D5 & -1.08 & 0.09 & -1.26 & -0.91\\
+hu\_PRVRECREVOCDRFEL & -1.50 & 0.18 & -1.85 & -1.16\\
+hu\_CRIMEDUI & -1.62 & 0.08 & -1.77 & -1.47\\
+hu\_CRIMEOther & -0.19 & 0.09 & -0.36 & -0.02\\
 \addlinespace
-hu\_TRIAL & -0.59 & 0.20 & -0.99 & -0.21\\
-hu\_SEXMale:OFF\_RACEBLACK & -0.21 & 0.16 & -0.52 & 0.10\\
-hu\_SEXMale:OFF\_RACELATINO & 0.07 & 0.71 & -1.33 & 1.44\\
-hu\_SEXMale:OFF\_RACEOTHER & 0.56 & 0.75 & -0.95 & 1.99\\
-\bottomrule
-\end{tabular}
-\end{table}
-
-The standard deviation parameter \(\sigma\) of the lognormal
-distribution has a posterior mean of 1.02 (95\% CI: {[}1, 1.04{]}).
-
-The county-level random/group-level effects and year-level
-random/group-level effects are reported in Table~\ref{tbl-brms2-re}.
-
-\hypertarget{tbl-brms2-re}{}
-\begin{table}
-\caption{\label{tbl-brms2-re}Random/group-level effect standard deviation estimates for the full
-hurdle lognormal model. }\tabularnewline
-
-\centering
-\begin{tabular}{llrrr}
-\toprule
-Term & Estimate & SE & LB 95\% CI & UB 95\% CI\\
-\midrule
-County-level & sd(Intercept) & 0.18 & 0.13 & 0.24\\
-County-level & sd(hu\_Intercept) & 0.80 & 0.65 & 0.99\\
-Year-level & sd(Intercept & 0.07 & 0.00 & 0.21\\
+hu\_CRIMEPersons & -0.71 & 0.08 & -0.87 & -0.55\\
+hu\_CRIMEProperty & -0.48 & 0.07 & -0.62 & -0.34\\
+hu\_TRIAL & -0.54 & 0.20 & -0.94 & -0.15\\
+hu\_SEXMale:OFF\_RACEBLACK & -0.15 & 0.14 & -0.43 & 0.13\\
+hu\_SEXMale:OFF\_RACELATINO & -1.22 & 0.89 & -3.06 & 0.47\\
+\addlinespace
+hu\_SEXMale:OFF\_RACEOTHER & -1.28 & 1.00 & -3.44 & 0.48\\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1587,159 +1424,6 @@ plus 1}
 lognormal hurdle model.}
 
 \end{figure}
-
-\hypertarget{glmmadaptive-lognormal-hurdle-model}{%
-\subsubsection{GLMMadaptive Lognormal Hurdle
-Model}\label{glmmadaptive-lognormal-hurdle-model}}
-
-Complete case analysis to see if the function works and how quickly it
-runs.
-
-Evaluation of predictions
-
-\begin{figure}
-
-{\centering \includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-cdf-glmm-lnh-pred-1.pdf}
-
-}
-
-\caption{\label{fig-cdf-glmm-lnh-pred}The empirical CDF of the observed
-sentence lengths (days, log scale) with fitted cdfs simulated from the
-model fit overlaid in light gray.}
-
-\end{figure}
-
-Fitting with MI.
-
-\hypertarget{tbl-coef-comp}{}
-\begin{table}
-\caption{\label{tbl-coef-comp}Coefficients from the non-zero portions of the full lognormal hurdle
-models fit with brms and glmmadaptive after multiple imputation. }\tabularnewline
-
-\centering
-\begin{tabular}{lrrrr}
-\toprule
-Term & brms - Est. & glmma - Est. & brms - Hurdle Est. & glmma - Hurdle Est.\\
-\midrule
-Intercept & 4.0333 & -0.0299 & 1.8038 & 1.9404\\
-DOSAGE & 0.0557 & 0.0612 & 0.1593 & 0.1409\\
-DOSAGEQ & -0.0398 & -0.0406 & 0.0151 & 0.0030\\
-SEXMale & 0.1288 & 0.1392 & -0.3607 & -0.3682\\
-OFF\_RACEBLACK & -0.1558 & -0.1632 & -0.1087 & 0.0583\\
-\addlinespace
-OFF\_RACELATINO & 0.0892 & 0.1131 & -0.7168 & -0.8419\\
-OFF\_RACEOTHER & -0.9008 & -0.4966 & -0.5718 & -0.5529\\
-OGS & 1.3618 & 1.3638 & -0.3214 & -0.1963\\
-OGSQ & -0.1441 & 0.3823 & -0.2516 & -0.2628\\
-PRVREC1D2D3 & 0.3895 & 0.9116 & -0.4814 & -0.4153\\
-\addlinespace
-PRVREC4D5 & 0.9319 & 1.3744 & -1.2312 & -1.0177\\
-PRVRECREVOCDRFEL & 1.4442 & -0.1482 & -1.6192 & -1.1936\\
-RECMIN & 0.0542 & 0.0608 & -0.9510 & -0.8402\\
-CRIMEDUI & -0.9868 & -0.9812 & -1.7938 & -1.6576\\
-CRIMEOther & -0.0544 & -0.0384 & -0.2276 & -0.2364\\
-\addlinespace
-CRIMEPersons & 0.1362 & 0.1462 & -0.8663 & -0.8366\\
-CRIMEProperty & 0.0998 & 0.1083 & -0.4473 & -0.4826\\
-TRIAL & 0.3353 & 0.3266 & -0.6359 & -0.5492\\
-SEXMale:OFF\_RACEBLACK & 0.1056 & 0.0910 & -0.1811 & -0.1562\\
-SEXMale:OFF\_RACELATINO & 0.1885 & 0.1911 & 0.0642 & -0.0577\\
-\addlinespace
-SEXMale:OFF\_RACEOTHER & 0.7088 & 0.2618 & 0.4684 & 0.4947\\
-OGS:PRVREC1D2D3 & -0.0357 & -0.0385 & NA & NA\\
-OGS:PRVREC4D5 & -0.0717 & -0.0769 & NA & NA\\
-OGS:PRVRECREVOCDRFEL & -0.1906 & -0.1915 & NA & NA\\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\hypertarget{sensitivity-analysis}{%
-\section{Sensitivity Analysis}\label{sensitivity-analysis}}
-
-Evaluating the impacts of various nonignorable missingness mechanisms
-can be accomplished with pattern-mixture models. The values of the
-incomplete numeric data can be scaled or shifted. The same cannot be
-done with categorical imputations, instead the proportion of each
-category can be varied within the imputations compared to the observed
-distribution or the MAR imputed distribution.
-
-While there are very few missing sentence lengths, I could also modify
-the imputed sentence lengths with a scale \(c\) or shift \(\delta\).
-Scaling maintains that offenders that are non-incarcerated will remain
-non-incarcerated while the sentences of incarcerated defenders would
-shift. A positive shift would make all offenders incarcerated while a
-negative shift would impose negative sentence lengths that would need to
-be corrected to use Poisson or lognormal hurdle glms.
-
-To perturb the imputations, we modify the vector of probabilities
-\(\mathbf{p} = (p_1, p_2, p_3, p_4)'\) of class membership for each
-racial/ethnic group under consideration (White, Black, Latino, or
-Other). A vector of scale parameters
-\(\mathbf{c} = (c_1, c_2, c_3, c_4)'\) is chosen such that the new
-racial/ethnic group label will be drawn from the normalized vector
-\(\mathbf{p}^* = \frac{1}{\sum_{j=1}^4 c_j p_j} (c_1 p_1, c_2 p_2, c_3 p_3, c_4 p_4)'\)
-so that the probability vectors remains the same if \(c_j = 1\) for each
-\(j = 1,\dots,4.\) For simplicity, we will focus on varying the
-probability of assigning a White label by changing only \(c_1\) while
-holding \(c_2 = c_3 = c_4 = 1.\)
-
-The vector of probabilities \(\mathbf{p}_i\) is obtained for each
-incomplete observation \(i\) by re-fitting the same random forest used
-in the initial mulitple imputation step. This vector is then scaled and
-normalized using the same scaling vector \(\mathbf{c}\) for all
-incomplete observations. The probability vectors \(\mathbf{p}^*\) are
-used to draw new imputed racial/ethnic group labels for the incomplete
-observations. This procedure is repeated, including the model fitting,
-across each of the \(M\) completed data sets resulting in a new set of
-\(M\) completed data sets with modified imputations. The new set of
-completed data sets is then analyzed as before using an lognormal hurdle
-model. Estimates from each variation of \(\mathbf{c}\) that is chosen
-are then compared graphically in Figure~\ref{fig-sens-analysis-res}.
-
-We choose to vary \(c_1\) along the sequence
-\(\{0.1, 0.33, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 2\}.\) When \(c_1 = 1\),
-the imputations correspond to the original imputation model under the
-MAR assumption. For \(c_1 < 1\), fewer observations are imputed with a
-White label than under the MAR assumption reflecting a more diverse
-population of offenders who have unknown or unreported race labels. The
-opposite is true for \(c_1 > 1\), reflecting a more White population of
-offenders. We include cases such as \(c_1 = 0.1\) and \(c_1 = 0.33\) as
-well as \(c_1 = 1.5\) and \(c_1 = 2\) as rather implausible extreme
-conditions to investigate what could happen in the most extreme
-circumstances.
-
-\begin{figure}
-
-{\centering \includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-sens-analysis-res-1.pdf}
-
-}
-
-\caption{\label{fig-sens-analysis-res}Coefficient estimates for the
-logistic regression model predicting incarceration.}
-
-\end{figure}
-
-\newpage
-
-\hypertarget{references}{%
-\section*{References}\label{references}}
-\addcontentsline{toc}{section}{References}
-
-\hypertarget{refs}{}
-\begin{CSLReferences}{1}{0}
-\leavevmode\vadjust pre{\hypertarget{ref-harelInferencesMissingInformation2007}{}}%
-Harel, Ofer. 2007. {``Inferences on Missing Information Under Multiple
-Imputation and Two-Stage Multiple Imputation.''} \emph{Statistical
-Methodology} 4 (1): 75--89.
-\url{https://doi.org/10.1016/j.stamet.2006.03.002}.
-
-\leavevmode\vadjust pre{\hypertarget{ref-rubinMultipleImputationNonresponse1987}{}}%
-Rubin, Donald B. 1987. \emph{{Multiple Imputation for Nonresponse in
-Surveys \textbar{} Wiley Series in Probability and Statistics}}. {Wiley
-series in probability and mathematical statistics : Applied probability
-and statistics}. {New York}: {Wiley}.
-
-\end{CSLReferences}
 
 
 

@@ -58,16 +58,12 @@ data {
   array[N] int<lower=1> J_1;  // grouping indicator per observation
   // group-level predictor values
   vector[N] Z_1_1;
-  vector[N] Z_1_2;
-  vector[N] Z_1_3;
   // data for group-level effects of ID 2
   int<lower=1> N_2;  // number of grouping levels
   int<lower=1> M_2;  // number of coefficients per level
   array[N] int<lower=1> J_2;  // grouping indicator per observation
   // group-level predictor values
   vector[N] Z_2_hu_1;
-  vector[N] Z_2_hu_2;
-  vector[N] Z_2_hu_3;
   int prior_only;  // should the likelihood be ignored?
 }
 transformed data {
@@ -97,18 +93,10 @@ parameters {
 }
 transformed parameters {
   vector[N_1] r_1_1;  // actual group-level effects
-  vector[N_1] r_1_2;  // actual group-level effects
-  vector[N_1] r_1_3;  // actual group-level effects
   vector[N_2] r_2_hu_1;  // actual group-level effects
-  vector[N_2] r_2_hu_2;  // actual group-level effects
-  vector[N_2] r_2_hu_3;  // actual group-level effects
   real lprior = 0;  // prior contributions to the log posterior
   r_1_1 = (sd_1[1] * (z_1[1]));
-  r_1_2 = (sd_1[2] * (z_1[2]));
-  r_1_3 = (sd_1[3] * (z_1[3]));
   r_2_hu_1 = (sd_2[1] * (z_2[1]));
-  r_2_hu_2 = (sd_2[2] * (z_2[2]));
-  r_2_hu_3 = (sd_2[3] * (z_2[3]));
   lprior += normal_lpdf(b | 0, 100);
   lprior += student_t_lpdf(Intercept | 3, 0, 2.5);
   lprior += student_t_lpdf(sigma | 3, 0, 2.5)
@@ -116,9 +104,9 @@ transformed parameters {
   lprior += normal_lpdf(b_hu | 0, 100);
   lprior += logistic_lpdf(Intercept_hu | 0, 1);
   lprior += student_t_lpdf(sd_1 | 3, 0, 2.5)
-    - 3 * student_t_lccdf(0 | 3, 0, 2.5);
+    - 1 * student_t_lccdf(0 | 3, 0, 2.5);
   lprior += student_t_lpdf(sd_2 | 3, 0, 2.5)
-    - 3 * student_t_lccdf(0 | 3, 0, 2.5);
+    - 1 * student_t_lccdf(0 | 3, 0, 2.5);
 }
 model {
   // likelihood including constants
@@ -131,11 +119,11 @@ model {
     hu += Intercept_hu + Xc_hu * b_hu;
     for (n in 1:N) {
       // add more terms to the linear predictor
-      mu[n] += r_1_1[J_1[n]] * Z_1_1[n] + r_1_2[J_1[n]] * Z_1_2[n] + r_1_3[J_1[n]] * Z_1_3[n];
+      mu[n] += r_1_1[J_1[n]] * Z_1_1[n];
     }
     for (n in 1:N) {
       // add more terms to the linear predictor
-      hu[n] += r_2_hu_1[J_2[n]] * Z_2_hu_1[n] + r_2_hu_2[J_2[n]] * Z_2_hu_2[n] + r_2_hu_3[J_2[n]] * Z_2_hu_3[n];
+      hu[n] += r_2_hu_1[J_2[n]] * Z_2_hu_1[n];
     }
     for (n in 1:N) {
       target += hurdle_lognormal_logit_lpdf(Y[n] | mu[n], sigma, hu[n]);
@@ -144,11 +132,7 @@ model {
   // priors including constants
   target += lprior;
   target += std_normal_lpdf(z_1[1]);
-  target += std_normal_lpdf(z_1[2]);
-  target += std_normal_lpdf(z_1[3]);
   target += std_normal_lpdf(z_2[1]);
-  target += std_normal_lpdf(z_2[2]);
-  target += std_normal_lpdf(z_2[3]);
 }
 generated quantities {
   // actual population-level intercept

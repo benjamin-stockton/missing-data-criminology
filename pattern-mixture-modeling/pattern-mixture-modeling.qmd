@@ -47,22 +47,41 @@ theme_set(theme_bw())
 color_scheme_set("brightblue")
 ```
 
+**Note: Results in this document are for example. All analyses were run on a subset of the full data.**
+
 ## Methods
 
-We propose using a combination of multiple imputation and pattern-mixture models to perform sensitivity analyses for the race effect estimates from a lognormal hurdle model used to predict the sentence length as a response variable under incompleteness of the race variable. The lognormal hurdle model can be used to model complex data where the dependent variable is a combination of true zeros and a continuous distribution for non-zero observations. Sentence length is one such instance wherein this phenomena arises with offenders sentenced to a community sentence or parole receive a sentence of 0 days ($Y^* = 0$ months) while offenders sentenced to jail or prison time receive a sentence of $Y > 0$ days ($Y^* = Y/30$ months).
+We propose using multiple imputation and pattern-mixture models to perform sensitivity analyses for the race effect estimates on the jail/prison sentence length under incompleteness of the race variable. Hurdle models with a lognormal generalized linear model for the non-zero sentence lengths was chosen as it can be used to model complex data where the dependent variable is a combination of true zeros (non-incarcerated offenders' zero day jail/prison sentences) and a continuous distribution for non-zero observations (incarcerated offenders' jail/prison sentences). Sentence length is one such instance wherein this phenomena arises with offenders sentenced to a community sentence receive a jail/prison sentence of 0 days ($Y^* = 0$ months) while offenders sentenced to jail or prison time receive a sentence of $Y > 0$ days ($Y^* = Y/30$ months). Note the distinction between sentence length which would be inclusive of community and jail/prison sentence lengths which are in general not comparable and our dependent variable which is solely jail/prison sentence length. When we refer to sentence length in this manuscript, we are referring specifically to jail/prison sentence length.
 
-The class of hurdle models fits a logistic regression model to the zero part of the data and then fits a count or continuous generalized linear model to the non-zero part of the data. The coefficients from each part of the model can be interpreted independently or marginally. Predictions are made from the mixture of the zero and non-zero components.
+The class of hurdle models fits a logistic regression model to the zero part of the data and then fits a count or continuous generalized linear model to the non-zero part of the data. The coefficients from each part of the model can be interpreted independently or marginally. Predictions are made from the mixture of the zero and non-zero components. In other words, we can evaluate the race effect on sentence length either conditional on the offender being incarcerated, or as the combination of the probability of receiving a community sentence (zero-days in jail/prison) and the expected sentence length given the incarceration decision.
 
-The incomplete data analysis is performed in the multiple imputation framework [@rubinMultipleImputationNonresponse1987]. In this set-up the incomplete variables are imputed or filled in $M$ times using draws from a predictive distribution using a regression model. The imputations are then used to create $M$ completed data sets that are then analyzed separately using a standard complete data method, such as a hurdle regression model. The estimates from each of the $M$ model fits are combined using Rubin's rules. In particular, we are going to use random forests [@wrightrangerAFastImplementation2017] to perform the imputations in the multiple imputation by chained equations framework [@raghunathan2001, @buuren2010mice].
+We are defining the race effect measured by the hurdle model as the change in number of jail/prison days sentenced to between Black and White offenders. This effect considers the zeros corresponding to non-incarceration as true zeros, i.e. the offenders are considered to have served zero days in jail/prison.
 
-Pattern-mixture models can be used in conjunction with multiple imputation to perform a sensitivity analysis for the model of interest to particular perturbations of the distribution from which the imputations are drawn. This allows us to investigate the impacts nonignorable missingness could potentially have on our analysis.
+The incomplete data analysis is performed in the multiple imputation framework [@rubinMultipleImputationNonresponse1987]. In this set-up the incomplete variables sentence length, race, age, recommended minimum, and previous record are imputed or filled in $M$ times using draws from a predictive distribution using a regression model. See @fig-miss-pattern for further details on the patterns of missing data. Less than 5% of observations are incomplete, with race being incomplete on 3% of cases and the other variables incomplete on less than 0.5% of cases each.
+
+The imputations are then used to create $M$ completed data sets that are then analyzed separately using a standard complete data method, in this case a hurdle model. The estimates from each of the $M$ model fits are combined using Rubin's rules. In particular, we are going to use random forests [@wrightRangerFastImplementation2017] to perform the imputations in the multiple imputation by chained equations framework [@raghunathanMultivariateTechniqueMultiply2001; @buuren2010mice].
+
+Pattern-mixture models can be used in conjunction with multiple imputation to perform a sensitivity analysis for the model of interest to particular perturbations of the distribution from which the imputations are drawn [@vanbuuren2018 Sec. 3.8]. This allows us to investigate the impacts nonignorable missingness could potentially have on our analysis.
+
+The pattern-mixture model approach allows the analyst to specify the exact assumptions of the missingness model and assumptions of how the distribution varies over different patterns. In our analysis, the two patterns of interest are the offenders who have a reported race and those who do not. It is plausible that these two groups have different characteristics and that the latter group may not have a reported race because of their true racial/ethnic identity [@stockton2023]. This is a form of what's known as non-ignorable missingness.
+
+To assess the impacts of the non-ignorable missingness on the race effects, we can use slight perturbations of the imputed race labels to get a broader view of the range of potential estimates under different distributional assumptions. Varying the distribution of imputations based on the missing data pattern is what allows us to bring pattern-mixture modeling into the fold.
 
 ## Analysis
+
+To begin the analysis, I'll create several plots to provide a clearer context of the data. First, we'll take a look at the distribution of sentence lengths by year in @fig-sen-len-yearly and @tbl-yearly-summary to see if and how they differ over time. @fig-sen-len-yearly shows very little difference in the distributions, displayed as violin plots over time; while @tbl-yearly-summary mostly confirms this, there is a slight trend to shorter sentences and greater probability of community sentences over time. Maximum sentence lengths in particular also tend to decrease over time.
 
 ```{r}
 #| label: load-data
 df <- readr::read_csv("../Data/PCS-most-serious-sentence-2010-2019-pmm.csv",
                       show_col_types = FALSE)
+
+county_ogs <- df |>
+    group_by(COUNTY) |>
+    summarize(
+        COUNTY_OGS = mean(OGS, na.rm = TRUE),
+        NCASES = n()
+    )
 
 df <- df |> mutate(
         YEAR = as.factor(YEAR),
@@ -97,18 +116,28 @@ df <- df |> mutate(
             CRIMETYPE == 4 ~ "DUI",
             CRIMETYPE == 5 ~ "Other",
             TRUE ~ NA
-        )
+        ),
+    COUNTYTYPE = case_when(
+        COUNTY %in% c("Allegheny", "Philadelphia") ~ "Urban",
+        COUNTY %in% c("Chester", "Montgomery", "Berks", "Dauphin", "Bucks", "Lancaster", "York", "Delaware", "Northampton", "Luzerne", "Lackawanna", "Westmoreland", "Lehigh", "Erie") ~ "Medium",
+        TRUE ~ "Rural"
+    )
     ) |>
     select(
         -c(OFF_RACER, PRSR, MALE, CRIMETYPE)
-    )
+    ) |>
+    left_join(county_ogs, by = "COUNTY") |>
+    group_by(COUNTY) |>
+    slice_sample(n = 10000) |>
+    ungroup()
 
 df$OFF_RACE <- factor(df$OFF_RACE, levels = c("WHITE", "BLACK", "LATINO", "OTHER"))
+df$PCASES <- df$NCASES / sum(county_ogs$NCASES)
 ```
 
 ```{r}
 #| label: fig-miss-pattern
-#| fig-cap: Missing data patterns for the full data set.
+#| fig-cap: Missing data patterns for the full data set. In the right panel, red cells indicate missingness.
 df |> 
     select(
         JP_MIN, OFF_RACE, DOSAGE, RECMIN, PRVREC, CRIME, TRIAL, SEX
@@ -163,6 +192,8 @@ p2 <- df |>
 cowplot::plot_grid(p1, p2, nrow = 1, labels = "AUTO")
 ```
 
+Evaluating the sentence length by most serious crime type in @fig-sen-len-crime shows that the most serious crime type also has a strong impact on the sentence length with DUIs and Other offenses resulting in relatively short and often community sentences. Persons offenses can result in very long offenses but otherwise are similar in distribution to Drug offenses as seen in the distribution of the log sentence lengths.
+
 ```{r}
 #| label: fig-sen-len-crime
 #| fig-cap: A) Sentence length (day) by most serious crime type. B) Log of sentence length plus one day by most serious crime type.
@@ -178,6 +209,8 @@ p2 <- ggplot(df, aes(CRIME, log(JP_MIN))) +
 
 cowplot::plot_grid(p1, p2, nrow = 1, labels = "AUTO")
 ```
+
+The comparison of sentence lengths by offender race in @fig-sen-len-race show that there is little visual difference in the centers of the distribution for each racial group. White offenders receive the longest sentences as the result of four outliers, but otherwise have similar distributions to Black offenders.
 
 ```{r}
 #| label: fig-sen-len-race
@@ -195,40 +228,6 @@ cowplot::plot_grid(p1, p2, nrow = 1, labels = "AUTO")
 ```
 
 ```{r}
-#| label: fig-incar-cime
-#| fig-cap: Incarceration decision by most serious crime type. INCAR == 1 indicates incarceration. INCAR == 0 indicates parole.
-#| fig-height: 4
-ggplot(df, aes(as.factor(INCAR), fill = CRIME)) +
-    geom_bar(position = "dodge")
-```
-
-```{r}
-#| label: fig-sen-len-qq
-#| layout-ncol: 2
-#| fig-cap: QQ plots of the sentence length (days)
-#| fig-subcap: 
-#|   - Sentence length in days
-#|   - Log of sentence length plus one day
-sent_non0 <- df$JP_MIN[which(df$INCAR == 1)]
-s <- sample(length(sent_non0), size = 10000, replace = FALSE)
-
-qqnorm(sent_non0[s])
-qqline(sent_non0[s])
-
-qqnorm(log1p(sent_non0[s]))
-qqline(log1p(sent_non0[s]))
-```
-
-```{r}
-#| label: fig-scatter-pairs
-#| fig-cap: Scatter plot matrix of the numeric predictors and the log plus one of the sentence length (days).
-df[s,] |> 
-    mutate(jp_min_l1p = log1p(JP_MIN)) |>
-    select(DOSAGE, DOSAGEQ, OGS, OGSQ, TRIAL, RECMIN, jp_min_l1p) |>
-    GGally::ggpairs()
-```
-
-```{r}
 #| label: fig-fluxplot
 #| include: false
 fluxplot(df)
@@ -236,7 +235,7 @@ fluxplot(df)
 
 ### Multiple Imputation
 
-I'll prepare the data for analysis next. First, I'll center and scale the numeric predictors which are Offense Gravity Score (OGS), defendant age, and the square of each. Then I'll use MICE to multiply impute the incomplete variables with random forest. For now I'll use $M = 10$ since less than 5% of all observations are missing (mainly in defendant race). The number of imputations to use should be informed by the amount of missing information due to incompleteness for each variable [@harelInferencesMissingInformation2007].
+I'll prepare the data for analysis next. First, I'll center and scale the numeric predictors which are Offense Gravity Score (OGS), defendant age, and the square of each. Then I'll use MICE to multiply impute the incomplete variables with random forest. For now I'll use $M = 5$ since less than 5% of all observations are missing (mainly in defendant race). The number of imputations to use should be informed by the amount of missing information due to incompleteness for each variable [@harelInferencesMissingInformation2007]. Imputations are made using random forests, a machine learning technique for modeling categorical and continuous outcomes.
 
 ```{r}
 #| label: mice
@@ -245,8 +244,7 @@ df[,c("OGS", "OGSQ", "DOSAGE", "DOSAGEQ")] <- scale(df[,c("OGS", "OGSQ", "DOSAGE
 
 df[,"DOSAGEQ"] <- df[,"DOSAGE"]^2
 df[,"OGSQ"] <- df[,"OGS"]^2
-
-imps0 <- mice(df[s,], m = 1, method = "rf", maxit = 0)
+imps0 <- mice(df, m = 1, method = "rf", maxit = 0)
 
 mthd <- imps0$method
 mthd["JP_MIN_MON"] <-  "~I(JP_MIN / 30)"
@@ -258,7 +256,7 @@ pred_mat <- imps0$predictorMatrix
 pred_mat[,"JPR_ID"] <- 0
 pred_mat
 
-imps <- mice(df[s,], m = 5, method = mthd, predictorMatrix = pred_mat, maxit = 10)
+imps <- mice(df, m = 5, method = mthd, predictorMatrix = pred_mat, maxit = 10)
 
 plot(imps)
 
@@ -274,12 +272,12 @@ imps <- readRDS("fits/mice-rf-subsample.rds")
 
 ### Logistic Regression on Incarceration
 
-I'll fit a logistic regression like before as a sanity check. The estimated odds ratio for increased odds of incarceration for a Black defendant over a White defendant should be roughly 1.25 as we saw in the complete case analysis in the previous paper.
+Before modeling the whole sentencing decision, I'll fit a logistic regression on the incarceration decision as a sanity check. The estimated odds ratio for increased odds of incarceration for a Black defendant over a White defendant should be roughly 1.25 as we saw in the complete case analysis in the previous paper.
 
 ```{r}
 #| label: mice-glm
 #| eval: false
-fit_incar <- with(imps, glm(INCAR ~ DOSAGE + DOSAGEQ + SEX*OFF_RACE + OGS + OGSQ +
+fit_incar <- with(imps, glm(INCAR ~ DOSAGE + DOSAGEQ + SEX + OFF_RACE + OGS + OGSQ +
                       OGS * PRVREC + PRVREC + RECMIN + CRIME + TRIAL +
                      as.factor(YEAR) + as.factor(COUNTY),
                  family = binomial(link = "logit"),
@@ -293,30 +291,16 @@ saveRDS(fit_incar, "fits/fit-glm-logit-incar.rds")
 #| tbl-cap: Summary of the logistic regression fit for predicting sentencing decision (In/Out) excluding the year and county estimates for brevity.
 
 fit_incar <- readRDS("fits/fit-glm-logit-incar.rds")
-smry <- summary(pool(fit_incar))
-
-smry |>
-    filter(stringr::str_sub(term, 1,3) != "as.") |>
-    mutate(
-        lb95 = estimate - qt(0.975, df = df) * std.error,
-        ub95 = estimate + qt(0.975, df = df) * std.error,
-        sig = case_when(
-            lb95 > 0 ~ "*",
-            ub95 < 0 ~ "*",
-            TRUE ~ ""
-        )
-    ) |>
-    select(term, estimate, std.error, lb95, ub95, sig) |>
-    kableExtra::kable(format = "latex", digits = 2, escape = TRUE,
-                      col.names = c("Term", "Estimate", "SE", "LB 95% CI", "UB 95% CI", "Sig."),
-                      booktabs = TRUE)
 ```
 
 ```{r}
 #| label: log-reg-avg
 #| eval: false
 #| include: false
-avg_data <- df[s,] |>
+
+smry <- summary(fit_incar)
+
+avg_data <- df |>
     group_by(SEX, OFF_RACE) |>
     summarize(
         DOSAGE = mean(DOSAGE, na.rm = TRUE),
@@ -368,44 +352,48 @@ P_W <- ps[2,1] / sum(ps[,1]) * pred_probs["MW"] + ps[1,1] / sum(ps[,1]) * pred_p
 (P_B / (1 - P_B))  / ((P_W) / (1 - P_W))
 ```
 
-From the logistic regression fit with MI and $M = 10$ imputations done using predictive mean matching, we found that a Black defendant is `r round(exp(0.2225), 2)` (95% CI of (`r round(exp(0.2225 - 1.96 * 0.0064), 3)`, `r round(exp(0.2225 + 1.96 * 0.0064), 3)`) times more likely to be sentenced to incarceration than an otherwise similar White defendant.
-
 We re-analyze the data using a generalized linear mixed model and again taking the binary incarceration decision as the outcome and random effects for the Year and County with random slopes for the most serious Crime type by County.
 
 ```{r}
 #| label: mice-glmm
 #| eval: false
-fit_incar_mm <- with(imps, lme4::glmer(INCAR ~ DOSAGE + DOSAGEQ + SEX*OFF_RACE + OGS + OGSQ +
+fit_incar_mm <- with(imps, lme4::glmer(INCAR ~ DOSAGE + DOSAGEQ + SEX + OFF_RACE + OGS + OGSQ +
                      PRVREC + OGS * PRVREC + RECMIN + CRIME + TRIAL +
-                     (1 | YEAR) + (1 | COUNTY),
+                     (1 | YEAR) + (1 + COUNTY_OGS + PCASES || COUNTY),
                  family = binomial(link = "logit"),
                  verbose = 0))
 
-# c_dat <- complete(imps, "all")
-# fit_list <- parallel::mclapply(c_dat, 
-#                                mc.cores = 10,
-#                                function(d1) {
-#                  
-#                  fit <- lme4::glmer(INCAR ~ DOSAGE + DOSAGEQ + SEX*OFF_RACE + OGS + OGSQ +
-#                              PRVREC + RECMIN + CRIME + TRIAL +
-#                              (1 | YEAR) + (1 + CRIME | COUNTY),
-#                              data = d1,
-#                              family = binomial(link = "logit"),
-#                              verbose = 0)
-#                  return(fit)
-#               })
-# 
-# fit_incar_mm <- as.mira(fit_list)
 saveRDS(fit_incar_mm, "fits/fit-glmm-logit-incar.rds")
 ```
 
 ```{r}
 #| label: tbl-glmm-sum
-#| tbl-cap: Summary statistics for the fixed effects from the logistic regression mixed model.
+#| tbl-cap: Summary statistics for the fixed effects from the logistic regression and logistic regression mixed model.
 fit_incar_mm <- readRDS("fits/fit-glmm-logit-incar.rds")
+smry_incar <- summary(pool(fit_incar))
 
-smry <- summary(pool(fit_incar_mm))
-smry |>
+incar_race <- smry_incar |>
+    filter(stringr::str_sub(term, 1,3) != "as.") |>
+    mutate(
+        se = std.error,
+        lb95 = estimate - qt(0.975, df = df) * std.error,
+        ub95 = estimate + qt(0.975, df = df) * std.error,
+        sig = case_when(
+            lb95 > 0 ~ "*",
+            ub95 < 0 ~ "*",
+            TRUE ~ ""
+        )
+    ) |>
+    select(term, estimate, se, lb95, ub95, sig) |>
+    filter(
+      stringr::str_detect(term, "RACE")  
+    ) |>
+    mutate(
+        model = "GLM - Logistic"
+    )
+
+smry_mm <- summary(pool(fit_incar_mm))
+incar_race_mm <- smry_mm |>
     mutate(
         se = std.error,
         lb95 = estimate - qt(0.975, df = df) * se,
@@ -419,230 +407,41 @@ smry |>
     select(
         term, estimate, se, lb95, ub95, sig
     ) |>
+    filter(
+      stringr::str_detect(term, "RACE")  
+    ) |>
+    mutate(
+        model = "GLMM - Logistic MM"
+    )
+
+bind_rows(incar_race, incar_race_mm) |>
+    select(model, term, estimate, se, lb95, ub95, sig) |>
     kableExtra::kable(format = "latex", digits = 2, escape = TRUE,
-                      col.names = c("Term", "Estimate", "SE", "LB 95% CI", "UB 95% CI", "Sig."),
+                      col.names = c("Model", "Term", "Estimate", "SE", "LB 95% CI", "UB 95% CI", "Sig."),
                       booktabs = TRUE)
 ```
+
+Race effects for the incarceration decision are reported in @tbl-glmm-sum. From the logistic regression fit with MI and $M = 5$ imputations done using predictive mean matching, we found that a Black defendant is `r round(exp(0.243), 2)` (95% CI of (`r round(exp(0.1246), 3)`, `r round(exp(0.3622), 3)`) times more likely to be sentenced to incarceration than an otherwise similar White defendant. The mixed model reports similar estimated race effect of `r round(exp(0.231), 2)` (95% CI of (`r round(exp(0.1129), 3)`, `r round(exp(0.349), 3)`).
 
 ### Hurdle Models
 
-A hurdle model models data with a high number of zeros (compared to standard distributions). The model places a probability point mass $P(Y = 0) = \theta$ at $Y = 0$ and uses a truncated (at zero) probability distribution for the non-zero sample space $P(Y \neq 0) = p_{y \neq 0}(y)$. This differs from a zero-inflated model which is a mixture of two distributions (includes the non-zero distribution's zero probability) as the hurdle model truncates the non-zero distribution.
-
-I'll create a GLM with brms and the log normal hurdle distribution.
-
-The model is composed of two components: the hurdle for the zeros and the GLM for the non-zero part. Let $\pi_i$ be the probability that the $i$th observation is zero and $P(Y_i \neq 0) = f_{y\neq 0}(y-i)$ where $f_{y\neq 0}$ is a truncated probability mass/density function.
-
-#### Lognormal Hurdle GLM with Intercept-only Hurdle
-
-Under this first model, we will model the probability of $Y_i = 0$ as constant across the observations using an intercept-only model; the default for `brms` [@bürkner2017].
-
-$$
-\mathrm{logit}^{-1}(P(Y_i = 0)) = \pi_0
-$$ {#eq-hurdle-intercept}
-
-$$
-\log(Y_i) = \mathbf{x}_i \boldsymbol{\beta} + \mathbf{z}_i \mathbf{u} + \epsilon_i
-$$ {#eq-hurdle-glm} where $\mathbf{u}$ is MVN with $E(\mathbf{U}) = 0$ and covariance matrix $Cov(\mathbf{U}) = G$, $\epsilon_i \overset{iid}{\sim} N(0, \sigma^2)$ and $\mathbf{u}$ and $\boldsymbol{\epsilon}$ are mutually independent. $\mathbf{x}_i$ and $\mathbf{z}_i$ are rows from two known design matrices for the population-level and group-level effects respectively.
-
-The model is specified as usual for a GLMM:
-
-```         
-brm(JP_MIN ~ DOSAGE + DOSAGEQ + SEX*OFF_RACE + OGS + OGSQ +
-                     PRVREC + RECMIN + CRIME + TRIAL +
-                     (1 | YEAR) + (1 + CRIME |COUNTY),
-               data = data,
-               family = hurdle_lognormal(link = "identity",
-                           link_sigma = "log",
-                           link_hu = "logit"))
-```
-
-Here we include group-level effects for the year, the county, and the crime-type in the county in case the judicial system sentences the different crime-types differently relative to other counties. Each of the population-level regression coefficients are given a normal prior $\beta_j \sim N(0, 25).$ The group-level effects for the intercepts and effects for crime-type are given noncentral t-distributions $\gamma_k \sim t_{3; 0, 2.5}$ while the correlations between the county-level crime-type effects and county-level intercepts are given $\rho_{i.j} \sim lkj(1)$ priors. The hurdle parameter gets a $U(0,1)$ prior. The error term's variance also gets a noncentral t prior $\sigma \sim t_{3; 0, 2.5}.$
-
-The quantity of interest is the regression coefficient for race.
-
-```{r}
-#| label: brms-hurdle-model-prior1
-#| echo: false
-#| results: hide
-
-library(brms)
-
-bprior <- get_prior(JP_MIN ~ DOSAGE + DOSAGEQ + SEX*OFF_RACE + OGS + OGSQ +
-                     PRVREC + OGS * PRVREC + RECMIN + CRIME + TRIAL +
-                     (1 | YEAR) + (1 |COUNTY),
-               data = df[s,],
-               family = hurdle_lognormal(link = "identity", link_sigma = "log", link_hu = "logit"))
-
-bprior$prior[1] <- "normal(0, 25)"
-bprior
-```
-
-```{r}
-#| label: brms-hurdle-model
-#| eval: false
-#| results: hide
-
-# library(future)
-# plan(multicore, workers = 10)
-fit_brm <- brm_multiple(JP_MIN ~ DOSAGE + DOSAGEQ + SEX*OFF_RACE + OGS + OGSQ +
-                     PRVREC + OGS * PRVREC + RECMIN + CRIME + TRIAL +
-                     (1 | YEAR) + (1 |COUNTY),
-               data = imps,
-               family = hurdle_lognormal(link = "identity", link_sigma = "log", link_hu = "logit"),
-               prior = bprior,
-               chains = 2, cores = 15, iter = 2000, refresh = 100,
-               # file = "brms_fit/brms-hurlde-si-fit",
-               # file_refit = "on_change",
-               save_model = "stan/brms-hurdle-si.stan")
-
-saveRDS(fit_brm, file = "fits/fit-brms-hurdle-lognormal-mi.rds")
-```
-
-```{r}
-#| label: tbl-brms-hurdle-fe-int-only
-#| tbl-cap: Fixed/Population-level effects for the non-zero part of the lognormal hurdle model with intercept only for the zero-part.
-fit_brm <- readRDS("fits/fit-brms-hurdle-lognormal-mi.rds")
-
-smry1 <- summary(fit_brm)
-smry1$fixed |>
-    select(Estimate, Est.Error, `l-95% CI`, `u-95% CI`) |>
-    kableExtra::kable(format = "latex", digits = 2, escape = TRUE,
-                      col.names = c("Term", "Estimate", "SE", "LB 95% CI", "UB 95% CI"),
-                      booktabs = TRUE)
-```
-
-The standard deviation parameter $\sigma$ of the lognormal distribution has a posterior mean of `r round(smry1$spec_pars[1,1], 2)` (95% CI: \[`r round(smry1$spec_pars[1,3], 2)`, `r round(smry1$spec_pars[1,4], 2)` \]). The hurdle parameter has a posterior mean of `r round(smry1$spec_pars[2,1], 2)` (95% CI: \[`r round(smry1$spec_pars[2,3], 2)`, `r round(smry1$spec_pars[2,4], 2)` \]) which matches the probability of not being incarcerated in the overall population.
-
-```{r}
-#| label: brms1-vars
-#| include: false
-smry1$spec_pars
-```
-
-```{r}
-#| label: tbl-brms1-group-eff
-#| tbl-cap: Random/group-level effect standard deviation estimates for the intercept-only hurdle lognormal model.
-r_effs1 <- bind_rows(smry1$random)
-r_effs1$level <- c("County-level", "Year-level")
-r_effs1$term <- c("sd(Intercept)", "sd(Intercept")
-r_effs1 |>
-    select(level, term, Estimate, `l-95% CI`, `u-95% CI`) |>
-    kableExtra::kable(format = "latex", digits = 2, escape = TRUE,
-                      col.names = c("Term", "Estimate", "SE", "LB 95% CI", "UB 95% CI"),
-                      row.names = FALSE,
-                      booktabs = TRUE)
-```
-
-```{r}
-#| label: fig-hurdle-logn-mcmc
-#| include: false
-plot(fit_brm, ask = FALSE, N = 3)
-```
-
-From the hurdle model, we find that Black defendants do not receive different sentence lengths compared to White defendants (95% CI of (-0.11, 0.03)). In terms of 95% CIs we also find that there doesn't seem to be a difference in sentence lengths between male and female defendants either between or within each racial group.
-
-```{r}
-#| label: fig-cond-eff-brm-nonzero
-#| layout-ncol: 3
-#| layout-nrow: 4
-#| fig-cap: Posterior estimates of the conditional effects for the lognormal glm for the non-zero-part of the intercept-only hurdle lognormal model.
-#| fig-subcap: 
-#|   - Age
-#|   - Age Squared
-#|   - Sex
-#|   - Offender Race
-#|   - OGS
-#|   - OGS Squared
-#|   - Prev. Rec.
-#|   - Rec. Min. 
-#|   - Crime Type
-#|   - Trial
-#|   - Race by Sex
-#|   - OGS by Prev. Rec.
-
-plot(conditional_effects(fit_brm), ask = FALSE)
-```
-
-```{r}
-#| label: fig-cond-eff-brm1-zero
-#| layout-ncol: 3
-#| layout-nrow: 4
-#| fig-cap: Posterior estimates of the conditional effects for the logistic regression for the zero-part of the intercept-only hurdle lognormal model.
-#| fig-subcap: 
-#|   - Age
-#|   - Age Squared
-#|   - Sex
-#|   - Offender Race
-#|   - OGS
-#|   - OGS Squared
-#|   - Prev. Rec.
-#|   - Rec. Min. 
-#|   - Crime Type
-#|   - Trial
-#|   - Race by Sex
-#|   - OGS by Prev. Rec.
-plot(conditional_effects(fit_brm, dpar = "hu"), ask = FALSE)
-```
-
-```{r}
-#| label: fig-cond-eff-brm1-race-sex
-#| include: false
-#| fig-cap: Posterior estimates of conditional effects for race and sex on log sentence length. Intercept-only logistic regression for zero-part.
-plot(conditional_effects(fit_brm, effects = "OFF_RACE:SEX"), ask = FALSE)
-```
-
-```{r}
-#| label: fig-ppc-brm1
-#| layout-ncol: 2
-#| fig-cap: Posterior Predictive Checks for the intercept-only hurdle model.
-#| fig-subcap: 
-#|   - Density for sentence length
-#|   - Density for log of sentence length plus one day
-ppred1 <- posterior_predict(fit_brm)
-pp_check(fit_brm, ndraws = 50) +
-    coord_cartesian(xlim = c(0, 60)) + 
-    labs(title = "Posterior predictive checks",
-                  subtitle = "Intercept-only Hurdle",
-         x = "Sentence Length (day)")
-
-bayesplot::ppc_dens_overlay(y = log(fit_brm$data$JP_MIN),
-                            yrep = log(ppred1[1:50,])) + 
-    labs(title = "Posterior predictive checks",
-                  subtitle = "Intercept-only Hurdle",
-         x = "log(Sentence Length (day))")
-```
+A hurdle model models data with a high number of zeros (compared to standard distributions). The model is composed of two components: the hurdle for the zeros and the GLM for the non-zero part. Let $\pi_i = P(Y_i = 0)$ be the probability that the $i$th observation is zero and $P(Y_i \neq 0) = f_{y\neq 0}(y_i)$ where $f_{y\neq 0}$ is a truncated probability density function [@craggStatisticalModelsLimited1971]. We are first presenting the analysis of the data with multiple imputations under the MAR assumption to demonstrate how the model fits the data and how to interpret the race effect estimates.
 
 #### Lognormal GLM Hurdle Model with Predictors on Hurdle Parameter
 
-Next, we modify the model from the previous section to include predictors in the logistic regression part of the hurdle model @eq-hurdle-intercept. The non-zero portion @eq-hurdle-glm of the hurdle model remains the same.
+Under this first model, we will model the probability of $Y_i = 0$ as a logistic regression on the independent and legally relevant variables with the R package `brms` [@bürkner2017].
 
 $$
-\mathrm{logit}^{-1}(P(Y_i=0)) = \mathbf{x}_i \boldsymbol{\alpha}.
+\mathrm{logit}^{-1}(P(Y_i = 0)) = \mathbf{x}_i \boldsymbol{\alpha} + \mathbf{z}_i \mathbf{v}.
+$$ {#eq-hurdle-logistic}
+
 $$
+\log(Y_i) = \mathbf{x}_i \boldsymbol{\beta} + \mathbf{z}_i \mathbf{u} + \epsilon_i
+$$ {#eq-hurdle-glm} where $\mathbf{v}$ and $\mathbf{u}$ are independent MVN with $E(\mathbf{v}) = E(\mathbf{u}) = 0$ and covariance matrices $Cov(\mathbf{v}) = G_v$ and $Cov(\mathbf{u}) = G_u$, $\epsilon_i \overset{iid}{\sim} N(0, \sigma^2)$ and $\mathbf{v}, \mathbf{u}$ and $\boldsymbol{\epsilon}$ are mutually independent. $\mathbf{x}_i$ and $\mathbf{z}_i$ are rows from two known design matrices for the population-level and group-level effects respectively.
 
-The coefficients $\boldsymbol{\alpha}$ are given normal priors $\alpha_k \overset{iid}{\sim} N(0, 10).$ The priors for the other parameters remain the same.
+Here we include group-level effects for the year, the county, and the crime-type in the county in case the judicial system sentences the different crime-types differently relative to other counties. Each of the population-level regression coefficients are given a weakly-informative normal prior $\beta_j \sim N(0, 100).$ The group-level effects for the intercepts and effects for crime-type are given noncentral t-distributions $v_k \sim t_{3; 0, 2.5}$ and $u_k \sim t_{3; 0, 2.5}$ while the correlations between the county-level slopes for proportion of cases and county-average OGS and county-level intercepts are given $\rho_{i.j} \sim lkj(1)$ priors. The error term's variance also gets a noncentral t prior $\sigma \sim t_{3; 0, 2.5}.$ The coefficients $\boldsymbol{\alpha}$ are given normal priors $\alpha_k \overset{iid}{\sim} N(0, 100).$
 
-The new model is specified with the `bf()` function.
-
-```         
-bf(JP_MIN ~ DOSAGE + DOSAGEQ + SEX*OFF_RACE + OGS + OGSQ +
-                 PRVREC + RECMIN + CRIME + TRIAL +
-                 (1 | YEAR) + (1 + CRIME |COUNTY),
-    hu ~ 1 + DOSAGE + DOSAGEQ + SEX * OFF_RACE + OGS + OGSQ +
-            PRVREC + CRIME + TRIAL + (1 | COUNTY))
-```
-
-```{r}
-#| label: inverse-gamma
-#| include: false
-inv_gamma_moments <- function(alpha, beta) {
-    exp_1 <- beta / (alpha - 1)
-    var_1 <- beta^2 / ((alpha - 1)^2 * (alpha - 2))
-    return(list(mean = exp_1, var = var_1))
-}
-
-inv_gamma_moments(2.001, 1.001)
-```
+Under this model we are assuming the incomplete data are MAR and the missingness can be modeled entirely by the multiple imputation procedure.
 
 ```{r}
 #| label: brms-hurdle-model-prior2
@@ -651,27 +450,41 @@ inv_gamma_moments(2.001, 1.001)
 
 bf1 <- bf(JP_MIN ~ DOSAGE + DOSAGEQ + SEX*OFF_RACE + OGS + OGSQ +
                     OGS * PRVREC + PRVREC + RECMIN + CRIME + TRIAL +
-                     (1 | YEAR) + (1 |COUNTY),
-          hu ~ DOSAGE + DOSAGEQ + SEX * OFF_RACE + RECMIN + OGS + OGSQ + PRVREC + CRIME + TRIAL + (1 | COUNTY))
+                    (1 + COUNTY_OGS + PCASES || COUNTY),
+          hu ~ DOSAGE + DOSAGEQ + SEX * OFF_RACE + RECMIN + OGS + OGSQ + PRVREC + CRIME + TRIAL + (1 + COUNTY_OGS + PCASES || COUNTY))
 
 bprior2 <- get_prior(bf1,
-               data = df[s,],
+               data = df,
                family = hurdle_lognormal(link = "identity", link_sigma = "log", link_hu = "logit"))
 bprior2$class
 bprior2 <- prior(normal(0, 100), class = "b") +
     prior(normal(0, 100), class = "b", dpar = "hu") +
     # prior(lkj(1), class = "cor") +
     prior(student_t(3, 0, 2.5), class = "Intercept")
-    prior(inv_gamma(2.001, 1.001), class = "sd", group = "COUNTY", lb = 0) +
-    prior(inv_gamma(2.001, 1.001), class = "sd", group = "YEAR", lb = 0) +
-    prior(logistic(0, 1), class = "Intercept", dpar = "hu") +
-    prior(inv_gamma(2.001, 1.001), class = "sd", dpar = "hu", lb = 0)
+    prior(student_t(3, 0, 2.5), class = "sd", group = "COUNTY", lb = 0) +
+    prior(student_t(3, 0, 2.5), class = "sd", group = "YEAR", lb = 0) +
+    prior(student_t(3, 0, 2.5), class = "Intercept", dpar = "hu") +
+    prior(student_t(3, 0, 2.5), class = "sd", dpar = "hu", lb = 0)
 
 # bprior2$prior[1] <- "normal(0, 25)"
 bprior2
 ```
 
-Next we fit the model.
+**Dependent Variable**
+
+The length of the jail/prison sentence modeled as a dependent variable by our hurdle models. The length is measured in days and is zero for offenders sentenced to a community sentence.
+
+**Independent Variables**
+
+The independent variables of interest are the offender's race and sex. Race is coded as White, Black, Latino or Other. Sex is coded as male or female.
+
+**Legally Relevant Variables**
+
+We also include legally relevant variables including the crime type, whether the minimum sentence was recommended, if there was a trial or plea, the offender's previous record, and the offense gravity score (OGS). Additionally, the offender's age is included in the model. OGS and age were centered and scaled before inclusion in the model.
+
+**County-level Variable**
+
+County-level random effects are included for both the lognormal model for non-zero lengths, and the logistic model for the incarceration decision. For each county, the average of the offense gravity score was included to provide context for the typical cases in the county as well as the proportion of cases that each county processes out of the total number of cases processed in the state of Pennsylvania.
 
 ```{r}
 #| label: brms-hurdle-lognormal-2
@@ -682,9 +495,9 @@ fit_brm2 <- brm_multiple(bf1,
                data = imps,
                family = hurdle_lognormal(link = "identity", link_sigma = "log", link_hu = "logit"),
                prior = bprior2,
-               chains = 2, cores = 15, iter = 3000, refresh = 200,
+               chains = 2, cores = 15, iter = 4000, refresh = 100,
                init = 0,
-               control = list(adapt_delta = 0.82, max_treedepth = 10),
+               control = list(adapt_delta = 0.82, max_treedepth = 12),
                # file = "brms_fit/brms-hurlde-si.fit",
                # file_refit = "on_change",
                save_model = "stan/brms-hurdle-lognormal-mi.stan")
@@ -693,7 +506,611 @@ saveRDS(fit_brm2, "fits/fit-brms-hurdle-lognormal-mi.rds")
 ```
 
 ```{r}
-summary(fit_brm2)
+#| label: tbl-brms-hurdle-model-summary-2-racesex
+#| tbl-cap: Fixed/population-level effects for the non-zero part of the full lognormal hurdle glm.
+
+fit_brm2 <- readRDS("fits/fit-brms-hurdle-lognormal-mi.rds")
+smry2 <- summary(fit_brm2)
+smry2$fixed$term <- rownames(smry2$fixed)
+smry2$fixed |>
+    select(term, Estimate, Est.Error, `l-95% CI`, `u-95% CI`) |>
+    filter(
+        stringr::str_sub(term, 1,2) != "hu",
+      stringr::str_detect(term, "RACE")  
+    ) |>
+    kableExtra::kable(format = "latex", digits = 2, escape = TRUE, row.names = FALSE,
+                      col.names = c("Term", "Estimate", "SE", "LB 95% CI", "UB 95% CI"),
+                      booktabs = TRUE)
+```
+
+```{r}
+#| label: tbl-brms-hurdle-model-summary-2-zero-racesex
+#| tbl-cap: Fixed/population-level effects for the zero part of the full lognormal hurdle glm.
+
+smry2$fixed |>
+    select(term, Estimate, Est.Error, `l-95% CI`, `u-95% CI`) |>
+    filter(
+        stringr::str_sub(term, 1,2) == "hu",
+      stringr::str_detect(term, "RACE")  
+    ) |>
+    kableExtra::kable(format = "latex", digits = 2, escape = TRUE,
+                      col.names = c("Term", "Estimate", "SE", "LB 95% CI", "UB 95% CI"),
+                      row.names = FALSE,
+                      booktabs = TRUE)
+```
+
+The standard deviation parameter $\sigma$ of the lognormal distribution has a posterior mean of `r round(smry2$spec_pars[1,1], 2)` (95% CI: \[`r round(smry2$spec_pars[1,3], 2)`, `r round(smry2$spec_pars[1,4], 2)`\]).
+
+The county-level random/group-level effects and year-level random/group-level effects are reported in @tbl-brms2-re.
+
+```{r}
+#| label: tbl-brms2-re
+#| tbl-cap: Random/group-level effect standard deviation estimates for the full hurdle lognormal model.
+r_effs2 <- bind_rows(smry2$random)
+r_effs2$term <- c("sd(Intercept)", "sd(COUNTY_OGS)", "sd(PCASES)", "sd(hu_Intercept)", "sd(hu_COUNTY_OGS)", "sd(hu_PCASES)")
+r_effs2 |>
+    select(term, Estimate, Est.Error, `l-95% CI`, `u-95% CI`) |>
+    kableExtra::kable(format = "latex", digits = 2, escape = TRUE,
+                      col.names = c("Term", "Estimate", "SE", "LB 95% CI", "UB 95% CI"),
+                      row.names = FALSE,
+                      booktabs = TRUE)
+```
+
+```{r}
+#| label: brms2-vars
+#| include: false
+smry2$spec_pars
+
+smry2$random$COUNTY
+smry2$random$YEAR
+```
+
+In @fig-cond-eff-brm2-racesex, we can visualize the impacts of race and sex on the sentence length in aggregate (including zero-length sentences) (@fig-cond-eff-brm2-racesex-1) and on the incarceration decision (@fig-cond-eff-brm2-racesex-2). Numeric estimates are reported in @tbl-race-sex-effects. Under this model and the MAR missingness assumption, we find that there is no significant difference in the sentence lengths between the different racial groups within each sex. There is overlap between all four credible intervals for both male offenders and female offenders. Between the sexes, we do see significant differences. Female offenders receive shorter sentences and are more likely to receive community sentences regardless of race. There is a large amount of uncertainty in the effect estimate for Latino offenders. The Other group also has a relatively high amount of uncertainty and the male Other race offenders' CI overlaps with all three other groups' CIs for both sexes, although the mean posterior estimate is lower for sentence length.
+
+```{r}
+#| label: fig-cond-eff-brm2-racesex
+#| layout-ncol: 2
+#| fig-cap: Posterior estimates of the interaction between race and sex effects on the sentence length in days.
+#| fig-subcap: 
+#|   - Estimates on marginal sentence length (includes zeros).
+#|   - Estimates on probability of incarceration from the logistic regression on the zero-part of the full hurdle lognormal model.
+plot(conditional_effects(fit_brm2, effects = "SEX:OFF_RACE"), ask = FALSE)
+plot(conditional_effects(fit_brm2, dpar = "hu", effects = "SEX:OFF_RACE"), ask = FALSE)
+```
+
+Results for the other terms in the model are reported in the Appendix.
+
+```{r}
+#| label: tbl-race-sex-effects
+#| tbl-cap: Estimates for sentence length combining the non-zero and zero predictions for the eight combinations of race and sex.
+
+ce_data <- conditional_effects(fit_brm2, "SEX:OFF_RACE", plot = FALSE)[[1]]
+
+ce_data |>
+    select(effect1__, effect2__, estimate__, se__, lower__, upper__) |>
+    kableExtra::kable(format = "latex", digits = 2, escape = TRUE,
+                      col.names = c("Sex", "Race", "Est", "SE", "LB 95% CI", "UB 95% CI"),
+                      row.names = FALSE,
+                      booktabs = TRUE)
+    
+```
+
+<!-- #### GLMMadaptive Lognormal Hurdle Model -->
+
+<!-- Complete case analysis to see if the function works and how quickly it runs. -->
+
+<!-- ```{r} -->
+
+<!-- #| label: fit-glmmadaptive-lognormal-hurdle -->
+
+<!-- #| eval: false -->
+
+<!-- # DOSAGE + SEX + OFF_RACE + OGS + PRVREC + RECMIN + CRIME + TRIAL -->
+
+<!-- fit_lnh <- mixed_model(JP_MIN ~ DOSAGE + SEX + OFF_RACE + OGS + PRVREC + RECMIN + CRIME + TRIAL, -->
+
+<!--                     random = ~ 1 | YEAR, -->
+
+<!--                     zi_fixed = ~ DOSAGE + DOSAGEQ + SEX * OFF_RACE + RECMIN + OGS + OGSQ + PRVREC + CRIME + TRIAL, -->
+
+<!--                     zi_random = ~ 1 | YEAR, -->
+
+<!--                     data = df, -->
+
+<!--                     family = hurdle.lognormal(), -->
+
+<!--                     penalized = TRUE, -->
+
+<!--                     iter_EM = 0) -->
+
+<!-- saveRDS(fit_lnh, "fits/fit-glmmadaptive-lognormal-hurdle.rds") -->
+
+<!-- ``` -->
+
+<!-- ```{r} -->
+
+<!-- #| label: load-glmmadaptive-lognormal-hurdle -->
+
+<!-- fit_lnh <- readRDS("fits/fit-glmmadaptive-lognormal-hurdle.rds") -->
+
+<!-- # fit_lnh -->
+
+<!-- # marginal_coefs(fit_lnh) -->
+
+<!-- # ses <- diag(fit_lnh$Hessian) |> sqrt()  -->
+
+<!-- #  -->
+
+<!-- # cbind(c(fit_lnh$coefficients, fit_lnh$gammas), ses) |> round(2) -->
+
+<!-- ``` -->
+
+<!-- Evaluation of predictions -->
+
+<!-- ```{r} -->
+
+<!-- #| label: fig-cdf-glmm-lnh-pred -->
+
+<!-- #| fig-cap: The empirical CDF of the observed sentence lengths (days, log scale) with fitted cdfs simulated from the model fit overlaid in light gray. -->
+
+<!-- par(mar = c(2.5, 2.5, 0, 0), mgp = c(1.1, 0.5, 0), cex.axis = 0.7, cex.lab = 0.8) -->
+
+<!-- y <- df$JP_MIN -->
+
+<!-- y <- y[which(!is.na(y))] -->
+
+<!-- y[y > 0] <- log(y[y > 0]) -->
+
+<!-- x_vals <- seq(min(y)-1, max(y), length.out = 500) -->
+
+<!-- out <- simulate(fit_lnh, nsim = 30, acount_MLEs_var = FALSE) -->
+
+<!-- ind <- out > sqrt(.Machine$double.eps) -->
+
+<!-- out[ind] <- log(out[ind]) -->
+
+<!-- rep_y <- apply(out, 2, function (x, x_vals) ecdf(x)(x_vals), x_vals = x_vals) -->
+
+<!-- matplot(x_vals, rep_y, type = "l", lty = 1, col = "lightgrey",  -->
+
+<!--         xlab = "Response Variable", ylab = "Empirical CDF") -->
+
+<!-- lines(x_vals, ecdf(y)(x_vals)) -->
+
+<!-- legend("bottomright", c("log replicated data", "log observed data"), lty = 1,  -->
+
+<!--        col = c("lightgrey", "black"), bty = "n", cex = 0.8) -->
+
+<!-- ``` -->
+
+<!-- Fitting with MI. -->
+
+<!-- ```{r} -->
+
+<!-- #| label: fit-glmmadaptive-lognormal-hurdle-mi -->
+
+<!-- #| eval: false -->
+
+<!-- start <- Sys.time() -->
+
+<!-- imp_list <- complete(imps, "all", include = FALSE) -->
+
+<!-- fit_lnh_mi <- lapply(imp_list, function(imp) { -->
+
+<!--     fit_lnh <- mixed_model(JP_MIN ~ DOSAGE + DOSAGEQ + SEX * OFF_RACE + OGS *  PRVREC + -->
+
+<!--                     OGSQ + RECMIN + CRIME + TRIAL, -->
+
+<!--                     random = ~ 1 | YEAR, -->
+
+<!--                     zi_fixed = ~ DOSAGE + DOSAGEQ + SEX * OFF_RACE + RECMIN + OGS + OGSQ + PRVREC + CRIME + TRIAL, -->
+
+<!--                     # zi_random = ~ 1 | YEAR, -->
+
+<!--                     data = imp, -->
+
+<!--                     family = hurdle.lognormal(), -->
+
+<!--                     penalized = TRUE, -->
+
+<!--                     optimizer = "nlminb") -->
+
+<!--     return(fit_lnh) -->
+
+<!-- }) -->
+
+<!-- print(Sys.time() - start) -->
+
+<!-- saveRDS(fit_lnh_mi, "fits/fit-glmmadaptive-lognormal-hurdle-mi.rds") -->
+
+<!-- ``` -->
+
+<!-- ```{r} -->
+
+<!-- #| label: tbl-coef-comp -->
+
+<!-- #| tbl-cap: Coefficients from the non-zero portions of the full lognormal hurdle models fit with brms and glmmadaptive after multiple imputation. -->
+
+<!-- fit_lnh_mi <- readRDS("fits/fit-glmmadaptive-lognormal-hurdle-mi.rds") -->
+
+<!-- est_lnh_mi <- lapply(fit_lnh_mi, function(fit) {fit$coefficients}) |> bind_rows() |> apply(2, mean) -->
+
+<!-- hu_lnh_mi <- lapply(fit_lnh_mi, function(fit) {fit$gammas}) |> bind_rows() |> apply(2, mean) -->
+
+<!-- coef_est <- smry2$fixed |> -->
+
+<!--     filter(stringr::str_sub(term, 1, 2) != "hu") |> -->
+
+<!--     select(term, Estimate) -->
+
+<!-- hu_est <- smry2$fixed |> -->
+
+<!--     filter(stringr::str_sub(term, 1, 2) == "hu") |> -->
+
+<!--     mutate( -->
+
+<!--         term2 = stringr::str_sub(term, 4, -1) -->
+
+<!--     ) |> -->
+
+<!--     select(term2, Estimate) -->
+
+<!-- coef_est$glmmadapt <- est_lnh_mi -->
+
+<!-- hu_est$glmmadapt <- hu_lnh_mi -->
+
+<!-- coef_est2 <- left_join(coef_est, hu_est, -->
+
+<!--                       by = c("term" = "term2"), suffix = c("_nz", "_hu")) -->
+
+<!-- coef_est2 |>  -->
+
+<!--     select(term, Estimate_nz, glmmadapt_nz, Estimate_hu, glmmadapt_hu) |> -->
+
+<!--     kableExtra::kable(format = "latex", digits = 4, escape = TRUE, -->
+
+<!--                       col.names = c("Term", "brms - Est.", "glmma - Est.", -->
+
+<!--                                     "brms - Hurdle Est.", "glmma - Hurdle Est."), -->
+
+<!--                       row.names = FALSE, -->
+
+<!--                       booktabs = TRUE) -->
+
+<!-- ``` -->
+
+## Sensitivity Analysis
+
+Evaluating the impacts of various nonignorable missingness mechanisms can be accomplished with pattern-mixture models. The values of the incomplete numeric data can be scaled or shifted. The same cannot be done with categorical imputations, instead the proportion of each category can be varied within the imputations compared to the observed distribution or the MAR imputed distribution.
+
+While there are very few missing sentence lengths, I could also modify the imputed sentence lengths with a scale $c$ or shift $\delta$. Scaling maintains that offenders that are non-incarcerated will remain non-incarcerated while the sentences of incarcerated defenders would shift. A positive shift would make all offenders incarcerated while a negative shift would impose negative sentence lengths that would need to be corrected to use Poisson or lognormal hurdle glms.
+
+```{r}
+#| label: rf-fit
+#| include: false
+c_dat_s <- na.exclude(df)
+
+fit_rf <- ranger::ranger(OFF_RACE ~ DOSAGE + DOSAGEQ + SEX + TRIAL + RECMIN + PRVREC + OGS + OGSQ + CRIME + YEAR + COUNTY + JP_MIN, 
+                         data = c_dat_s,
+                         probability = TRUE)
+
+print(fit_rf)
+
+fit_rf$confusion.matrix
+```
+
+```{r}
+#| label: rf-pred
+
+sample_rf_pd <- function(dat, fit, scale = c(1, 1, 1, 1)) {
+    pred_rf <- predict(fit, data = dat)
+    ppred_rf <- pred_rf$predictions
+    
+    plab <- unlist(lapply(1:nrow(dat), function(i) {
+        p_i <- ppred_rf[i,]
+        p_i <- p_i * scale
+        p_i <- 1/sum(p_i) * p_i
+        sample(colnames(ppred_rf), size = 1, prob = p_i)
+        }))
+}
+```
+
+To perturb the imputations, we modify the vector of probabilities $\mathbf{p} = (p_1, p_2, p_3, p_4)'$ of class membership for each racial/ethnic group under consideration (White, Black, Latino, or Other). A vector of scale parameters $\mathbf{c} = (c_1, c_2, c_3, c_4)'$ is chosen such that the new racial/ethnic group label will be drawn from the normalized vector $\mathbf{p}^* = \frac{1}{\sum_{j=1}^4 c_j p_j} (c_1 p_1, c_2 p_2, c_3 p_3, c_4 p_4)'$ so that the probability vectors remains the same if $c_j = 1$ for each $j = 1,\dots,4.$ For simplicity, we will focus on varying the probability of assigning a White label by changing only $c_1$ while holding $c_2 = c_3 = c_4 = 1.$
+
+The vector of probabilities $\mathbf{p}_i$ is obtained for each incomplete observation $i$ by re-fitting the same random forest used in the initial mulitple imputation step. This vector is then scaled and normalized using the same scaling vector $\mathbf{c}$ for all incomplete observations. The probability vectors $\mathbf{p}^*$ are used to draw new imputed racial/ethnic group labels for the incomplete observations. This procedure is repeated, including the model fitting, across each of the $M$ completed data sets resulting in a new set of $M$ completed data sets with modified imputations. The new set of completed data sets is then analyzed as before using an lognormal hurdle model. Estimates from each variation of $\mathbf{c}$ that is chosen are then compared graphically in @fig-sens-analysis-res.
+
+We choose to vary $c_1$ along the sequence $\{0.1, 0.33, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 2\}.$ When $c_1 = 1$, the imputations correspond to the original imputation model under the MAR assumption. For $c_1 < 1$, fewer observations are imputed with a White label than under the MAR assumption reflecting a more diverse population of offenders who have unknown or unreported race labels. The opposite is true for $c_1 > 1$, reflecting a more White population of offenders. We include cases such as $c_1 = 0.1$ and $c_1 = 0.33$ as well as $c_1 = 1.5$ and $c_1 = 2$ as rather implausible extreme conditions to investigate what could happen in the most extreme circumstances.
+
+```{r}
+#| label: fn-modify-imps
+
+modify_race_imps <- function(imps, scale = c(1.5, 1, 1, 1)) {
+    
+    mis_ind <- which(is.na(imps$data$OFF_RACE))
+    imp_list <- complete(imps, "all", include = FALSE)
+    
+    imp_list2 <- lapply(1:length(imp_list), function(i) {
+        df <- imp_list[[i]]
+        
+        if (sum(is.na(df)) == 0) {
+            fit_imp <- ranger::ranger(OFF_RACE ~ DOSAGE + DOSAGEQ + SEX + TRIAL +
+                                          RECMIN + PRVREC + OGS + OGSQ + CRIME +
+                                          YEAR + COUNTY + JP_MIN, 
+                                 data = df[-mis_ind,],
+                                 probability = TRUE)
+            new_imp <- sample_rf_pd(df[mis_ind,], fit_imp, scale = scale)
+            df[mis_ind, "OFF_RACE"] <- new_imp
+        }
+        
+        df$.imp <- i-1
+        df$.id <- 1:nrow(df)
+        
+        return(df)
+    })
+    
+    imps2 <- imp_list2 |>
+        bind_rows() |>
+        as.mids()
+    return(imps2)
+}
+
+```
+
+```{r}
+#| label: sensitivity-analysis
+#| eval: false
+# sens_scales <- c(0.1, 0.33, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 2)
+sens_scales <- c(0.9, 0.95, 1, 1.05, 1.1)
+ # + COUNTY_OGS + PCASES 
+bf1 <- bf(JP_MIN ~ DOSAGE + DOSAGEQ + SEX*OFF_RACE + OGS + OGSQ +
+                    OGS * PRVREC + PRVREC + RECMIN + CRIME + TRIAL +
+                    (1 || COUNTY),
+          hu ~ DOSAGE + DOSAGEQ + SEX * OFF_RACE + RECMIN + OGS + OGSQ + PRVREC + CRIME + TRIAL + (1 || COUNTY))
+
+sens_res <- lapply(sens_scales, function(s) {
+    
+    if (s != 1) {
+        scale <- c(s, 1, 1, 1)
+        imps2 <- modify_race_imps(imps, scale = scale)
+    }
+    else {
+        imps2 <- imps
+    }
+    
+    fit_lnh_mi <- brm_multiple(bf1,
+               data = imps2,
+               family = hurdle_lognormal(link = "identity", link_sigma = "log", link_hu = "logit"),
+               prior = bprior2,
+               chains = 2, cores = 15, iter = 2000, refresh = 100,
+               init = 0,
+               #control = list(adapt_delta = 0.8, max_treedepth = 12),
+               # file = "brms_fit/brms-hurlde-si.fit",
+               # file_refit = "on_change",
+               save_model = paste0("stan/brms-hurdle-lognormal-mi-scale-", s, ".stan"))
+
+    smry_lnh <- summary(fit_lnh_mi)
+    smry_lnh$fixed$term <- rownames(smry_lnh$fixed)
+
+    res <- smry_lnh$fixed |>
+        mutate(
+            est = Estimate,
+            se = Est.Error,
+            l95 = `l-95% CI`,
+            u95 = `u-95% CI`,
+            scale = s
+        ) |>
+        select(scale, term, est, se, l95, u95)
+    
+    return(res)
+})
+
+# str(sens_res)
+
+saveRDS(sens_res, "fits/sensitivity-analysis-results.rds")
+```
+
+```{r}
+#| label: fig-sens-analysis-res
+#| layout-ncol: 2
+#| fig-cap: Coefficient estimates for the logistic regression model predicting incarceration.
+#| fig-subcap: 
+#|   - White offenders
+#|   - Black offenders
+#|   - Latino offenders
+#|   - Other ethnicity offenders
+#| fig-width: 4
+#| fig-height: 3
+
+
+# sens_scales <- c(0.1, 0.33, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 2)
+# sens_scales <- c(0.33, 0.75, 0.9, 1, 1.1, 1.25, 1.67)
+sens_scales <- c(0.9, 0.95, 1, 1.05, 1.1)
+
+sens_res <- readRDS("fits/sensitivity-analysis-results.rds")
+sens_res <- lapply(1:length(sens_scales), function(i) {
+    df <- sens_res[[i]]
+    df$scale <- sens_scales[i]
+    return(df)
+})
+
+# sens_res |>
+#     bind_rows() |>
+#     filter(term %in% c("OFF_RACEBLACK")) |>
+#     ggplot(aes(scale, estimate, color = as.factor(scale))) +
+#         geom_point() +
+#         scale_color_viridis_d(name = "Scale Factor")
+
+sens_res2 <- sens_res |>
+    bind_rows() |> 
+    tibble::remove_rownames() |>
+    mutate(
+        mod = case_when(
+            stringr::str_sub(term, 1, 2) == "hu" ~ "logistic",
+            TRUE ~ "lognormal"
+        )
+    )
+    
+
+# sens_res2$scale <- rep(sens_scales, each = 2)
+
+# long_res <- sens_res2 |>
+#     tidyr::pivot_longer(cols = `(Intercept)`:`OGS:PRVRECREVOC/RFEL`,
+#                         names_to = "term",
+#                         values_to = "estimate")
+
+
+
+race_sex_est <- expand.grid(scale = sens_scales, SEX = c("Male", "Female"), OFF_RACE = c("WHITE", "BLACK", "LATINO", "OTHER"))
+race_sex_est$nz_est <- NA
+race_sex_est$zi_est <- NA
+
+for (i in 1:nrow(race_sex_est)) {
+    sex <- race_sex_est[i, "SEX"]
+    race <- race_sex_est[i, "OFF_RACE"]
+    eta <- sens_res2 |>
+        filter(mod == "lognormal",
+               scale == race_sex_est[i,"scale"],
+               term == "Intercept") |>
+        select(est)
+    eta_hu <- sens_res2 |>
+        filter(mod == "logistic",
+               scale == race_sex_est[i,"scale"],
+               term == "hu_Intercept") |>
+        select(est)
+    if (sex == "Male") {
+        eta <- eta + sens_res2 |>
+            filter(mod == "lognormal",
+                   scale == race_sex_est[i,"scale"],
+                   term == "SEXMale") |>
+            select(est)
+        
+        eta_hu <- eta_hu + sens_res2 |>
+            filter(mod == "logistic",
+                   scale == race_sex_est[i,"scale"],
+                   term == "hu_SEXMale") |>
+            select(est)
+        
+    }
+    if (race %in% c("BLACK", "LATINO", "OTHER")) {
+        eta <- eta + sens_res2 |>
+        filter(mod == "lognormal",
+               scale == race_sex_est[i,"scale"],
+               term == paste0("OFF_RACE", race)) |>
+        select(est)
+        
+        eta_hu <- eta_hu + sens_res2 |>
+            filter(mod == "logistic",
+                   scale == race_sex_est[i,"scale"],
+                   term == paste0("hu_OFF_RACE", race)) |>
+            select(est)
+    }
+
+    race_sex_est$nz_est[i] <- eta$est[1]
+    race_sex_est$zi_est[i] <- eta_hu$est[1]
+}
+
+race_sex_est <- race_sex_est |> 
+    tidyr::pivot_longer(
+        cols = nz_est:zi_est,
+        names_to = "mod1",
+        values_to = "est"
+    ) |>
+    mutate(
+        Model = case_when(
+            mod1 == "nz_est" ~ "Lognormal",
+            mod1 == "zi_est" ~ "Logistic",
+            TRUE ~ NA
+        )
+    )
+
+
+plt_list <- lapply(c("WHITE", "BLACK", "LATINO", "OTHER"), function(race) {
+    p1 <- race_sex_est |>
+            filter(OFF_RACE == race) |>
+            ggplot(aes(scale, est)) +
+                geom_point(aes(color = SEX, shape = Model)) +
+                geom_line(aes(color = SEX, linetype = Model)) +
+                labs(x = "Scale",
+                     y = "Estimate")
+    return(p1)
+})
+plt_list[[1]]
+plt_list[[2]]
+plt_list[[3]]
+plt_list[[4]]
+
+# long_res |>
+#     filter(term == "OFF_RACEBLACK") |>
+#     ggplot(aes(scale, estimate)) +
+#         geom_point(aes(color = as.factor(scale), shape = mod)) +
+#         scale_color_viridis_d(name = "Scale Factor") +
+#         geom_line(aes(linetype = mod)) +
+#         labs(subtitle = "Black Offenders")
+# long_res |>
+#     filter(term == "OFF_RACELATINO") |>
+#     ggplot(aes(scale, estimate)) +
+#         geom_point(aes(color = as.factor(scale), shape = mod)) +
+#         scale_color_viridis_d(name = "Scale Factor") +
+#         geom_line(aes(linetype = mod)) +
+#         labs(subtitle = "Latino Offenders")
+# long_res |>
+#     filter(term == "OFF_RACEOTHER") |>
+#     ggplot(aes(scale, estimate)) +
+#         geom_point(aes(color = as.factor(scale), shape = mod)) +
+#         scale_color_viridis_d(name = "Scale Factor") +
+#         geom_line(aes(linetype = mod)) +
+#         labs(subtitle = "Other Offenders")
+```
+
+@fig-sens-analysis-res displays the race effects on sentence length for the White, Black, Latino, and Other racial/ethnic groups. In general, we see that estimates tend to be very stable for White and Black offenders, while there's more variation in the estimates for Latino offenders and offenders with an Other race/ethnicity reported.
+
+\newpage
+
+## References {.unnumbered}
+
+::: {#refs}
+:::
+
+\newpage
+
+## Appendix {.unnumbered}
+
+```{r}
+#| label: fig-incar-cime
+#| fig-cap: Incarceration decision by most serious crime type. INCAR == 1 indicates incarceration. INCAR == 0 indicates parole.
+#| fig-height: 4
+#| include: true
+ggplot(df, aes(as.factor(INCAR), fill = CRIME)) +
+    geom_bar(position = "dodge")
+```
+
+```{r}
+#| label: fig-sen-len-qq
+#| layout-ncol: 2
+#| fig-cap: QQ plots of the sentence length (days)
+#| fig-subcap: 
+#|   - Sentence length in days
+#|   - Log of sentence length plus one day
+#| include: true
+sent_non0 <- df$JP_MIN[which(df$INCAR == 1)]
+s <- sample(length(sent_non0), size = 10000, replace = FALSE)
+
+qqnorm(sent_non0[s])
+qqline(sent_non0[s])
+
+qqnorm(log1p(sent_non0[s]))
+qqline(log1p(sent_non0[s]))
+```
+
+```{r}
+#| label: fig-scatter-pairs
+#| fig-cap: Scatter plot matrix of the numeric predictors and the log plus one of the sentence length (days).
+#| include: false
+#| evale: false
+df |> 
+    mutate(jp_min_l1p = log1p(JP_MIN)) |>
+    select(DOSAGE, DOSAGEQ, OGS, OGSQ, TRIAL, RECMIN, jp_min_l1p) |>
+    GGally::ggpairs()
 ```
 
 ```{r}
@@ -728,33 +1145,6 @@ smry2$fixed |>
                       booktabs = TRUE)
 ```
 
-The standard deviation parameter $\sigma$ of the lognormal distribution has a posterior mean of `r round(smry2$spec_pars[1,1], 2)` (95% CI: \[`r round(smry2$spec_pars[1,3], 2)`, `r round(smry2$spec_pars[1,4], 2)`\]).
-
-The county-level random/group-level effects and year-level random/group-level effects are reported in @tbl-brms2-re.
-
-```{r}
-#| label: tbl-brms2-re
-#| tbl-cap: Random/group-level effect standard deviation estimates for the full hurdle lognormal model.
-r_effs2 <- bind_rows(smry2$random)
-r_effs2$level <- c("County-level", "County-level", "Year-level")
-r_effs2$term <- c("sd(Intercept)", "sd(hu_Intercept)", "sd(Intercept")
-r_effs2 |>
-    select(level, term, Estimate, `l-95% CI`, `u-95% CI`) |>
-    kableExtra::kable(format = "latex", digits = 2, escape = TRUE,
-                      col.names = c("Term", "Estimate", "SE", "LB 95% CI", "UB 95% CI"),
-                      row.names = FALSE,
-                      booktabs = TRUE)
-```
-
-```{r}
-#| label: brms2-vars
-#| include: false
-smry2$spec_pars
-
-smry2$random$COUNTY
-smry2$random$YEAR
-```
-
 ```{r}
 #| label: fig-brm2-mcmc
 #| fig-cap: MCMC plots for full lognormal hurdle model
@@ -773,7 +1163,7 @@ smry2$random$YEAR
 #|   - OGS by Prev. Rec.
 #| layout-ncol: 3
 #| layout-nrow: 4
-#| include: true
+#| include: false
 plot(fit_brm2, ask = FALSE, N = 3)
 ```
 
@@ -847,306 +1237,3 @@ bayesplot::ppc_error_scatter_avg_vs_x(y = log1p(fit_brm2$data$JP_MIN),
                   subtitle = "Linear Predictor Hurdle",
          x = "log(Sentence Length (mon))")
 ```
-
-#### GLMMadaptive Lognormal Hurdle Model
-
-Complete case analysis to see if the function works and how quickly it runs.
-
-```{r}
-#| label: fit-glmmadaptive-lognormal-hurdle
-#| eval: false
-
-# DOSAGE + SEX + OFF_RACE + OGS + PRVREC + RECMIN + CRIME + TRIAL
-
-fit_lnh <- mixed_model(JP_MIN ~ DOSAGE + SEX + OFF_RACE + OGS + PRVREC + RECMIN + CRIME + TRIAL,
-                    random = ~ 1 | YEAR,
-                    zi_fixed = ~ DOSAGE + DOSAGEQ + SEX * OFF_RACE + RECMIN + OGS + OGSQ + PRVREC + CRIME + TRIAL,
-                    zi_random = ~ 1 | YEAR,
-                    data = df[s,],
-                    family = hurdle.lognormal(),
-                    penalized = TRUE,
-                    iter_EM = 0)
-
-saveRDS(fit_lnh, "fits/fit-glmmadaptive-lognormal-hurdle.rds")
-```
-
-```{r}
-#| label: load-glmmadaptive-lognormal-hurdle
-fit_lnh <- readRDS("fits/fit-glmmadaptive-lognormal-hurdle.rds")
-
-# fit_lnh
-# marginal_coefs(fit_lnh)
-
-# ses <- diag(fit_lnh$Hessian) |> sqrt() 
-# 
-# cbind(c(fit_lnh$coefficients, fit_lnh$gammas), ses) |> round(2)
-```
-
-Evaluation of predictions
-
-```{r}
-#| label: fig-cdf-glmm-lnh-pred
-#| fig-cap: The empirical CDF of the observed sentence lengths (days, log scale) with fitted cdfs simulated from the model fit overlaid in light gray.
-par(mar = c(2.5, 2.5, 0, 0), mgp = c(1.1, 0.5, 0), cex.axis = 0.7, cex.lab = 0.8)
-y <- df$JP_MIN
-y <- y[which(!is.na(y))]
-y[y > 0] <- log(y[y > 0])
-x_vals <- seq(min(y)-1, max(y), length.out = 500)
-out <- simulate(fit_lnh, nsim = 30, acount_MLEs_var = FALSE)
-ind <- out > sqrt(.Machine$double.eps)
-out[ind] <- log(out[ind])
-rep_y <- apply(out, 2, function (x, x_vals) ecdf(x)(x_vals), x_vals = x_vals)
-matplot(x_vals, rep_y, type = "l", lty = 1, col = "lightgrey", 
-        xlab = "Response Variable", ylab = "Empirical CDF")
-lines(x_vals, ecdf(y)(x_vals))
-legend("bottomright", c("log replicated data", "log observed data"), lty = 1, 
-       col = c("lightgrey", "black"), bty = "n", cex = 0.8)
-```
-
-Fitting with MI.
-
-```{r}
-#| label: fit-glmmadaptive-lognormal-hurdle-mi
-#| eval: false
-
-start <- Sys.time()
-imp_list <- complete(imps, "all", include = FALSE)
-
-
-fit_lnh_mi <- lapply(imp_list, function(imp) {
-    fit_lnh <- mixed_model(JP_MIN ~ DOSAGE + DOSAGEQ + SEX * OFF_RACE + OGS *  PRVREC +
-                    OGSQ + RECMIN + CRIME + TRIAL,
-                    random = ~ 1 | YEAR,
-                    zi_fixed = ~ DOSAGE + DOSAGEQ + SEX * OFF_RACE + RECMIN + OGS + OGSQ + PRVREC + CRIME + TRIAL,
-                    # zi_random = ~ 1 | YEAR,
-                    data = imp,
-                    family = hurdle.lognormal(),
-                    penalized = TRUE,
-                    optimizer = "nlminb")
-    return(fit_lnh)
-})
-
-print(Sys.time() - start)
-saveRDS(fit_lnh_mi, "fits/fit-glmmadaptive-lognormal-hurdle-mi.rds")
-```
-
-```{r}
-#| label: tbl-coef-comp
-#| tbl-cap: Coefficients from the non-zero portions of the full lognormal hurdle models fit with brms and glmmadaptive after multiple imputation.
-
-fit_lnh_mi <- readRDS("fits/fit-glmmadaptive-lognormal-hurdle-mi.rds")
-
-est_lnh_mi <- lapply(fit_lnh_mi, function(fit) {fit$coefficients}) |> bind_rows() |> apply(2, mean)
-
-hu_lnh_mi <- lapply(fit_lnh_mi, function(fit) {fit$gammas}) |> bind_rows() |> apply(2, mean)
-
-coef_est <- smry2$fixed |>
-    filter(stringr::str_sub(term, 1, 2) != "hu") |>
-    select(term, Estimate)
-hu_est <- smry2$fixed |>
-    filter(stringr::str_sub(term, 1, 2) == "hu") |>
-    mutate(
-        term2 = stringr::str_sub(term, 4, -1)
-    ) |>
-    select(term2, Estimate)
-
-coef_est$glmmadapt <- est_lnh_mi
-hu_est$glmmadapt <- hu_lnh_mi
-
-coef_est2 <- left_join(coef_est, hu_est,
-                      by = c("term" = "term2"), suffix = c("_nz", "_hu"))
-
-coef_est2 |> 
-    select(term, Estimate_nz, glmmadapt_nz, Estimate_hu, glmmadapt_hu) |>
-    kableExtra::kable(format = "latex", digits = 4, escape = TRUE,
-                      col.names = c("Term", "brms - Est.", "glmma - Est.",
-                                    "brms - Hurdle Est.", "glmma - Hurdle Est."),
-                      row.names = FALSE,
-                      booktabs = TRUE)
-```
-
-## Sensitivity Analysis
-
-Evaluating the impacts of various nonignorable missingness mechanisms can be accomplished with pattern-mixture models. The values of the incomplete numeric data can be scaled or shifted. The same cannot be done with categorical imputations, instead the proportion of each category can be varied within the imputations compared to the observed distribution or the MAR imputed distribution.
-
-While there are very few missing sentence lengths, I could also modify the imputed sentence lengths with a scale $c$ or shift $\delta$. Scaling maintains that offenders that are non-incarcerated will remain non-incarcerated while the sentences of incarcerated defenders would shift. A positive shift would make all offenders incarcerated while a negative shift would impose negative sentence lengths that would need to be corrected to use Poisson or lognormal hurdle glms.
-
-```{r}
-#| label: rf-fit
-#| include: false
-c_dat_s <- na.exclude(df[s,])
-
-fit_rf <- ranger::ranger(OFF_RACE ~ DOSAGE + DOSAGEQ + SEX + TRIAL + RECMIN + PRVREC + OGS + OGSQ + CRIME + YEAR + COUNTY + JP_MIN, 
-                         data = c_dat_s,
-                         probability = TRUE)
-
-print(fit_rf)
-
-fit_rf$confusion.matrix
-```
-
-```{r}
-#| label: rf-pred
-
-sample_rf_pd <- function(dat, fit, scale = c(1, 1, 1, 1)) {
-    pred_rf <- predict(fit, data = dat)
-    ppred_rf <- pred_rf$predictions
-    
-    plab <- unlist(lapply(1:nrow(dat), function(i) {
-        p_i <- ppred_rf[i,]
-        p_i <- p_i * scale
-        p_i <- 1/sum(p_i) * p_i
-        sample(colnames(ppred_rf), size = 1, prob = p_i)
-        }))
-}
-```
-
-To perturb the imputations, we modify the vector of probabilities $\mathbf{p} = (p_1, p_2, p_3, p_4)'$ of class membership for each racial/ethnic group under consideration (White, Black, Latino, or Other). A vector of scale parameters $\mathbf{c} = (c_1, c_2, c_3, c_4)'$ is chosen such that the new racial/ethnic group label will be drawn from the normalized vector $\mathbf{p}^* = \frac{1}{\sum_{j=1}^4 c_j p_j} (c_1 p_1, c_2 p_2, c_3 p_3, c_4 p_4)'$ so that the probability vectors remains the same if $c_j = 1$ for each $j = 1,\dots,4.$ For simplicity, we will focus on varying the probability of assigning a White label by changing only $c_1$ while holding $c_2 = c_3 = c_4 = 1.$
-
-The vector of probabilities $\mathbf{p}_i$ is obtained for each incomplete observation $i$ by re-fitting the same random forest used in the initial mulitple imputation step. This vector is then scaled and normalized using the same scaling vector $\mathbf{c}$ for all incomplete observations. The probability vectors $\mathbf{p}^*$ are used to draw new imputed racial/ethnic group labels for the incomplete observations. This procedure is repeated, including the model fitting, across each of the $M$ completed data sets resulting in a new set of $M$ completed data sets with modified imputations. The new set of completed data sets is then analyzed as before using an lognormal hurdle model. Estimates from each variation of $\mathbf{c}$ that is chosen are then compared graphically in @fig-sens-analysis-res.
-
-We choose to vary $c_1$ along the sequence $\{0.1, 0.33, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 2\}.$ When $c_1 = 1$, the imputations correspond to the original imputation model under the MAR assumption. For $c_1 < 1$, fewer observations are imputed with a White label than under the MAR assumption reflecting a more diverse population of offenders who have unknown or unreported race labels. The opposite is true for $c_1 > 1$, reflecting a more White population of offenders. We include cases such as $c_1 = 0.1$ and $c_1 = 0.33$ as well as $c_1 = 1.5$ and $c_1 = 2$ as rather implausible extreme conditions to investigate what could happen in the most extreme circumstances.
-
-```{r}
-#| label: fn-modify-imps
-
-modify_race_imps <- function(imps, scale = c(1.5, 1, 1, 1)) {
-    
-    mis_ind <- which(is.na(df[s,"OFF_RACE"]))
-    
-    imp_list2 <- lapply(1:length(imp_list), function(i) {
-        df <- imp_list[[i]]
-        
-        if (sum(is.na(df)) == 0) {
-            fit_imp <- ranger::ranger(OFF_RACE ~ DOSAGE + DOSAGEQ + SEX + TRIAL +
-                                          RECMIN + PRVREC + OGS + OGSQ + CRIME +
-                                          YEAR + COUNTY + JP_MIN, 
-                                 data = df[-mis_ind,],
-                                 probability = TRUE)
-            new_imp <- sample_rf_pd(df[mis_ind,], fit_imp, scale = scale)
-            df[mis_ind, "OFF_RACE"] <- new_imp
-        }
-        
-        df$.imp <- i-1
-        df$.id <- 1:nrow(df)
-        
-        return(df)
-    })
-    
-    imps2 <- imp_list2 |>
-        bind_rows() |>
-        as.mids()
-    return(imps2)
-}
-
-```
-
-```{r}
-#| label: sensitivity-analysis
-#| eval: false
-# sens_scales <- c(0.1, 0.33, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 2)
-sens_scales <- c(0.9, 0.95, 0.975, 1, 1.025, 1.05, 1.1)
-
-sens_res <- lapply(sens_scales, function(s) {
-    
-    if (s != 1) {
-        scale <- c(s, 1, 1, 1)
-        imps2 <- modify_race_imps(imps, scale = scale)
-    }
-    else {
-        imps2 <- imps
-    }
-    
-    imp_list <- complete(imps2, "all", include = FALSE)
-    
-    fit_lnh_mi <- lapply(imp_list, function(imp) {
-        fit_lnh <- mixed_model(JP_MIN ~ DOSAGE + DOSAGEQ + SEX + OFF_RACE + OGS + OGSQ +
-                        OGS * PRVREC + PRVREC + RECMIN + CRIME + TRIAL,
-                        data = imp,
-                        family = hurdle.lognormal(),
-                        random = ~ 1 |COUNTY,
-                        zi_fixed = ~ DOSAGE + DOSAGEQ + SEX + OFF_RACE + OGS + OGSQ + PRVREC + RECMIN + CRIME + TRIAL,
-                        # zi_random = ~ 1 | COUNTY
-                        )
-        return(fit_lnh)
-    })
-    
-    # fit <- with(imps2, glm(INCAR ~ DOSAGE + DOSAGEQ + SEX*OFF_RACE + OGS + OGSQ +
-    #                   OGS * PRVREC + PRVREC + RECMIN + CRIME + TRIAL +
-    #                  as.factor(YEAR) + as.factor(COUNTY),
-    #              family = binomial(link = "logit"),
-    #              x = FALSE, y = FALSE,
-    #              model = FALSE))
-    
-    # smry <- summary(pool(fit))
-    # 
-    # smry |>
-    #     filter(stringr::str_sub(term, 1,3) != "as.") |>
-    #     mutate(
-    #         lb95 = estimate - qt(0.975, df = df) * std.error,
-    #         ub95 = estimate + qt(0.975, df = df) * std.error,
-    #         sig = case_when(
-    #             lb95 > 0 ~ "*",
-    #             ub95 < 0 ~ "*",
-    #             TRUE ~ ""
-    #         ),
-    #         scale = s
-    #     ) |>
-    #     select(term, estimate, std.error, lb95, ub95, sig, scale)
-    est_lnh_mi <- lapply(fit_lnh_mi, function(fit) {fit$coefficients}) |> 
-        bind_rows() |>
-        apply(2, mean)
-    
-    hu_lnh_mi <- lapply(fit_lnh_mi, function(fit) {fit$gammas}) |> 
-        bind_rows() |> 
-        apply(2, mean)
-    
-    res <- bind_rows(est_lnh_mi, hu_lnh_mi)
-    res$mod <- c("lognormal", "logistic")
-    res$scale <- s
-    return(res)
-})
-
-# str(sens_res)
-
-saveRDS(sens_res, "fits/sensitivity-analysis-results.rds")
-```
-
-```{r}
-#| label: fig-sens-analysis-res
-#| fig-cap: Coefficient estimates for the logistic regression model predicting incarceration.
-
-
-# sens_scales <- c(0.1, 0.33, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 2)
-# sens_scales <- c(0.33, 0.75, 0.9, 1, 1.1, 1.25, 1.67)
-
-sens_res <- readRDS("fits/sensitivity-analysis-results.rds")
-
-# sens_res |>
-#     bind_rows() |>
-#     filter(term %in% c("OFF_RACEBLACK")) |>
-#     ggplot(aes(scale, estimate, color = as.factor(scale))) +
-#         geom_point() +
-#         scale_color_viridis_d(name = "Scale Factor")
-
-sens_res2 <- sens_res |> bind_rows()
-
-# sens_res2$scale <- rep(sens_scales, each = 2)
-
-sens_res2 |>
-    tidyr::pivot_longer(cols = `(Intercept)`:`OGS:PRVRECREVOC/RFEL`,
-                        names_to = "term",
-                        values_to = "estimate") |>
-    filter(term == "OFF_RACEBLACK") |>
-    ggplot(aes(scale, estimate)) +
-        geom_point(aes(color = as.factor(scale), shape = mod)) +
-        scale_color_viridis_d(name = "Scale Factor") +
-        geom_line(aes(linetype = mod))
-```
-
-\newpage
-
-## References {.unnumbered}
-
-::: ref
-:::
