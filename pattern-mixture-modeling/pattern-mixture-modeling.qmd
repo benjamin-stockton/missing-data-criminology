@@ -26,6 +26,8 @@ format:
     keep-tex: true
   docx: 
     number-sections: true
+  html: 
+    notebook-view: false
 execute: 
   cache: true
   echo: false
@@ -55,27 +57,26 @@ color_scheme_set("brightblue")
 ```
 
 ## Introduction and Background
-Criminal justice data are often “incomplete,” or have missing observations. Incomplete data can stem from several, sometimes interconnected sources, including (but not limited to) sample attrition (e.g., observations exiting a study over time), selection (e.g., certain individuals being more likely included in a study or an analysis), and lapses in administrative data entry or recordkeeping (e.g., failure to consistently record and report information). Regardless of the source, the pattern of incomplete data will take one of several forms: missing not at random (MNAR; otherwise known as nonignorable missingness), missing at random (MAR), or missing completely at random (MCAR), which has implications for the appropriate assumptions and method of treatment (Rubin, 1987). 
+
+Criminal justice data are often “incomplete,” or have missing observations. Incomplete data can stem from several, sometimes interconnected sources, including (but not limited to) sample attrition (e.g., observations exiting a study over time), selection (e.g., certain individuals being more likely included in a study or an analysis), and lapses in administrative data entry or recordkeeping (e.g., failure to consistently record and report information). Regardless of the source, the pattern of incomplete data will take one of several forms: missing not at random (MNAR; otherwise known as nonignorable missingness), missing at random (MAR), or missing completely at random (MCAR), which has implications for the appropriate assumptions and method of treatment (Rubin, 1987).
 
 Discussed in depth elsewhere (see Stockton et al., 2023), administrative criminal justice data have differing rates of completeness, with larger ones tending to have higher rates (e.g., Federal or state-level databases) than smaller, more localized ones. As demonstrated in a data simulation by Stockton and colleagues (2023), the rate, pattern, and treatment of incomplete data (even in moderate or small quantities) can meaningfully alter effect estimates. Without appropriate treatment, the analysis of incomplete data may lead to biased model estimates and contribute to inaccurate conclusions about an effect of interest (Breen, 2015; Bushway et al., 2007).
 
-The treatment of incomplete data and the robustness of effect estimates are longstanding concerns of the criminological community. Brame & Paternoster (2003) noted over two decades ago the importance of these concerns, which have since been addressed in various ways (see, e.g., the use of minimal assumptions and middle-ground estimators by Brame et al. 2014). Despite these advancements, however, criminologists have failed to consistently treat incomplete data and assess and report the robustness of their findings (Stockton et al., 2023). The latter is paramount for understanding the potential impact on effect estimates if our assumptions about incomplete data do not hold. 
+The treatment of incomplete data and the robustness of effect estimates are longstanding concerns of the criminological community. Brame & Paternoster (2003) noted over two decades ago the importance of these concerns, which have since been addressed in various ways (see, e.g., the use of minimal assumptions and middle-ground estimators by Brame et al. 2014). Despite these advancements, however, criminologists have failed to consistently treat incomplete data and assess and report the robustness of their findings (Stockton et al., 2023). The latter is paramount for understanding the potential impact on effect estimates if our assumptions about incomplete data do not hold.
 
 Given the prevalence, inconsistent treatment, and potential impacts of incomplete data on effect estimates, we argue that sensitivity testing should be utilized to assess the robustness of an effect of interest in any analysis of incomplete data with nonignorable missingness. In the following sections, we briefly review the circumstances in which incomplete criminal justice data are common and the methods by which criminologists have treated incomplete data. We consider the potential impacts of the treatment of incomplete data on research estimates, with a substantive focus on the measurement of race/ethnicity effects as a timely and relevant concern for criminologists, and in line with the current analyses. We then review the limited ways in which criminologists have assessed the sensitivity of race/ethnicity effects given incomplete data and present a novel strategy: multiple imputation (MI) with pattern-mixture modeling (PMM). We highlight that MI and PMM can be used to assess the robustness of effects given incomplete data of any assumed pattern (i.e., MAR, MNAR) and source (e.g., attrition, selection), making it highly applicable and flexible to accommodate common missingness issues faced by criminal justice researchers.
 
 ### Common Sources of Incomplete Data in Criminological Research
 
+Criminal justice data may be incomplete for one or more unique reasons—study attrition, sample selection, or inconsistent administrative reporting and data entry practices are common examples. Missingness due to study attrition may occur in a longitudinal data set due to relocation, death, loss of contact, or disinterest in continuing. Kim and Bushway (2018) provide an example of this in their examination of the age-crime relationship using data from the National Longitudinal Survey of Youth \[NLSY\]). They note the potential impacts of sample attrition on their results if the observed dropout rates were more prevalent among those with a higher probability of criminal involvement. To assess this potential threat to validity they examined patterns of missingness among the cohorts and found that, although their exploration did indicate the possibility of selective sample attrition for those with a higher risk of offending, these patterns differed by cohort and did not present a clear indication that incomplete data biased their results in a meaningful way.
 
-Criminal justice data may be incomplete for one or more unique reasons—study attrition, sample selection, or inconsistent administrative reporting and data entry practices are common examples. Missingness due to study attrition may occur in a longitudinal data set due to relocation, death, loss of contact, or disinterest in continuing. Kim and Bushway (2018) provide an example of this in their examination of the age-crime relationship using data from the National Longitudinal Survey of Youth [NLSY]). They note the potential impacts of sample attrition on their results if the observed dropout rates were more prevalent among those with a higher probability of criminal involvement. To assess this potential threat to validity they examined patterns of missingness among the cohorts and found that, although their exploration did indicate the possibility of selective sample attrition for those with a higher risk of offending, these patterns differed by cohort and did not present a clear indication that incomplete data biased their results in a meaningful way. 
-
-Missingness due to selection may occur when individuals have a differential likelihood of inclusion in a study or sample (Heckman, 1976). In policing research, only those individuals who have been stopped by the police have the opportunity to be searched, arrested, or to experience a use-of-force incident. In courts and sentencing research, only individuals who make it through the stages of case processing will receive a final disposition and corresponding sentence length. Studies demonstrate that not all citizens are equally likely to be stopped by the police or to complete all stages of case processing (see Bowling & Phillips, 2007; Kadane & Lamberth, 2009; Kutateladze et al., 2016; Pierson et al., 2020; TenEyck et al., 2024), therefore policing and court data are poised to be incomplete with nonignorable missingness due to sample selection. Gaebler and colleagues (2022) provide a useful causal framework that expressly acknowledges that prosecutorial charging decisions in part rely on people being stopped and arrested in the first place (an area of racial/ethnic disparity), note the importance of considering this from both a theoretical and measurement perspective, and describe an estimand, the “sateM” (i.e., second-stage sample average treatment effect) that can be used to measure discrimination in the second stage of a two-stage decision-making process while accounting for potential discrimination in the first stage. 
+Missingness due to selection may occur when individuals have a differential likelihood of inclusion in a study or sample (Heckman, 1976). In policing research, only those individuals who have been stopped by the police have the opportunity to be searched, arrested, or to experience a use-of-force incident. In courts and sentencing research, only individuals who make it through the stages of case processing will receive a final disposition and corresponding sentence length. Studies demonstrate that not all citizens are equally likely to be stopped by the police or to complete all stages of case processing (see Bowling & Phillips, 2007; Kadane & Lamberth, 2009; Kutateladze et al., 2016; Pierson et al., 2020; TenEyck et al., 2024), therefore policing and court data are poised to be incomplete with nonignorable missingness due to sample selection. Gaebler and colleagues (2022) provide a useful causal framework that expressly acknowledges that prosecutorial charging decisions in part rely on people being stopped and arrested in the first place (an area of racial/ethnic disparity), note the importance of considering this from both a theoretical and measurement perspective, and describe an estimand, the “sateM” (i.e., second-stage sample average treatment effect) that can be used to measure discrimination in the second stage of a two-stage decision-making process while accounting for potential discrimination in the first stage.
 
 Missingness due to inconsistent administrative reporting or data entry may occur in studies using data sets that are compiled across multiple independent agencies, such as that from the Uniform Crime Reports (UCR). The UCR relies on the voluntary reporting of crime statistics by over 18,000 law enforcement agencies across the U.S. It is widely understood that such data sets are incomplete as reporting practices are known to vary between agencies and within agencies over time. There have been multiple efforts to improve UCR data and address differential reporting, including those of the National Archive of Criminal Justice Data (NACJD), which involve imputation using county-level measures available through their platform. DeLang and colleagues (2022) highlighted and compared multiple methods of addressing differential reporting in the UCR, including imputation using agencies’ past reporting, multivariate normal imputation (MVNI), and multiple imputation by chained equations (MICE). They demonstrate that multiple imputation is the superior approach because it reduces uncertainty in imputation and produces more accurate standard errors.
 
 ### The Treatment of Incomplete Sentencing Data with Nonignorable Missingness
 
-
-Multiple imputation remains the “gold standard” treatment when MCAR or MAR is the assumed missingness mechanism (Demuth & Steffensmeier, 2004; DeLang et al., 2022; Jordan & Freiburger, 2010). We focus on the treatment of incomplete sentencing data with nonignorable missingness given its relevance to the current analyses. 
+Multiple imputation remains the “gold standard” treatment when MCAR or MAR is the assumed missingness mechanism (Demuth & Steffensmeier, 2004; DeLang et al., 2022; Jordan & Freiburger, 2010). We focus on the treatment of incomplete sentencing data with nonignorable missingness given its relevance to the current analyses.
 
 Complete case analysis (CCA) is a common approach to analyzing incomplete sentencing data (regardless of whether they are assumed MCAR), particularly when the proportion of missing data is considered to be small (see, e.g., Bales & Piquero, 2012; Cassidy & Rydberg, 2020; Johnson et al., 2023; Kutateladze et al., 2014; Light, 2022; Ramos, 2023; Zane et al., 2022). It should be noted, however, that what constitutes a “small” amount of missing data remains unclear (as noted by Brame & Paternoster, 2003). Missingness as low as five percent has been shown to “flip” the direction of effect estimates even in the context of a randomized controlled trial (RCT; Belin, 2009; Graham, 2009).
 
@@ -83,34 +84,33 @@ When data are incomplete due to sample selection (a form of nonignorable missing
 
 ### The Potential Impacts of the Treatment of Incomplete Data on Race/Ethnicity Effect Estimates
 
-It has long been argued that the treatment of incomplete data may alter estimates of the race/ethnicity effect on justice system outcomes (see Baumer, 2013; Bushway et al, 2007; Kadane & Lamberth 2009; Knox et al., 2020; Stockton et al., 2023). We maintain this focus on race/ethnicity as a timely and relevant concern given recent questions as to their sustained presence and magnitude (see, e.g., Light, 2022). We define the race/ethnicity effect as “the differential treatment of people of different races [and ethnicities] in the justice system who are otherwise similarly situated with respect to legally relevant characteristics” (Stockton et al., 2023, p.2). 
+It has long been argued that the treatment of incomplete data may alter estimates of the race/ethnicity effect on justice system outcomes (see Baumer, 2013; Bushway et al, 2007; Kadane & Lamberth 2009; Knox et al., 2020; Stockton et al., 2023). We maintain this focus on race/ethnicity as a timely and relevant concern given recent questions as to their sustained presence and magnitude (see, e.g., Light, 2022). We define the race/ethnicity effect as “the differential treatment of people of different races \[and ethnicities\] in the justice system who are otherwise similarly situated with respect to legally relevant characteristics” (Stockton et al., 2023, p.2).
 
-Discussed elsewhere at length (see Stockton et al., 2023), the magnitude of race/ethnicity effects can vary greatly between studies and for myriad reasons (e.g., contextual influences, bias and discrimination in justice actor discretion, the differential impact of policy, differential involvement in crime). Sentencing research has shown race/ethnicity effect estimates varying from non-significant, to small, moderate, or even large, and also often vary according to age, gender, and type of case (see Doerner & Demuth, 2010; Omori & Petersen, 2020; Ridgeway et al., 2020; Steffensmeier et al., 1998). While these differences may be attributable, in part, to study contexts and methodologies, Baumer (2013) notes that the true magnitude of race/ethnicity effects on sentencing will remain uncertain so long as sample selection bias is unaddressed in this literature. This sentiment can be extended to bias from non-ignorable missingness from any source (e.g., study attrition, reporting and data entry issues). 
+Discussed elsewhere at length (see Stockton et al., 2023), the magnitude of race/ethnicity effects can vary greatly between studies and for myriad reasons (e.g., contextual influences, bias and discrimination in justice actor discretion, the differential impact of policy, differential involvement in crime). Sentencing research has shown race/ethnicity effect estimates varying from non-significant, to small, moderate, or even large, and also often vary according to age, gender, and type of case (see Doerner & Demuth, 2010; Omori & Petersen, 2020; Ridgeway et al., 2020; Steffensmeier et al., 1998). While these differences may be attributable, in part, to study contexts and methodologies, Baumer (2013) notes that the true magnitude of race/ethnicity effects on sentencing will remain uncertain so long as sample selection bias is unaddressed in this literature. This sentiment can be extended to bias from non-ignorable missingness from any source (e.g., study attrition, reporting and data entry issues).
 
 Within individual studies, the difference in race/ethnicity effect estimates can be stark when comparing estimates prior to and after treating bias due to nonignorable missingness. This was recently illustrated by Knox and colleagues (2020) who initially reported that around 10 percent of police uses-of-force against Black and Latino individuals were discriminatory (before bias correction). After bias correction, however, this estimate jumped to 39 percent. While this example is specific to the policing literature, it is feasible that untreated, nonignorable missingness in court and sentencing data could introduce bias and contribute to inaccurate estimates of race/ethnicity effects as well. For the sake of accurate prediction (to the greatest extent possible given data limitations), it is essential to treat nonignorable missingness and to assess the robustness of race/ethnicity effects on sentencing.
 
-From an applied standpoint, it is important to assess the robustness of race/ethnicity effects because these estimates are often cited in demographic impact statements that are used to justify significant policy changes (The Sentencing Project, 2021). Many policymakers rely on these statements to understand the potential consequences of a given policy. For example, demographic or racial impact statements have been used during the consideration of changes to statewide sentencing policies in Minnesota (see Minnesota Sentencing Guidelines Commission, 2023), and mechanisms for creating racial impact statements have been enabled by legislation in at least nine states (The Sentencing Project, 2021). 
+From an applied standpoint, it is important to assess the robustness of race/ethnicity effects because these estimates are often cited in demographic impact statements that are used to justify significant policy changes (The Sentencing Project, 2021). Many policymakers rely on these statements to understand the potential consequences of a given policy. For example, demographic or racial impact statements have been used during the consideration of changes to statewide sentencing policies in Minnesota (see Minnesota Sentencing Guidelines Commission, 2023), and mechanisms for creating racial impact statements have been enabled by legislation in at least nine states (The Sentencing Project, 2021).
 
 ### Assessing the Sensitivity of Race/Ethnicity Effects Given Incomplete Data
 
+There are strong examples in which scholars have demonstrated methods to assess the robustness of race/ethnicity effects in the presence of incomplete data. Many of these examples extend from Manski’s (2003) work in econometrics, including the use of interval estimates (a range of predicted outcome values in which the true value likely appears) and bounds analysis, in which the goal is to identify the range of possible outcome values under different model parameter assumptions. This work has since been applied to the identification of treatment effects in criminological research (see Manski & Nagin, 2011)—a subject of study in which random assignment is not always possible or ethical, and any uncertainty in treatment effects need be explicit for policymakers to gain a more nuanced understanding.
 
-	There are strong examples in which scholars have demonstrated methods to assess the robustness of race/ethnicity effects in the presence of incomplete data. Many of these examples extend from Manski’s (2003) work in econometrics, including the use of interval estimates (a range of predicted outcome values in which the true value likely appears) and bounds analysis, in which the goal is to identify the range of possible outcome values under different model parameter assumptions. This work has since been applied to the identification of treatment effects in criminological research (see Manski & Nagin, 2011)—a subject of study in which random assignment is not always possible or ethical, and any uncertainty in treatment effects need be explicit for policymakers to gain a more nuanced understanding.
-	
-Brame et al. (2014) built upon this work in proposing the use of a minimal assumptions (MA) estimator. They note its utility particularly in the social sciences in which the underlying mechanisms driving outcomes may be complex and/or poorly understood. In their study of the cumulative arrest prevalence between demographic groupings, the MA estimator used by Brame and colleagues (2014) provided a lower bound (assuming none of the individuals missing survey data were arrested) and an upper bound (assuming all individuals missing survey data were arrested) under the minimal assumptions that the survey responses were accurate and the sample was representative. While this technique is useful for considering maximum uncertainty (unlike MAR), the potentially wide bounds can make it challenging to draw definitive conclusions about an effect of interest. Recent research has employed algorithmic strategies for bounding estimates, illustrating how effects estimated under increasingly more minimal assumptions can gain credibility and lose precision (Hamilton, 2023). 
+Brame et al. (2014) built upon this work in proposing the use of a minimal assumptions (MA) estimator. They note its utility particularly in the social sciences in which the underlying mechanisms driving outcomes may be complex and/or poorly understood. In their study of the cumulative arrest prevalence between demographic groupings, the MA estimator used by Brame and colleagues (2014) provided a lower bound (assuming none of the individuals missing survey data were arrested) and an upper bound (assuming all individuals missing survey data were arrested) under the minimal assumptions that the survey responses were accurate and the sample was representative. While this technique is useful for considering maximum uncertainty (unlike MAR), the potentially wide bounds can make it challenging to draw definitive conclusions about an effect of interest. Recent research has employed algorithmic strategies for bounding estimates, illustrating how effects estimated under increasingly more minimal assumptions can gain credibility and lose precision (Hamilton, 2023).
 
-In their study of racial/ethnic discrimination in policing, Knox and colleagues (2020) proposed the use of a Monte Carlo procedure to construct confidence intervals that contain both the true lower and upper bound endpoints with a specified probability (1 - α). They note, however, that these procedures rely on relatively weak assumptions (e.g., all use-of-force encounters with police are reported, race is essentially randomly assigned in encounters, there is no racial discrimination in the decision to stop civilians), which may be plausible given the volume of policing research, but less likely to hold in the examination of understudied topics. Stating assumptions explicitly, as argued by Knox et al. (2020) and others, is essential for the consumers of research to properly evaluate the plausibility and robustness of race/ethnicity effects.  
+In their study of racial/ethnic discrimination in policing, Knox and colleagues (2020) proposed the use of a Monte Carlo procedure to construct confidence intervals that contain both the true lower and upper bound endpoints with a specified probability (1 - α). They note, however, that these procedures rely on relatively weak assumptions (e.g., all use-of-force encounters with police are reported, race is essentially randomly assigned in encounters, there is no racial discrimination in the decision to stop civilians), which may be plausible given the volume of policing research, but less likely to hold in the examination of understudied topics. Stating assumptions explicitly, as argued by Knox et al. (2020) and others, is essential for the consumers of research to properly evaluate the plausibility and robustness of race/ethnicity effects.
 
 ## The Current Study
 
-The goal of the current study is to determine the impact of defendant race/ethnicity on jail/prison sentence length, and to assess the robustness of effect estimates given incomplete race/ethnicity data (a common phenomenon in criminological data). In doing so we present criminological scholars with a novel method for sensitivity testing: multiple imputation and pattern-mixture modeling. This follows a recent call to perform and report sensitivity testing in the analysis of incomplete data, for which the missingness mechanisms can only be assumed (Stockton et al., 2023). 
+The goal of the current study is to determine the impact of defendant race/ethnicity on jail/prison sentence length, and to assess the robustness of effect estimates given incomplete race/ethnicity data (a common phenomenon in criminological data). In doing so we present criminological scholars with a novel method for sensitivity testing: multiple imputation and pattern-mixture modeling. This follows a recent call to perform and report sensitivity testing in the analysis of incomplete data, for which the missingness mechanisms can only be assumed (Stockton et al., 2023).
 
-Developed by Rubin (1974) and further since (see Little, 1993, Michiels et al. 1999, Thomas et al., 2016), pattern-mixture models (PMMs) present a flexible approach to sensitivity testing and can provide insights into how the missingness is related to the observed data patterns. Instead of assuming a single mechanism for missingness, PMMs allow for different perturbations, or patterns, to be considered that are based on the observed data. 
+Developed by Rubin (1974) and further since (see Little, 1993, Michiels et al. 1999, Thomas et al., 2016), pattern-mixture models (PMMs) present a flexible approach to sensitivity testing and can provide insights into how the missingness is related to the observed data patterns. Instead of assuming a single mechanism for missingness, PMMs allow for different perturbations, or patterns, to be considered that are based on the observed data.
 
 In PMM, the selection patterns are explicitly modeled, and the analysis is conducted separately for each pattern. This accounts for the fact that different subgroups of individuals may have different reasons for missing a value for race/ethnicity, and the parameters of interest (here, the race/ethnicity effect estimate) can then be estimated by combining information from all patterns. This somewhat reverses traditional criminological thought about treating incomplete data; Put simply, selection models (for example) model the outcome and then model the selection (or non-ignorable missingness) given the outcome. On the other hand, PMMs model the non-ignorable missingness and then model the outcome given the non-ignorable missingness.
 
 There are several advantages to using PMMs for sensitivity testing. They are particularly useful when MCAR or MAR assumptions do not hold, they do not require the use of exclusion variables or data from multiple stages of case processing (which are often absent from administrative data sets), and they can be used with multilevel models. For these reasons (and others demonstrated below), we present MI and PMMs as an advantageous method of assessing the robustness of race/ethnicity effects in sentencing.
 
-### Data 
+### Data
 
 We use the Pennsylvania Commission on Sentencing’s (PCS) case-level sentencing data for individuals convicted in a Court of Common Pleas between January 1, 2010, and December 31, 2019 (N = FULL SAMPLE SIZE?). The unit of analysis if the most serious sentence in a judicial proceeding. We include all adult sentences (excluding homicide 1/2 cases, to which the sentencing guidelines in Pennsylvania do not apply1).
 
@@ -134,7 +134,9 @@ To assess the impacts of the non-ignorable missingness on the race effects, we c
 
 ### Analysis
 
-Our analysis begins with the multiple imputation step. We create $M = 5$ completed data sets using the chained equations framework under the default MAR assumption. Then the sensitivity analysis perturbs the race/ethnicity label to generate new imputations, followed by estimating the race effects using the lognormal hurdle model.
+Our analysis begins with the multiple imputation step.[^1] We create $M = 5$ completed data sets using the chained equations framework under the default MAR assumption. Then the sensitivity analysis perturbs the race/ethnicity label to generate new imputations, followed by estimating the race effects using the lognormal hurdle model.
+
+[^1]: Code for analysis is available on GitHub at: <https://github.com/benjamin-stockton/crim-pattern-mixture> and data is available upon request.
 
 **Dependent Variable**
 
@@ -151,7 +153,6 @@ We also include legally relevant variables including the crime type, whether the
 **County-level Variable**
 
 County-level random effects are included for both the lognormal model for non-zero lengths, and the logistic model for the incarceration decision. For each county, the average of the offense gravity score was included to provide context for the typical cases in the county as well as the proportion of cases that each county processes out of the total number of cases processed in the state of Pennsylvania.
-
 
 ```{r}
 #| label: load-data
@@ -210,11 +211,87 @@ df <- df |> mutate(
     ) |>
     left_join(county_ogs, by = "COUNTY") |>
     group_by(COUNTY) |>
-    slice_sample(n = 10000) |>
+    # slice_sample(n = 10000) |>
     ungroup()
 
 df$OFF_RACE <- factor(df$OFF_RACE, levels = c("WHITE", "BLACK", "LATINO", "OTHER"))
 df$PCASES <- df$NCASES / sum(county_ogs$NCASES)
+```
+
+```{r}
+#| label: tbl-descriptives
+#| tbl-cap: Descriptive statistics on subject level.
+library(gtsummary)
+
+df |> select(
+    JP_MIN,
+    INCAR,
+    OGS,
+    OGSQ,
+    RECMIN,
+    TRIAL,
+    PRVREC,
+    CRIME,
+    DOSAGE,
+    DOSAGEQ,
+    SEX,
+    OFF_RACE,
+    YEAR
+) |>
+    gtsummary::tbl_summary(
+        label = list(JP_MIN ~ "Sentence Length (days)",
+                  INCAR ~ "Incarceration Decision",
+                  OGS ~ "OGS", OGSQ ~ "OGS Squared",
+                  RECMIN ~ "Recommended Minimum",
+                  TRIAL ~ "Trial", 
+                  PRVREC ~ "Previous Record",
+                  CRIME ~ "Crime Type",
+                  YEAR ~ "Year",
+                  DOSAGE ~ "Age", DOSAGEQ ~ "Age Squared", 
+                  SEX ~ "Sex", OFF_RACE ~ "Race/Ethnicity"),
+        type = list(JP_MIN ~ "continuous2",
+                  INCAR ~ "categorical",
+                  OGS ~ "continuous2", OGSQ ~ "continuous2",
+                  RECMIN ~ "categorical",
+                  TRIAL ~ "categorical", 
+                  PRVREC ~ "categorical",
+                  CRIME ~ "categorical",
+                  YEAR ~ "categorical",
+                  DOSAGE ~ "continuous2", DOSAGEQ ~ "continuous2", 
+                  SEX ~ "categorical", OFF_RACE ~ "categorical"),
+        statistic = list(
+                all_continuous() ~ c("{mean} ({sd})", "({min}, {max})"),
+                all_categorical() ~ "{n} ({p}%)"
+        ),
+        missing_text = "(Missing)")
+```
+
+```{r}
+#| label: tbl-county-descriptives
+#| tbl-cap: Descriptive statistics on county level.
+
+
+df |> select(
+    COUNTY_OGS,
+    COUNTYTYPE,
+    NCASES,
+    PCASES
+) |>
+    gtsummary::tbl_summary(
+        label = list(COUNTY_OGS ~ "Average OGS by County",
+                  COUNTYTYPE ~ "County Type",
+                  NCASES ~ "Number of Cases", 
+                  PCASES ~ "Proportion of Cases"),
+        type = list(COUNTY_OGS ~ "continuous2",
+                  COUNTYTYPE ~ "categorical",
+                  NCASES ~ "continuous2", 
+                  PCASES ~ "continuous2"),
+        statistic = list(
+                all_continuous() ~ c("{mean} ({sd})", "({min}, {max})"),
+                all_categorical() ~ "{n} ({p}%)"
+        ),
+        missing_text = "(Missing)"
+    )
 ```
 
 ```{r}
@@ -357,7 +434,7 @@ saveRDS(imps, "fits/mice-rf-subsample.rds")
 #| label: load-mice
 #| echo: false
 
-imps <- readRDS("fits/mice-rf-subsample.rds")
+imps <- readRDS("../../crim-pattern-mixture/pattern-mixture-modeling/fits/mice-rf-full-data.rds")
 ```
 
 <!-- ### Logistic Regression on Incarceration -->
@@ -664,7 +741,6 @@ bprior2 <- prior(normal(0, 100), class = "b") +
 bprior2
 ```
 
-
 ```{r}
 #| label: brms-hurdle-lognormal-2
 #| eval: false
@@ -674,8 +750,9 @@ fit_brm2 <- brm_multiple(bf1,
                data = imps,
                family = hurdle_lognormal(link = "identity", link_sigma = "log", link_hu = "logit"),
                prior = bprior2,
-               chains = 2, cores = 15, iter = 4000, refresh = 100,
+               chains = 2, cores = 8, iter = 2000, refresh = 100,
                init = 0,
+               threads = threading(8),
                control = list(adapt_delta = 0.82, max_treedepth = 12),
                # file = "brms_fit/brms-hurlde-si.fit",
                # file_refit = "on_change",
@@ -989,6 +1066,7 @@ While there are very few missing sentence lengths, I could also modify the imput
 ```{r}
 #| label: rf-fit
 #| include: false
+#| eval: false
 c_dat_s <- na.exclude(df)
 
 fit_rf <- ranger::ranger(OFF_RACE ~ DOSAGE + DOSAGEQ + SEX + TRIAL + RECMIN + PRVREC + OGS + OGSQ + CRIME + YEAR + COUNTY + JP_MIN, 
@@ -1123,7 +1201,6 @@ sens_res <- lapply(sens_scales, function(s) {
 })
 ```
 
-
 ```{r}
 #| label: fig-sens-analysis-res
 #| layout-ncol: 2
@@ -1135,6 +1212,8 @@ sens_res <- lapply(sens_scales, function(s) {
 #|   - Other ethnicity offenders
 #| fig-width: 4
 #| fig-height: 3
+#| include: false
+#| eval: false
 
 
 # sens_scales <- c(0.1, 0.33, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 2)
@@ -1281,19 +1360,109 @@ plt_list[[4]]
 
 @fig-sens-analysis-res displays the race effects on sentence length for the White, Black, Latino, and Other racial/ethnic groups. In general, we see that estimates for each ethnic group's expected incarceration decision and sentence length tend to be very stable regardless of how the distribution of race is perturbed. This indicates that our estimate under the MAR assumption is likely to be robust against violations of the MAR assumption on the race or ethnicity of offenders.
 
-## Discussion/Conclusion 
+```{r}
+sens_scales <- c(0.33, 0.5, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 2)
+sens_ce <- lapply(sens_scales, function(s) {
+  fp <- paste0("../../crim-pattern-mixture/pattern-mixture-modeling/fits/sensitivity-analysis-fit-scale-", s, ".rds")
+  fit_i <- readRDS(fp)
+  
+  ce_data <- conditional_effects(fit_i, "SEX:OFF_RACE", plot = FALSE)[[1]] |>
+      mutate(
+          scale = s
+      )
 
-Criminal justice data are often incomplete due to study attrition, sample selection, data entry or reporting issues, and myriad other reasons. Criminologists have inconsistently addressed incomplete data, which may contribute to questions regarding the plausibility and sensitivity of effect estimates. In particular, the presence and magnitude of race/ethnicity effects in court contexts has drawn recent attention. It is important that the field continue developing strategies to assess the robustness of findings against violations of the underlying assumptions of incomplete data (e.g., MAR). Specificity regarding race/ethnicity effect estimates is of the utmost importance given the potential policy impacts of research findings in this topic area. 
+  ce_data
+})
+```
 
-Building upon a body of work regarding sensitivity testing of race/ethnicity effects, we demonstrate how MI and PMM can be used in conjunction to assess the robustness of race/ethnicity effects given incomplete data of any given pattern (i.e., MAR, MNAR) and source (e.g., attrition, selection). This approach is highly applicable to analyses of criminal justice data, which often include nonignorable missingness and questions about the robustness of effect estimates. We demonstrate that race/ethnicity effects appear stable against violations of the MAR assumption for missingness on the defendant race variable.   
+```{r}
 
-The current study has several limitations. First, we have not compared PMMs to other methods of sensitivity analysis, we have simply argued its theoretical utility and demonstrated its application. Future research should compare the robustness of estimates under different methods of sensitivity analysis. Second, reducing the sentencing decisions to a binary incarcerated/not decisions in a study of punishment severity risks losing information about the varying degrees of severity of non-incarcerative sentences (Pina-Sanchez et al., 2020). Future research should consider how these non-incarcerative sentencing options should be quantified in terms of punitiveness and in comparison to incarceration sentence lengths.  
+ce_dat <- bind_rows(sens_ce)
 
-## Acknowledgments 
+ggplot(ce_dat, aes(scale, estimate__, color = OFF_RACE)) +
+    geom_errorbar(aes(x = scale, ymin = lower__, ymax = upper__)) +
+    geom_point() +
+    geom_line(linetype = "dashed", linewidth = 0.2) +
+    facet_grid(SEX~OFF_RACE) +
+    ggthemes::scale_color_colorblind() +
+    scale_x_continuous(breaks = sens_scales) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
 
-The authors would like to thank the Pennsylvania Commission on Sentencing (PCS) for providing data. The points of view presented in this paper are those of the authors and do not necessarily represent the official position of PCS.  
+```{r}
+sens_ce_hu <- lapply(sens_scales, function(s) {
+  fp <- paste0("../../crim-pattern-mixture/pattern-mixture-modeling/fits/sensitivity-analysis-fit-scale-", s, ".rds")
+  fit_i <- readRDS(fp)
+  
+  ce_data_hu <- conditional_effects(fit_i, dpar = "hu", effects = "SEX:OFF_RACE", plot = FALSE)[[1]] |>
+      mutate(
+          scale = s
+      )
 
- 
+  ce_data_hu
+})
+
+```
+
+```{r}
+ce_dat_hu <- bind_rows(sens_ce_hu)
+
+ggplot(ce_dat_hu, aes(scale, estimate__, color = OFF_RACE)) +
+    geom_errorbar(aes(x = scale, ymin = lower__, ymax = upper__)) +
+    geom_point() +
+    geom_line(linetype = "dashed", linewidth = 0.2) +
+    facet_grid(SEX~OFF_RACE) +
+    ggthemes::scale_color_colorblind() +
+    scale_x_continuous(breaks = sens_scales) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+ce_dat2 <- left_join(ce_dat, ce_dat_hu, by = c("scale", "effect1__", "effect2__"), suffix = c("_cond", "_hu")) |>
+    mutate(
+        estimate__ = estimate___cond / (1 - estimate___hu),
+        se__ = (se___cond - se___hu) / (1 - estimate___hu)^2,
+        lower__ = estimate__ - 2 * se__,
+        upper__ = estimate__ + 2 * se__
+        
+    ) |>
+    select(
+        scale, effect1__, effect2__,
+        tidyr::starts_with("estimate"),
+        tidyr::starts_with("se__"),
+        tidyr::starts_with("lower"),
+        tidyr::starts_with("upper")
+    )
+
+ggplot(ce_dat2, aes(scale, estimate__, color = effect2__)) +
+    geom_errorbar(aes(x = scale, ymin = lower__, ymax = upper__)) +
+    geom_point() +
+    geom_line(linetype = "dashed", linewidth = 0.2) +
+    facet_grid(effect1__~effect2__) +
+    ggthemes::scale_color_colorblind() +
+    scale_x_continuous(breaks = sens_scales) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+ce_dat2 |>
+    tidyr::pivot_wider(id_cols = scale, names_from = c("effect1__", "effect2__"),
+                       values_from = "estimate___cond") |>
+    kableExtra::kbl(format = "markdown", digits = 3, 
+                    col.names = c("$k$", "White Female", "Black Female", "Latina Female", "Other Female", "White Male", "Black Male", "Latino Male", "Other Male"))
+```
+
+## Discussion/Conclusion
+
+Criminal justice data are often incomplete due to study attrition, sample selection, data entry or reporting issues, and myriad other reasons. Criminologists have inconsistently addressed incomplete data, which may contribute to questions regarding the plausibility and sensitivity of effect estimates. In particular, the presence and magnitude of race/ethnicity effects in court contexts has drawn recent attention. It is important that the field continue developing strategies to assess the robustness of findings against violations of the underlying assumptions of incomplete data (e.g., MAR). Specificity regarding race/ethnicity effect estimates is of the utmost importance given the potential policy impacts of research findings in this topic area.
+
+Building upon a body of work regarding sensitivity testing of race/ethnicity effects, we demonstrate how MI and PMM can be used in conjunction to assess the robustness of race/ethnicity effects given incomplete data of any given pattern (i.e., MAR, MNAR) and source (e.g., attrition, selection). This approach is highly applicable to analyses of criminal justice data, which often include nonignorable missingness and questions about the robustness of effect estimates. We demonstrate that race/ethnicity effects appear stable against violations of the MAR assumption for missingness on the defendant race variable.
+
+The current study has several limitations. First, we have not compared PMMs to other methods of sensitivity analysis, we have simply argued its theoretical utility and demonstrated its application. Future research should compare the robustness of estimates under different methods of sensitivity analysis. Second, reducing the sentencing decisions to a binary incarcerated/not decisions in a study of punishment severity risks losing information about the varying degrees of severity of non-incarcerative sentences (Pina-Sanchez et al., 2020). Future research should consider how these non-incarcerative sentencing options should be quantified in terms of punitiveness and in comparison to incarceration sentence lengths.
+
+## Acknowledgments
+
+The authors would like to thank the Pennsylvania Commission on Sentencing (PCS) for providing data. The points of view presented in this paper are those of the authors and do not necessarily represent the official position of PCS.
 
 \newpage
 
