@@ -177,7 +177,7 @@ data, racial/ethnic disparities, sentencing},
 Sensitivity of Race/Ethnicity Effect Estimates Given Incomplete Data}
 \author{C. Clare Strange \and Benjamin Stockton \and Jordan
 Zvonkovich \and Ofer Harel}
-\date{2024-03-02}
+\date{2024-03-05}
 
 \begin{document}
 \maketitle
@@ -203,7 +203,7 @@ the sensitivity of any effect of interest, and can be applied in any
 criminological research context in which non-ignorable missingness is a
 concern.
 \end{abstract}
-\ifdefined\Shaded\renewenvironment{Shaded}{\begin{tcolorbox}[interior hidden, breakable, frame hidden, borderline west={3pt}{0pt}{shadecolor}, enhanced, boxrule=0pt, sharp corners]}{\end{tcolorbox}}\fi
+\ifdefined\Shaded\renewenvironment{Shaded}{\begin{tcolorbox}[interior hidden, breakable, borderline west={3pt}{0pt}{shadecolor}, boxrule=0pt, frame hidden, sharp corners, enhanced]}{\end{tcolorbox}}\fi
 
 \hypertarget{introduction-and-background}{%
 \subsection{Introduction and
@@ -854,12 +854,12 @@ Term & Estimate & SE & LB 95\% CI & UB 95\% CI \\
 \endhead
 \bottomrule\noalign{}
 \endlastfoot
-BLACK & -0.09 & 0.01 & -0.12 & -0.07 \\
-LATINO & 0.03 & 0.05 & -0.07 & 0.13 \\
-OTHER & 0.15 & 0.06 & 0.03 & 0.27 \\
-Male \& BLACK & 0.07 & 0.01 & 0.05 & 0.09 \\
-Male \& LATINO & 0.13 & 0.05 & 0.03 & 0.23 \\
-Male \& OTHER & -0.12 & 0.06 & -0.24 & 0.00 \\
+Black & -0.09 & 0.01 & -0.12 & -0.07 \\
+Latino & 0.03 & 0.05 & -0.07 & 0.13 \\
+Other & 0.15 & 0.06 & 0.03 & 0.27 \\
+Male \& Black & 0.07 & 0.01 & 0.05 & 0.09 \\
+Male \& Latino & 0.13 & 0.05 & 0.03 & 0.23 \\
+Male \& Other & -0.12 & 0.06 & -0.24 & 0.00 \\
 \end{longtable}
 
 \hypertarget{tbl-brms-hurdle-model-summary-2-zero-racesex}{}
@@ -876,12 +876,12 @@ Term & Estimate & SE & LB 95\% CI & UB 95\% CI \\
 \endhead
 \bottomrule\noalign{}
 \endlastfoot
-BLACK & -0.04 & 0.13 & -0.29 & 0.22 \\
-LATINO & 0.57 & 0.83 & -0.98 & 2.27 \\
-OTHER & 1.15 & 0.92 & -0.42 & 3.18 \\
-Male \& BLACK & -0.15 & 0.14 & -0.43 & 0.13 \\
-Male \& LATINO & -1.22 & 0.89 & -3.06 & 0.47 \\
-Male \& OTHER & -1.28 & 1.00 & -3.44 & 0.48 \\
+Black & 0.03 & 0.01 & 0.01 & 0.06 \\
+Latino & -0.29 & 0.08 & -0.44 & -0.13 \\
+Other & -0.07 & 0.08 & -0.23 & 0.09 \\
+Male \& Black & -0.31 & 0.02 & -0.34 & -0.28 \\
+Male \& Latino & -0.39 & 0.08 & -0.56 & -0.22 \\
+Male \& Other & -0.08 & 0.09 & -0.26 & 0.09 \\
 \end{longtable}
 
 The standard deviation parameter \(\sigma\) of the lognormal
@@ -984,23 +984,23 @@ Results for the other terms in the model are reported in the Appendix.
 combining the non-zero and zero predictions for the eight combinations
 of race and sex.}\tabularnewline
 \toprule\noalign{}
-Sex & Race & Est & SE & LB 95\% CI & UB 95\% CI \\
+Sex & Offender Race & Estimate & SE & LB 95\% CI & UB 95\% CI \\
 \midrule\noalign{}
 \endfirsthead
 \toprule\noalign{}
-Sex & Race & Est & SE & LB 95\% CI & UB 95\% CI \\
+Sex & Offender Race & Estimate & SE & LB 95\% CI & UB 95\% CI \\
 \midrule\noalign{}
 \endhead
 \bottomrule\noalign{}
 \endlastfoot
-Female & WHITE & 17.31 & 1.15 & 15.25 & 19.74 \\
-Female & BLACK & 15.39 & 1.06 & 13.44 & 17.57 \\
-Female & LATINO & 22.21 & 2.21 & 18.33 & 26.81 \\
-Female & OTHER & 21.33 & 2.30 & 17.18 & 26.35 \\
-Male & WHITE & 25.83 & 1.61 & 22.92 & 29.17 \\
-Male & BLACK & 30.39 & 1.80 & 27.23 & 34.10 \\
-Male & LATINO & 46.70 & 2.62 & 41.84 & 52.23 \\
-Male & OTHER & 29.62 & 2.06 & 25.79 & 33.99 \\
+Female & White & 17.31 & 1.15 & 15.25 & 19.74 \\
+Female & Black & 15.39 & 1.06 & 13.44 & 17.57 \\
+Female & Latino & 22.21 & 2.21 & 18.33 & 26.81 \\
+Female & Other & 21.33 & 2.30 & 17.18 & 26.35 \\
+Male & White & 25.83 & 1.61 & 22.92 & 29.17 \\
+Male & Black & 30.39 & 1.80 & 27.23 & 34.10 \\
+Male & Latino & 46.70 & 2.62 & 41.84 & 52.23 \\
+Male & Other & 29.62 & 2.06 & 25.79 & 33.99 \\
 \end{longtable}
 
 \hypertarget{sensitivity-analysis-using-pattern-mixture-models}{%
@@ -1045,7 +1045,7 @@ across each of the \(M\) completed data sets resulting in a new set of
 \(M\) completed data sets with modified imputations. The new set of
 completed data sets is then analyzed as before using an lognormal hurdle
 model. Estimates from each variation of \(\mathbf{c}\) that is chosen
-are then compared graphically in Figure~\ref{fig-sens-analysis-res}.
+are then compared graphically in Figure~\ref{fig-cond-eff}.
 
 We choose to vary \(c_1\) along the sequence
 \(\{0.1, 0.33, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 2\}.\) When \(c_1 = 1\),
@@ -1059,81 +1059,220 @@ well as \(c_1 = 1.5\) and \(c_1 = 2\) as rather implausible extreme
 conditions to investigate what could happen in the most extreme
 circumstances.
 
+Figure~\ref{fig-cond-eff} displays the race effects on sentence length
+for the White, Black, Latino, and Other racial/ethnic groups by sex
+(female/male) including the zero-day non-incarceration sentences. In
+general, we see that estimates for each ethnic group's expected
+incarceration decision and sentence length tend to be very stable
+regardless of how the imputation distribution of race is altered by
+\(k\). This indicates that our estimate under the MAR assumption is
+likely to be robust against violations of the MAR assumption on the race
+or ethnicity of offenders.
+
+Since the estimates are statistically indistinguishable (i.e.~the
+credible intervals for each estimate overlap for all \(k\)), we will
+take a closer look at the estimates under the MAR assumption where
+\(k = 1\). The estimates under all \(k\) are displayed in
+Table~\ref{tbl-cond-eff-f} and Table~\ref{tbl-cond-eff-m}. We find that
+White female offenders are predicted to receive sentences of 17.3 days
+with a 95\% credible interval of 15.3 to 19.7 days, Black female
+offenders are predicted to receive sentences of 15.4 days (95\% CI of
+(13.4, 17.6)), Latina female offenders are predicted to receive
+sentences of 22.2 days (95\% CI of (18.3, 26.8)), and female offenders
+of another race/ethnicity are predicted to receive sentences of 21.3
+days (95\% CI of (17.2, 26.4)).
+
+Male offenders receive longer sentences than female offenders of the
+same race/ethnicity under all sensitivity levels \(k\). We predict White
+male offenders to receive sentences of 25.8 days (95\% CI of (22.9,
+29.2)), Black male offenders to receive sentences of 30.4 day s (95\% CI
+of (27.2, 34.1)), Latino male offenders to receive sentences of 46.7
+days (95\% CI of (41.8, 52.2)), and male offenders of another
+race/ethnicity to receive a sentence of 29.6 days (95\% CI of (25.8,
+34.0)).
+
 \begin{figure}
 
-\begin{minipage}[t]{0.50\linewidth}
-
-{\centering 
-
-\raisebox{-\height}{
-
-\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-sens-analysis-res-1.pdf}
+{\centering \includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-cond-eff-1.pdf}
 
 }
 
-}
-
-\subcaption{\label{fig-sens-analysis-res-1}White offenders}
-\end{minipage}%
-%
-\begin{minipage}[t]{0.50\linewidth}
-
-{\centering 
-
-\raisebox{-\height}{
-
-\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-sens-analysis-res-2.pdf}
-
-}
-
-}
-
-\subcaption{\label{fig-sens-analysis-res-2}Black offenders}
-\end{minipage}%
-\newline
-\begin{minipage}[t]{0.50\linewidth}
-
-{\centering 
-
-\raisebox{-\height}{
-
-\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-sens-analysis-res-3.pdf}
-
-}
-
-}
-
-\subcaption{\label{fig-sens-analysis-res-3}Latino offenders}
-\end{minipage}%
-%
-\begin{minipage}[t]{0.50\linewidth}
-
-{\centering 
-
-\raisebox{-\height}{
-
-\includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-sens-analysis-res-4.pdf}
-
-}
-
-}
-
-\subcaption{\label{fig-sens-analysis-res-4}Other ethnicity offenders}
-\end{minipage}%
-
-\caption{\label{fig-sens-analysis-res}Coefficient estimates for the
-logistic regression model predicting incarceration.}
+\caption{\label{fig-cond-eff}Estimated sentence lengths under each
+sensitivity analysis setting for White, Black, Latino/a, and Other
+race/ethincity offenders by Sex (female/male) including the zero-day
+non-incarcerated sentences.}
 
 \end{figure}
 
-Figure~\ref{fig-sens-analysis-res} displays the race effects on sentence
-length for the White, Black, Latino, and Other racial/ethnic groups. In
-general, we see that estimates for each ethnic group's expected
-incarceration decision and sentence length tend to be very stable
-regardless of how the distribution of race is perturbed. This indicates
-that our estimate under the MAR assumption is likely to be robust
-against violations of the MAR assumption on the race or ethnicity of
-offenders.
+\begin{figure}
+
+{\centering \includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-cond-eff-hu-1.pdf}
+
+}
+
+\caption{\label{fig-cond-eff-hu}Estimated probability of a zero-day
+non-incarcerated sentence under each sensitivity analysis setting for
+White, Black, Latino/a, and Other race/ethincity offenders by Sex
+(female/male)}
+
+\end{figure}
+
+\begin{figure}
+
+{\centering \includegraphics{pattern-mixture-modeling_files/figure-pdf/fig-marginal-eff-1.pdf}
+
+}
+
+\caption{\label{fig-marginal-eff}Estimated marginal sentence lengths
+under each sensitivity analysis setting for White, Black, Latino/a, and
+Other race/ethincity offenders by Sex (female/male) excluding the
+zero-day non-incarcerated sentences.}
+
+\end{figure}
+
+\hypertarget{tbl-cond-eff-f}{}
+\begin{longtable}[]{@{}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.0394}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.1024}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.1339}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.1024}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.1339}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.1102}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.1417}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.1024}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.1339}}@{}}
+\caption{\label{tbl-cond-eff-f}Estimated sentences lengths and posterior
+standard errors for the various sensitivity analysis conditions for
+White, Black, Latino/a, and Other race/ethnicity offenders for female
+offenders.}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedleft
+\(k\)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+White Female
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+se(White Female)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Black Female
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+se(Black Female)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Latina Female
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+se(Latina Female)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Other Female
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+se(Other Female)
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedleft
+\(k\)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+White Female
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+se(White Female)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Black Female
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+se(Black Female)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Latina Female
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+se(Latina Female)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Other Female
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+se(Other Female)
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+0.33 & 17.19 & 1.11 & 15.28 & 0.99 & 22.26 & 2.16 & 21.51 & 2.39 \\
+0.50 & 17.52 & 1.16 & 15.55 & 1.04 & 22.71 & 2.27 & 21.98 & 2.39 \\
+0.75 & 17.46 & 1.16 & 15.48 & 1.05 & 22.58 & 2.13 & 21.78 & 2.35 \\
+0.90 & 17.42 & 1.17 & 15.47 & 1.06 & 22.54 & 2.24 & 21.86 & 2.33 \\
+1.00 & 17.31 & 1.15 & 15.39 & 1.06 & 22.21 & 2.21 & 21.33 & 2.30 \\
+1.10 & 17.39 & 1.20 & 15.44 & 1.09 & 22.45 & 2.21 & 21.83 & 2.41 \\
+1.25 & 17.63 & 1.14 & 15.65 & 1.04 & 22.74 & 2.20 & 22.17 & 2.37 \\
+1.50 & 17.44 & 1.22 & 15.48 & 1.10 & 22.51 & 2.24 & 21.90 & 2.33 \\
+2.00 & 17.40 & 1.22 & 15.43 & 1.08 & 22.60 & 2.09 & 21.80 & 2.46 \\
+\end{longtable}
+
+\hypertarget{tbl-cond-eff-m}{}
+\begin{longtable}[]{@{}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.0442}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.0973}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.1327}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.0973}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.1327}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.1239}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.1416}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.0973}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.1327}}@{}}
+\caption{\label{tbl-cond-eff-m}Estimated sentences lengths and posterior
+standard errors for the various sensitivity analysis conditions for
+White, Black, Latino/a, and Other race/ethnicity offenders for male
+offenders.}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedleft
+\(k\)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+White Male
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+se(White Male)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Black Male
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+se(Black Male)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Latino Female
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+se(Latina Male)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Other Male
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+se(Other Male)
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedleft
+\(k\)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+White Male
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+se(White Male)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Black Male
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+se(Black Male)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Latino Female
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+se(Latina Male)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Other Male
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+se(Other Male)
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+0.33 & 25.64 & 1.52 & 30.22 & 1.67 & 46.33 & 2.51 & 29.79 & 1.94 \\
+0.50 & 26.07 & 1.59 & 30.72 & 1.76 & 47.04 & 2.56 & 30.31 & 2.14 \\
+0.75 & 26.00 & 1.62 & 30.62 & 1.79 & 46.90 & 2.60 & 30.16 & 2.12 \\
+0.90 & 25.97 & 1.62 & 30.59 & 1.76 & 46.85 & 2.68 & 30.12 & 2.11 \\
+1.00 & 25.83 & 1.61 & 30.39 & 1.80 & 46.70 & 2.62 & 29.62 & 2.06 \\
+1.10 & 25.91 & 1.63 & 30.53 & 1.80 & 46.77 & 2.65 & 30.12 & 2.11 \\
+1.25 & 26.23 & 1.60 & 30.87 & 1.74 & 47.21 & 2.62 & 30.52 & 2.08 \\
+1.50 & 25.99 & 1.67 & 30.59 & 1.85 & 46.88 & 2.65 & 30.18 & 2.15 \\
+2.00 & 25.91 & 1.68 & 30.52 & 1.85 & 46.74 & 2.67 & 30.14 & 2.06 \\
+\end{longtable}
 
 \hypertarget{discussionconclusion}{%
 \subsection{Discussion/Conclusion}\label{discussionconclusion}}
@@ -1285,8 +1424,7 @@ Wright, M. N., \& Ziegler, A. (2017). Ranger: {A Fast Implementation} of
 }
 
 \caption{\label{fig-incar-cime}Incarceration decision by most serious
-crime type. INCAR == 1 indicates incarceration. INCAR == 0 indicates
-parole.}
+crime type. 1 indicates incarceration. 0 indicates parole.}
 
 \end{figure}
 
@@ -1342,26 +1480,26 @@ Term & Estimate & SE & LB 95\% CI & UB 95\% CI \\
 \bottomrule\noalign{}
 \endlastfoot
 Intercept & 3.87 & 0.03 & 3.82 & 3.92 \\
-DOSAGE & 0.04 & 0.00 & 0.04 & 0.05 \\
-DOSAGEQ & -0.02 & 0.00 & -0.03 & -0.02 \\
-SEXMale & 0.16 & 0.01 & 0.15 & 0.17 \\
-OFF\_RACEBLACK & -0.09 & 0.01 & -0.12 & -0.07 \\
-OFF\_RACELATINO & 0.03 & 0.05 & -0.07 & 0.13 \\
-OFF\_RACEOTHER & 0.15 & 0.06 & 0.03 & 0.27 \\
+Age & 0.04 & 0.00 & 0.04 & 0.05 \\
+Age\(^2\) & -0.02 & 0.00 & -0.03 & -0.02 \\
+Sex: Male & 0.16 & 0.01 & 0.15 & 0.17 \\
+Race: Black & -0.09 & 0.01 & -0.12 & -0.07 \\
+Race: Latino & 0.03 & 0.05 & -0.07 & 0.13 \\
+Race: Other & 0.15 & 0.06 & 0.03 & 0.27 \\
 OGS & 1.28 & 0.00 & 1.27 & 1.29 \\
-OGSQ & -0.13 & 0.00 & -0.13 & -0.13 \\
-PRVREC1D2D3 & 0.36 & 0.00 & 0.35 & 0.37 \\
-PRVREC4D5 & 0.86 & 0.01 & 0.85 & 0.87 \\
-PRVRECREVOCDRFEL & 1.30 & 0.01 & 1.28 & 1.32 \\
-RECMIN & 0.20 & 0.01 & 0.18 & 0.21 \\
-CRIMEDUI & -0.98 & 0.01 & -1.00 & -0.97 \\
-CRIMEOther & 0.00 & 0.01 & -0.01 & 0.02 \\
-CRIMEPersons & 0.15 & 0.01 & 0.14 & 0.16 \\
-CRIMEProperty & 0.14 & 0.01 & 0.13 & 0.15 \\
-TRIAL & 0.47 & 0.01 & 0.45 & 0.49 \\
-SEXMale:OFF\_RACEBLACK & 0.07 & 0.01 & 0.05 & 0.09 \\
-SEXMale:OFF\_RACELATINO & 0.13 & 0.05 & 0.03 & 0.23 \\
-SEXMale:OFF\_RACEOTHER & -0.12 & 0.06 & -0.24 & 0.00 \\
+OGS\(^2\) & -0.13 & 0.00 & -0.13 & -0.13 \\
+Prev. Rec.: 1D2D3 & 0.36 & 0.00 & 0.35 & 0.37 \\
+Prev. Rec.: 4D5 & 0.86 & 0.01 & 0.85 & 0.87 \\
+Prev. Rec.: REVOCDRFEL & 1.30 & 0.01 & 1.28 & 1.32 \\
+Rec. Minimum & 0.20 & 0.01 & 0.18 & 0.21 \\
+Crime: DUI & -0.98 & 0.01 & -1.00 & -0.97 \\
+Crime: Other & 0.00 & 0.01 & -0.01 & 0.02 \\
+Crime: Persons & 0.15 & 0.01 & 0.14 & 0.16 \\
+Crime: Property & 0.14 & 0.01 & 0.13 & 0.15 \\
+Trial & 0.47 & 0.01 & 0.45 & 0.49 \\
+Male \& Black & 0.07 & 0.01 & 0.05 & 0.09 \\
+Male \& Latino & 0.13 & 0.05 & 0.03 & 0.23 \\
+Male \& Other & -0.12 & 0.06 & -0.24 & 0.00 \\
 OGS:PRVREC1D2D3 & -0.02 & 0.00 & -0.02 & -0.01 \\
 OGS:PRVREC4D5 & -0.06 & 0.00 & -0.07 & -0.05 \\
 OGS:PRVRECREVOCDRFEL & -0.14 & 0.01 & -0.15 & -0.12 \\
@@ -1381,27 +1519,27 @@ Term & Estimate & SE & LB 95\% CI & UB 95\% CI \\
 \endhead
 \bottomrule\noalign{}
 \endlastfoot
-hu\_Intercept & 1.73 & 0.08 & 1.57 & 1.88 \\
-hu\_DOSAGE & 0.13 & 0.00 & 0.13 & 0.14 \\
-hu\_DOSAGEQ & 0.02 & 0.00 & 0.02 & 0.03 \\
-hu\_SEXMale & -0.32 & 0.01 & -0.33 & -0.31 \\
-hu\_OFF\_RACEBLACK & 0.03 & 0.01 & 0.01 & 0.06 \\
-hu\_OFF\_RACELATINO & -0.29 & 0.08 & -0.44 & -0.13 \\
-hu\_OFF\_RACEOTHER & -0.07 & 0.08 & -0.23 & 0.09 \\
-hu\_RECMIN & -0.89 & 0.01 & -0.91 & -0.87 \\
-hu\_OGS & -0.41 & 0.00 & -0.42 & -0.40 \\
-hu\_OGSQ & -0.22 & 0.00 & -0.23 & -0.21 \\
-hu\_PRVREC1D2D3 & -0.51 & 0.01 & -0.52 & -0.50 \\
-hu\_PRVREC4D5 & -1.11 & 0.01 & -1.13 & -1.09 \\
-hu\_PRVRECREVOCDRFEL & -1.47 & 0.02 & -1.51 & -1.43 \\
-hu\_CRIMEDUI & -1.68 & 0.01 & -1.69 & -1.66 \\
-hu\_CRIMEOther & -0.30 & 0.01 & -0.32 & -0.28 \\
-hu\_CRIMEPersons & -0.81 & 0.01 & -0.83 & -0.79 \\
-hu\_CRIMEProperty & -0.48 & 0.01 & -0.49 & -0.46 \\
-hu\_TRIAL & -0.80 & 0.02 & -0.85 & -0.76 \\
-hu\_SEXMale:OFF\_RACEBLACK & -0.31 & 0.02 & -0.34 & -0.28 \\
-hu\_SEXMale:OFF\_RACELATINO & -0.39 & 0.08 & -0.56 & -0.22 \\
-hu\_SEXMale:OFF\_RACEOTHER & -0.08 & 0.09 & -0.26 & 0.09 \\
+Intercept & 1.73 & 0.08 & 1.57 & 1.88 \\
+Age & 0.13 & 0.00 & 0.13 & 0.14 \\
+Age\(^2\) & 0.02 & 0.00 & 0.02 & 0.03 \\
+Sex: Male & -0.32 & 0.01 & -0.33 & -0.31 \\
+Race: Black & 0.03 & 0.01 & 0.01 & 0.06 \\
+Race: Latino & -0.29 & 0.08 & -0.44 & -0.13 \\
+Race: Other & -0.07 & 0.08 & -0.23 & 0.09 \\
+Rec. Minimum & -0.89 & 0.01 & -0.91 & -0.87 \\
+OGS & -0.41 & 0.00 & -0.42 & -0.40 \\
+OGS\(^2\) & -0.22 & 0.00 & -0.23 & -0.21 \\
+Prev. Rec.: 1D2D3 & -0.51 & 0.01 & -0.52 & -0.50 \\
+Prev. Rec.: 4D5 & -1.11 & 0.01 & -1.13 & -1.09 \\
+Prev. Rec.: REVOCDRFEL & -1.47 & 0.02 & -1.51 & -1.43 \\
+Crime: DUI & -1.68 & 0.01 & -1.69 & -1.66 \\
+Crime: Other & -0.30 & 0.01 & -0.32 & -0.28 \\
+Crime: Persons & -0.81 & 0.01 & -0.83 & -0.79 \\
+Crime: Property & -0.48 & 0.01 & -0.49 & -0.46 \\
+Trial & -0.80 & 0.02 & -0.85 & -0.76 \\
+Male \& Black & -0.31 & 0.02 & -0.34 & -0.28 \\
+Male \& Latino & -0.39 & 0.08 & -0.56 & -0.22 \\
+Male \& Other & -0.08 & 0.09 & -0.26 & 0.09 \\
 \end{longtable}
 
 \begin{figure}

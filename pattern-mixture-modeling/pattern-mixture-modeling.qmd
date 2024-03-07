@@ -51,6 +51,7 @@ library(broom.mixed)
 library(brms)
 library(VIM)
 library(bayesplot)
+library(stringr)
 
 theme_set(theme_bw())
 color_scheme_set("brightblue")
@@ -179,10 +180,10 @@ df <- df |> mutate(
             TRUE ~ NA
         ),
         OFF_RACE = case_when(
-            OFF_RACER == 1 ~ "WHITE",
-            OFF_RACER == 2 ~ "BLACK",
-            OFF_RACER == 3 ~ "LATINO",
-            OFF_RACER == 4 ~ "OTHER",
+            OFF_RACER == 1 ~ "White",
+            OFF_RACER == 2 ~ "Black",
+            OFF_RACER == 3 ~ "Latino",
+            OFF_RACER == 4 ~ "Other",
             TRUE ~ NA
         ),
         PRVREC = case_when(
@@ -214,8 +215,23 @@ df <- df |> mutate(
     # slice_sample(n = 10000) |>
     ungroup()
 
-df$OFF_RACE <- factor(df$OFF_RACE, levels = c("WHITE", "BLACK", "LATINO", "OTHER"))
+df$OFF_RACE <- factor(df$OFF_RACE, levels = c("White", "Black", "Latino", "Other"))
 df$PCASES <- df$NCASES / sum(county_ogs$NCASES)
+```
+
+```{r}
+#| label: sum-tab
+#| include: false
+#| eval: false
+
+df |>
+    summarize(
+        across(c(JP_MIN, OGS, OGSQ, DOSAGE, DOSAGEQ), list(Mean = mean, SD = sd), .names = "{.col}_{.fn}", na.rm = TRUE)
+    )  |>
+    tidyr::pivot_longer(everything(), cols_vary = "slowest", names_to = c("Variable", "stat"), names_pattern = "(.*)_(.*)") |>
+    tidyr::pivot_wider(id_cols = "Variable",
+                       names_from = "stat", values_from = "value",
+                       names_vary = "slowest")
 ```
 
 ```{r}
@@ -714,6 +730,53 @@ Here we include group-level effects for the year, the county, and the crime-type
 
 Under this model we are assuming the incomplete data are MAR and the missingness can be modeled entirely by the multiple imputation procedure.
 
+### Sensitivity Analysis using Pattern-mixture Models
+
+Evaluating the impacts of various nonignorable missingness mechanisms can be accomplished with pattern-mixture models. The values of the incomplete numeric data can be scaled or shifted. The same cannot be done with categorical imputations, instead the proportion of each category can be varied within the imputations compared to the observed distribution or the MAR imputed distribution.
+
+While there are very few missing sentence lengths, I could also modify the imputed sentence lengths with a scale $k$ or shift $\delta$. Scaling maintains that offenders that are non-incarcerated will remain non-incarcerated while the sentences of incarcerated defenders would shift. A positive shift would make all offenders incarcerated while a negative shift would impose negative sentence lengths that would need to be corrected to use Poisson or lognormal hurdle GLMs.
+
+```{r}
+#| label: rf-fit
+#| include: false
+#| eval: false
+c_dat_s <- na.exclude(df)
+
+fit_rf <- ranger::ranger(OFF_RACE ~ DOSAGE + DOSAGEQ + SEX + TRIAL + RECMIN + PRVREC + OGS + OGSQ + CRIME + YEAR + COUNTY + JP_MIN, 
+                         data = c_dat_s,
+                         probability = TRUE)
+
+print(fit_rf)
+
+fit_rf$confusion.matrix
+```
+
+```{r}
+#| label: rf-pred
+
+sample_rf_pd <- function(dat, fit, scale = c(1, 1, 1, 1)) {
+    pred_rf <- predict(fit, data = dat)
+    ppred_rf <- pred_rf$predictions
+    
+    plab <- unlist(lapply(1:nrow(dat), function(i) {
+        p_i <- ppred_rf[i,]
+        p_i <- p_i * scale
+        p_i <- 1/sum(p_i) * p_i
+        sample(colnames(ppred_rf), size = 1, prob = p_i)
+        }))
+}
+```
+
+To perturb the imputations, we modify the vector of probabilities $\mathbf{p} = (p_1, p_2, p_3, p_4)'$ of class membership for each racial/ethnic group under consideration (White, Black, Latino, or Other). A vector of scale parameters $\mathbf{k} = (k_1, k_2, k_3, k_4)'$ is chosen such that the new racial/ethnic group label will be drawn from the normalized vector $\mathbf{p}^* = \frac{1}{\sum_{j=1}^4 k_j p_j} (k_1 p_1, k_2 p_2, k_3 p_3, k_4 p_4)'$ so that the probability vectors remains the same if $k_j = 1$ for each $j = 1,\dots,4.$ For simplicity, we will focus on varying the probability of assigning a White label by changing only $k_1$ while holding $k_2 = k_3 = k_4 = 1.$
+
+The vector of probabilities $\mathbf{p}_i$ is obtained for each incomplete observation $i$ by re-fitting the same random forest used in the initial mulitple imputation step. This vector is then scaled and normalized using the same scaling vector $\mathbf{c}$ for all incomplete observations. The probability vectors $\mathbf{p}^*$ are used to draw new imputed racial/ethnic group labels for the incomplete observations. This procedure is repeated, including the model fitting, across each of the $M$ completed data sets resulting in a new set of $M$ completed data sets with modified imputations. The new set of completed data sets is then analyzed as before using an lognormal hurdle model.
+
+We choose to vary $k_1$ along the sequence $\{0.1, 0.33, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 2\}.$ When $k_1 = 1$, the imputations correspond to the original imputation model under the MAR assumption. For $k_1 < 1$, fewer observations are imputed with a White label than under the MAR assumption reflecting a more diverse population of offenders who have unknown or unreported race labels. The opposite is true for $k_1 > 1$, reflecting a more White population of offenders. We include cases such as $k_1 = 0.1$ and $k_1 = 0.33$ as well as $k_1 = 1.5$ and $k_1 = 2$ as rather implausible extreme conditions to investigate what could happen in the most extreme circumstances.
+
+## Results
+
+### Hurdle Model under MAR Assumption
+
 ```{r}
 #| label: brms-hurdle-model-prior2
 #| echo: false
@@ -777,7 +840,8 @@ smry2$fixed |>
     term2 = case_when(
       stringr::str_sub(term, 1,4) == "OFF_" ~ stringr::str_sub(term, 9, -1),
       stringr::str_sub(term, 1,3) == "SEX" ~ paste0("Male & ", stringr::str_sub(term, 17, -1)),
-      TRUE ~ NA)
+      TRUE ~ NA),
+    term2 = stringr::str_to_title(term2)
     ) |>
     select(term2, Estimate, Est.Error, `l-95% CI`, `u-95% CI`) |>
     kableExtra::kable(format = "markdown", digits = 2, escape = TRUE, row.names = FALSE,
@@ -798,7 +862,8 @@ smry2$fixed |>
     term2 = case_when(
       stringr::str_sub(term, 1,7) == "hu_OFF_" ~ stringr::str_sub(term, 12, -1),
       stringr::str_sub(term, 1,6) == "hu_SEX" ~ paste0("Male & ", stringr::str_sub(term, 20, -1)),
-      TRUE ~ NA)
+      TRUE ~ NA),
+    term2 = stringr::str_to_title(term2)
     ) |>
     select(term2, Estimate, Est.Error, `l-95% CI`, `u-95% CI`) |>
     kableExtra::kable(format = "markdown", digits = 2, escape = TRUE,
@@ -844,6 +909,22 @@ In @fig-cond-eff-brm2-racesex, we can visualize the impacts of race and sex on t
 #|   - Estimates on marginal sentence length (includes zeros).
 #|   - Estimates on probability of incarceration from the logistic regression on the zero-part of the lognormal hurdle model.
 
+ce_data_hu <- conditional_effects(fit_brm2, dpar = "hu", effects = "SEX:OFF_RACE", plot = FALSE)[[1]] |>
+      mutate(
+        effect2__ = stringr::str_to_title(effect2__)
+      )
+
+ggplot(ce_dat, aes(effect1__, estimate__, color = effect2__)) +
+    geom_errorbar(aes(x = effect1__, ymin = lower__, ymax = upper__), position = "dodge") +
+    geom_point() +
+    geom_line(linetype = "dashed", linewidth = 0.2) +
+    # facet_grid(effect1__~effect2__) +
+    ggthemes::scale_color_colorblind(name = "Offender Race") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    labs(x = "Sex", y = "Est. Sentence Length (days)") +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
 theme_set(theme_bw())
 plot(conditional_effects(fit_brm2, effects = "SEX:OFF_RACE"),
      ask = FALSE, plot = FALSE)[[1]] +
@@ -865,9 +946,12 @@ Results for the other terms in the model are reported in the Appendix.
 ce_data <- conditional_effects(fit_brm2, "SEX:OFF_RACE", plot = FALSE)[[1]]
 
 ce_data |>
+    mutate(
+         effect2__ = stringr::str_to_title(effect2__)
+    ) |>
     select(effect1__, effect2__, estimate__, se__, lower__, upper__) |>
     kableExtra::kable(format = "markdown", digits = 2, escape = TRUE,
-                      col.names = c("Sex", "Race", "Est", "SE", "LB 95% CI", "UB 95% CI"),
+                      col.names = c("Sex", "Offender Race", "Estimate", "SE", "LB 95% CI", "UB 95% CI"),
                       row.names = FALSE,
                       booktabs = TRUE)
     
@@ -1057,48 +1141,7 @@ ce_data |>
 
 <!-- ``` -->
 
-### Sensitivity Analysis using Pattern-mixture Models
-
-Evaluating the impacts of various nonignorable missingness mechanisms can be accomplished with pattern-mixture models. The values of the incomplete numeric data can be scaled or shifted. The same cannot be done with categorical imputations, instead the proportion of each category can be varied within the imputations compared to the observed distribution or the MAR imputed distribution.
-
-While there are very few missing sentence lengths, I could also modify the imputed sentence lengths with a scale $c$ or shift $\delta$. Scaling maintains that offenders that are non-incarcerated will remain non-incarcerated while the sentences of incarcerated defenders would shift. A positive shift would make all offenders incarcerated while a negative shift would impose negative sentence lengths that would need to be corrected to use Poisson or lognormal hurdle glms.
-
-```{r}
-#| label: rf-fit
-#| include: false
-#| eval: false
-c_dat_s <- na.exclude(df)
-
-fit_rf <- ranger::ranger(OFF_RACE ~ DOSAGE + DOSAGEQ + SEX + TRIAL + RECMIN + PRVREC + OGS + OGSQ + CRIME + YEAR + COUNTY + JP_MIN, 
-                         data = c_dat_s,
-                         probability = TRUE)
-
-print(fit_rf)
-
-fit_rf$confusion.matrix
-```
-
-```{r}
-#| label: rf-pred
-
-sample_rf_pd <- function(dat, fit, scale = c(1, 1, 1, 1)) {
-    pred_rf <- predict(fit, data = dat)
-    ppred_rf <- pred_rf$predictions
-    
-    plab <- unlist(lapply(1:nrow(dat), function(i) {
-        p_i <- ppred_rf[i,]
-        p_i <- p_i * scale
-        p_i <- 1/sum(p_i) * p_i
-        sample(colnames(ppred_rf), size = 1, prob = p_i)
-        }))
-}
-```
-
-To perturb the imputations, we modify the vector of probabilities $\mathbf{p} = (p_1, p_2, p_3, p_4)'$ of class membership for each racial/ethnic group under consideration (White, Black, Latino, or Other). A vector of scale parameters $\mathbf{c} = (c_1, c_2, c_3, c_4)'$ is chosen such that the new racial/ethnic group label will be drawn from the normalized vector $\mathbf{p}^* = \frac{1}{\sum_{j=1}^4 c_j p_j} (c_1 p_1, c_2 p_2, c_3 p_3, c_4 p_4)'$ so that the probability vectors remains the same if $c_j = 1$ for each $j = 1,\dots,4.$ For simplicity, we will focus on varying the probability of assigning a White label by changing only $c_1$ while holding $c_2 = c_3 = c_4 = 1.$
-
-The vector of probabilities $\mathbf{p}_i$ is obtained for each incomplete observation $i$ by re-fitting the same random forest used in the initial mulitple imputation step. This vector is then scaled and normalized using the same scaling vector $\mathbf{c}$ for all incomplete observations. The probability vectors $\mathbf{p}^*$ are used to draw new imputed racial/ethnic group labels for the incomplete observations. This procedure is repeated, including the model fitting, across each of the $M$ completed data sets resulting in a new set of $M$ completed data sets with modified imputations. The new set of completed data sets is then analyzed as before using an lognormal hurdle model. Estimates from each variation of $\mathbf{c}$ that is chosen are then compared graphically in @fig-sens-analysis-res.
-
-We choose to vary $c_1$ along the sequence $\{0.1, 0.33, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 2\}.$ When $c_1 = 1$, the imputations correspond to the original imputation model under the MAR assumption. For $c_1 < 1$, fewer observations are imputed with a White label than under the MAR assumption reflecting a more diverse population of offenders who have unknown or unreported race labels. The opposite is true for $c_1 > 1$, reflecting a more White population of offenders. We include cases such as $c_1 = 0.1$ and $c_1 = 0.33$ as well as $c_1 = 1.5$ and $c_1 = 2$ as rather implausible extreme conditions to investigate what could happen in the most extreme circumstances.
+### Sensitivity Analysis Results
 
 ```{r}
 #| label: fn-modify-imps
@@ -1358,9 +1401,15 @@ plt_list[[4]]
 #         labs(subtitle = "Other Offenders")
 ```
 
-@fig-sens-analysis-res displays the race effects on sentence length for the White, Black, Latino, and Other racial/ethnic groups. In general, we see that estimates for each ethnic group's expected incarceration decision and sentence length tend to be very stable regardless of how the distribution of race is perturbed. This indicates that our estimate under the MAR assumption is likely to be robust against violations of the MAR assumption on the race or ethnicity of offenders.
+@fig-cond-eff displays the race effects on sentence length for the White, Black, Latino, and Other racial/ethnic groups by sex (female/male) including the zero-day non-incarceration sentences. In general, we see that estimates for each ethnic group's expected incarceration decision and sentence length tend to be very stable regardless of how the imputation distribution of race is altered by $k$. This indicates that our estimate under the MAR assumption is likely to be robust against violations of the MAR assumption on the race or ethnicity of offenders.
+
+Since the estimates are statistically indistinguishable (i.e. the credible intervals for each estimate overlap for all $k$), we will take a closer look at the estimates under the MAR assumption where $k = 1$. The estimates under all $k$ are displayed in @tbl-cond-eff-f and @tbl-cond-eff-m. We find that White female offenders are predicted to receive sentences of 17.3 days with a 95% credible interval of 15.3 to 19.7 days, Black female offenders are predicted to receive sentences of 15.4 days (95% CI of (13.4, 17.6)), Latina female offenders are predicted to receive sentences of 22.2 days (95% CI of (18.3, 26.8)), and female offenders of another race/ethnicity are predicted to receive sentences of 21.3 days (95% CI of (17.2, 26.4)).
+
+Male offenders receive longer sentences than female offenders of the same race/ethnicity under all sensitivity levels $k$. We predict White male offenders to receive sentences of 25.8 days (95% CI of (22.9, 29.2)), Black male offenders to receive sentences of 30.4 day s (95% CI of (27.2, 34.1)), Latino male offenders to receive sentences of 46.7 days (95% CI of (41.8, 52.2)), and male offenders of another race/ethnicity to receive a sentence of 29.6 days (95% CI of (25.8, 34.0)).
 
 ```{r}
+#| label: cond-eff-sens-analysis
+
 sens_scales <- c(0.33, 0.5, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 2)
 sens_ce <- lapply(sens_scales, function(s) {
   fp <- paste0("../../crim-pattern-mixture/pattern-mixture-modeling/fits/sensitivity-analysis-fit-scale-", s, ".rds")
@@ -1368,7 +1417,8 @@ sens_ce <- lapply(sens_scales, function(s) {
   
   ce_data <- conditional_effects(fit_i, "SEX:OFF_RACE", plot = FALSE)[[1]] |>
       mutate(
-          scale = s
+          scale = s,
+        effect2__ = stringr::str_to_title(effect2__)
       )
 
   ce_data
@@ -1376,27 +1426,36 @@ sens_ce <- lapply(sens_scales, function(s) {
 ```
 
 ```{r}
+#| label: fig-cond-eff
+#| fig-cap: Estimated sentence lengths under each sensitivity analysis setting for White, Black, Latino/a, and Other race/ethincity offenders by Sex (female/male) including the zero-day non-incarcerated sentences.
 
 ce_dat <- bind_rows(sens_ce)
 
-ggplot(ce_dat, aes(scale, estimate__, color = OFF_RACE)) +
+ggplot(ce_dat, aes(scale, estimate__, color = effect2__)) +
     geom_errorbar(aes(x = scale, ymin = lower__, ymax = upper__)) +
     geom_point() +
     geom_line(linetype = "dashed", linewidth = 0.2) +
-    facet_grid(SEX~OFF_RACE) +
-    ggthemes::scale_color_colorblind() +
+    facet_grid(effect1__~effect2__) +
+    ggthemes::scale_color_colorblind(name = "Offender Race") +
     scale_x_continuous(breaks = sens_scales) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    labs(x = "Sex", y = "Est. Sentence Length (days)") +
+    theme_bw() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
 ```{r}
+#| label: load-cond-eff-hu
+
+
 sens_ce_hu <- lapply(sens_scales, function(s) {
   fp <- paste0("../../crim-pattern-mixture/pattern-mixture-modeling/fits/sensitivity-analysis-fit-scale-", s, ".rds")
   fit_i <- readRDS(fp)
   
   ce_data_hu <- conditional_effects(fit_i, dpar = "hu", effects = "SEX:OFF_RACE", plot = FALSE)[[1]] |>
       mutate(
-          scale = s
+          scale = s,
+        effect2__ = stringr::str_to_title(effect2__)
       )
 
   ce_data_hu
@@ -1405,25 +1464,36 @@ sens_ce_hu <- lapply(sens_scales, function(s) {
 ```
 
 ```{r}
+#| label: fig-cond-eff-hu
+#| fig-cap: Estimated probability of a zero-day non-incarcerated sentence under each sensitivity analysis setting for White, Black, Latino/a, and Other race/ethincity offenders by Sex (female/male)
+
+
 ce_dat_hu <- bind_rows(sens_ce_hu)
 
-ggplot(ce_dat_hu, aes(scale, estimate__, color = OFF_RACE)) +
+ggplot(ce_dat_hu, aes(scale, estimate__, color = effect2__)) +
     geom_errorbar(aes(x = scale, ymin = lower__, ymax = upper__)) +
     geom_point() +
     geom_line(linetype = "dashed", linewidth = 0.2) +
-    facet_grid(SEX~OFF_RACE) +
-    ggthemes::scale_color_colorblind() +
+    facet_grid(effect1__~effect2__) +
+    ggthemes::scale_color_colorblind(name = "Offender Race") +
     scale_x_continuous(breaks = sens_scales) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    labs(x = "Sex", y = "Est. Sentence Length (days)") +
+    theme_bw() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
 ```{r}
+#| label: fig-marginal-eff
+#| fig-cap: Estimated marginal sentence lengths under each sensitivity analysis setting for White, Black, Latino/a, and Other race/ethincity offenders by Sex (female/male) excluding the zero-day non-incarcerated sentences.
+
 ce_dat2 <- left_join(ce_dat, ce_dat_hu, by = c("scale", "effect1__", "effect2__"), suffix = c("_cond", "_hu")) |>
     mutate(
         estimate__ = estimate___cond / (1 - estimate___hu),
         se__ = (se___cond - se___hu) / (1 - estimate___hu)^2,
         lower__ = estimate__ - 2 * se__,
-        upper__ = estimate__ + 2 * se__
+        upper__ = estimate__ + 2 * se__,
+        effect2__ = stringr::str_to_title(effect2__)
         
     ) |>
     select(
@@ -1439,17 +1509,58 @@ ggplot(ce_dat2, aes(scale, estimate__, color = effect2__)) +
     geom_point() +
     geom_line(linetype = "dashed", linewidth = 0.2) +
     facet_grid(effect1__~effect2__) +
-    ggthemes::scale_color_colorblind() +
+    ggthemes::scale_color_colorblind(name = "Offender Race") +
     scale_x_continuous(breaks = sens_scales) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    labs(x = "Sex", y = "Est. Sentence Length (days)") +
+    theme_bw() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
 ```{r}
-ce_dat2 |>
+#| label: tbl-cond-eff-f
+#| tbl-cap: Estimated sentences lengths and posterior standard errors for the various sensitivity analysis conditions for White, Black, Latino/a, and Other race/ethnicity offenders for female offenders.
+
+
+ce_dat3 <- ce_dat |>
     tidyr::pivot_wider(id_cols = scale, names_from = c("effect1__", "effect2__"),
-                       values_from = "estimate___cond") |>
+                       values_from = c("estimate__", "se__"),
+                       names_vary = "slowest")
+ce_dat3[, 1:9] |>
+    kableExtra::kbl(format = "markdown", digits = 2, 
+                    col.names = c("$k$", "White Female", "se(White Female)", "Black Female", "se(Black Female)", "Latina Female", "se(Latina Female)", "Other Female", "se(Other Female)"))
+```
+
+```{r}
+#| label: tbl-cond-eff-m
+#| tbl-cap: Estimated sentences lengths and posterior standard errors for the various sensitivity analysis conditions for White, Black, Latino/a, and Other race/ethnicity offenders for male offenders.
+
+ce_dat3[,c(1, 10:17)] |>
+    kableExtra::kbl(format = "markdown", digits = 2,
+                    col.names = c("$k$", "White Male", "se(White Male)", "Black Male", "se(Black Male)", "Latino Male", "se(Latino Male)", "Other Male", "se(Other Male)"))
+```
+
+```{r}
+#| label: tbl-cond-eff-f-hu
+#| tbl-cap: Estimated sentences lengths and posterior standard errors for the various sensitivity analysis conditions for White, Black, Latino/a, and Other race/ethnicity offenders for female offenders.
+
+
+ce_dat2_hu <- ce_dat_hu |>
+    tidyr::pivot_wider(id_cols = scale, names_from = c("effect1__", "effect2__"),
+                       values_from = c("estimate__", "se__"),
+                       names_vary = "slowest")
+ce_dat2_hu[, 1:9] |>
     kableExtra::kbl(format = "markdown", digits = 3, 
-                    col.names = c("$k$", "White Female", "Black Female", "Latina Female", "Other Female", "White Male", "Black Male", "Latino Male", "Other Male"))
+                    col.names = c("$k$", "White Female", "se(White Female)", "Black Female", "se(Black Female)", "Latina Female", "se(Latina Female)", "Other Female", "se(Other Female)"))
+```
+
+```{r}
+#| label: tbl-cond-eff-m-hu
+#| tbl-cap: Estimated sentences lengths and posterior standard errors for the various sensitivity analysis conditions for White, Black, Latino/a, and Other race/ethnicity offenders for male offenders.
+
+ce_dat2_hu[,c(1, 10:17)] |>
+    kableExtra::kbl(format = "markdown", digits = 3,
+                    col.names = c("$k$", "White Male", "se(White Male)", "Black Male", "se(Black Male)", "Latino Male", "se(Latino Male)", "Other Male", "se(Other Male)"))
 ```
 
 ## Discussion/Conclusion
@@ -1477,13 +1588,15 @@ The authors would like to thank the Pennsylvania Commission on Sentencing (PCS) 
 
 ```{r}
 #| label: fig-incar-cime
-#| fig-cap: Incarceration decision by most serious crime type. INCAR == 1 indicates incarceration. INCAR == 0 indicates parole.
+#| fig-cap: Incarceration decision by most serious crime type. 1 indicates incarceration. 0 indicates parole.
 #| fig-height: 4
 #| include: true
 ggplot(df, aes(as.factor(INCAR), fill = CRIME)) +
     geom_bar(position = "dodge") +
-    ggthemes::scale_fill_colorblind() +
-  theme_bw()
+    ggthemes::scale_fill_colorblind(name = "Crime Type") +
+    theme_bw() +
+    labs(x = "Incarceration",
+         y = "Count")
 ```
 
 ```{r}
@@ -1508,7 +1621,7 @@ qqline(log1p(sent_non0[s]))
 #| label: fig-scatter-pairs
 #| fig-cap: Scatter plot matrix of the numeric predictors and the log plus one of the sentence length (days).
 #| include: false
-#| evale: false
+#| eval: false
 df |> 
     mutate(jp_min_l1p = log1p(JP_MIN)) |>
     select(DOSAGE, DOSAGEQ, OGS, OGSQ, TRIAL, RECMIN, jp_min_l1p) |>
@@ -1524,10 +1637,25 @@ fit_brm2 <- readRDS("../../crim-pattern-mixture/pattern-mixture-modeling/fits/se
 smry2 <- summary(fit_brm2)
 smry2$fixed$term <- rownames(smry2$fixed)
 smry2$fixed |>
-    select(term, Estimate, Est.Error, `l-95% CI`, `u-95% CI`) |>
     filter(
-        stringr::str_sub(term, 1,2) != "hu"
+        str_sub(term, 1,2) != "hu"
     ) |>
+  mutate(
+    term2 = case_when(
+        term == "DOSAGE" ~ "Age",
+        term == "DOSAGEQ" ~ "Age$^2$",
+        term == "SEXMale" ~ "Sex: Male",
+        term == "OGSQ" ~ "OGS$^2$",
+        term == "RECMIN" ~ "Rec. Minimum",
+        term == "TRIAL" ~ "Trial",
+        str_sub(term, 1,5) == "CRIME" ~ paste0("Crime: ", str_sub(term, 6, -1)),
+        str_sub(term, 1,6) == "PRVREC" ~ paste0("Prev. Rec.: ", str_sub(term, 7,-1)),
+        str_sub(term, 1,4) == "OFF_" ~ paste0("Race: ", str_to_title(str_sub(term, 9, -1))),
+          str_sub(term, 1,3) == "SEX" ~ paste0("Male & ", str_to_title(str_sub(term, 17, -1))),
+      TRUE ~ term),
+    # term2 = stringr::str_to_title(term2)
+    ) |>
+    select(term2, Estimate, Est.Error, `l-95% CI`, `u-95% CI`) |>
     kableExtra::kable(format = "markdown", digits = 2, escape = TRUE, row.names = FALSE,
                       col.names = c("Term", "Estimate", "SE", "LB 95% CI", "UB 95% CI"),
                       booktabs = TRUE)
@@ -1538,35 +1666,45 @@ smry2$fixed |>
 #| tbl-cap: Fixed/population-level effects for the zero part of the lognormal hurdle model.
 
 smry2$fixed |>
-    select(term, Estimate, Est.Error, `l-95% CI`, `u-95% CI`) |>
     filter(
         stringr::str_sub(term, 1,2) == "hu"
     ) |>
+  mutate(
+    term = str_sub(term, 4, -1),
+    term2 = case_when(
+        term == "DOSAGE" ~ "Age",
+        term == "DOSAGEQ" ~ "Age$^2$",
+        term == "SEXMale" ~ "Sex: Male",
+        term == "OGSQ" ~ "OGS$^2$",
+        term == "RECMIN" ~ "Rec. Minimum",
+        term == "TRIAL" ~ "Trial",
+        str_sub(term, 1,5) == "CRIME" ~ paste0("Crime: ", str_sub(term, 6, -1)),
+        str_sub(term, 1,6) == "PRVREC" ~ paste0("Prev. Rec.: ", str_sub(term, 7,-1)),
+        str_sub(term, 1,4) == "OFF_" ~ paste0("Race: ", str_to_title(str_sub(term, 9, -1))),
+          str_sub(term, 1,3) == "SEX" ~ paste0("Male & ", str_to_title(str_sub(term, 17, -1))),
+      TRUE ~ term),
+    # term2 = stringr::str_to_title(term2)
+    ) |>
+    select(term2, Estimate, Est.Error, `l-95% CI`, `u-95% CI`) |>
     kableExtra::kable(format = "markdown", digits = 2, escape = TRUE,
                       col.names = c("Term", "Estimate", "SE", "LB 95% CI", "UB 95% CI"),
                       row.names = FALSE,
                       booktabs = TRUE)
 ```
 
+### Details of Hierarchical Model Fitting
+
+The hierarchical lognormal model was fit using the mice R package for multiple imputation and the brms R package for model fitting. The brms package provides a frontend for fitting hierarchical or multilevel Bayesian regression models using the Stan programming language. The model fitting algorithm uses Hamiltonian Monte Carlo (HMC) to estimate a posterior distribution for the model parameters. HMC allows for shorter MCMC chains and for specific controls to be used in the MCMC process.
+
+In our model fitting with $M=5$ multiply imputed data sets, we use a single chain per data set with 1000 MCMC iterations for warmup/burn-in and 1000 samples from the posterior following warmup. The chains did not need to be thinned. The default HMC control parameters were used. Diagnostic plots for each of the model parameters are displayed in @fig-brm2-mcmc for the $k=1$ MAR model. These combo plots display the estimated posterior density of each parameter and the traceplots (the posterior draws over the 1000 sampling iterations plotted as a lineplot). We stack of the five MCMC chains from the five completed data sets' analysis in these figures. The figures are representative of the model fits across the values of $k$ we investigated in the sensitivity analysis. From the density plots we can see that the posteriors are well behaved with unimodal distributions and generally not skewed. The traceplots indicate that the posterior sampling was well-behaved with random draws from a stationary distribution for each parameter.
+
 ```{r}
 #| label: fig-brm2-mcmc
-#| fig-cap: MCMC plots for the lognormal hurdle model.
-#| fig-subcap: 
-#|   - Age
-#|   - Age Squared
-#|   - Sex
-#|   - Offender Race
-#|   - OGS
-#|   - OGS Squared
-#|   - Prev. Rec.
-#|   - Rec. Min. 
-#|   - Crime Type
-#|   - Trial
-#|   - Race by Sex
-#|   - OGS by Prev. Rec.
-#| layout-ncol: 3
+#| fig-cap: MCMC plots for the lognormal hurdle model. Lognormal regression coefficients are prefixed with "b_", "sd_COUNTY_", or "sigma". Logistic regression coefficients are prefixed "b_hu_" or "sd_COUNTY_hu_".
+#| fig-subcap: true
+#| layout-ncol: 4
 #| layout-nrow: 4
-#| include: false
+
 plot(fit_brm2, ask = FALSE, N = 3)
 ```
 
@@ -1626,9 +1764,11 @@ plot(conditional_effects(fit_brm2, dpar = "hu"), ask = FALSE)
 #|   - PPC Density Log of Sentence Length plus 1
 #|   - PPC Scatter of average error by age
 #| layout-ncol: 3
-#| include: false
 #| eval: false
-ppred2 <- posterior_predict(fit_brm2)
+#| include: false
+
+
+ppred2 <- posterior_predict(fit_brm2, ndraws = 25)
 pp_check(fit_brm2, ndraws = 25) +
     coord_cartesian(xlim = c(0, 60*30)) + 
     labs(title = "Posterior predictive checks",
